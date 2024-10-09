@@ -15,7 +15,7 @@ import * as $api_logout from './routes/api/logout.ts'
 import * as $api_terneo from './routes/api/terneo.ts'
 import * as $index from './routes/index.tsx'
 import * as $TerneoDevice from './islands/TerneoDevice.tsx'
-import { type Manifest } from '$fresh/server.ts'
+import type { Manifest } from '$fresh/server.ts'
 
 const manifest = {
   routes: {
