@@ -1,0 +1,58 @@
+{
+  "name": "@smartstay/client",
+  "version": "0.0.0",
+  "exports": "./dev.ts",
+  "tasks": {
+    "check": "deno fmt --check && deno lint && deno check **/*.ts && deno check **/*.tsx",
+    "cli": "echo \"import '\\$fresh/src/dev/cli.ts'\" | deno run --unstable -A -",
+    "manifest": "deno task cli manifest $(pwd)",
+    "dev": "deno run --unstable-kv --unstable-net --allow-net --allow-run -A --watch=static/,routes/ dev.ts",
+    "build": "deno run --unstable-kv --unstable-net -A dev.ts build",
+    "preview": "deno run -A main.ts",
+    "update": "deno run -A -r https://fresh.deno.dev/update ."
+  },
+  "imports": {
+    "$fresh/": "https://deno.land/x/fresh@1.6.8/",
+    "$std/": "https://deno.land/std@0.216.0/",
+    "@/": "./",
+    "@preact/signals": "https://esm.sh/*@preact/signals@1.2.2",
+    "@preact/signals-core": "https://esm.sh/*@preact/signals-core@1.5.1",
+    "clsx": "npm:clsx@^2.1.1",
+    "daisyui": "npm:daisyui@^4.12.13",
+    "date-fns": "npm:date-fns@^4.1.0",
+    "date-fns-tz": "npm:date-fns-tz@^3.2.0",
+    "es-toolkit": "jsr:@es-toolkit/es-toolkit@^1.23.0",
+    "i18next": "https://deno.land/x/i18next@v23.4.6/index.js",
+    "i18next_fs_backend": "https://deno.land/x/i18next_fs_backend@v2.3.2/index.js",
+    "i18next_http_middleware": "https://deno.land/x/i18next_http_middleware@v3.3.2/index.js",
+    "otpauth": "https://deno.land/x/otpauth@v9.3.2/dist/otpauth.esm.js",
+    "preact": "https://esm.sh/preact@10.19.6",
+    "preact/": "https://esm.sh/preact@10.19.6/",
+    "react": "https://esm.sh/preact@10.19.6/compat",
+    "react-dom": "https://esm.sh/preact@10.19.6/compat",
+    "react/jsx-runtime": "https://esm.sh/preact@10.19.6/jsx-runtime",
+    "tailwindcss": "npm:tailwindcss@3.4.1",
+    "tailwindcss/": "npm:/tailwindcss@3.4.1/",
+    "tailwindcss/plugin": "npm:/tailwindcss@3.4.1/plugin.js"
+  },
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
+  },
+  "lint": {
+    "rules": {
+      "tags": [
+        "fresh",
+        "recommended"
+      ]
+    }
+  },
+  "nodeModulesDir": true,
+  "exclude": [
+    "**/_fresh/*"
+  ],
+  "fmt": {
+    "semiColons": false,
+    "singleQuote": true
+  }
+}
