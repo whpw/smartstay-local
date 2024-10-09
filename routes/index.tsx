@@ -26,7 +26,6 @@ export default async function HomePage(
                   key={device.id}
                   device={device}
                   jwt={ctx.state.jwt}
-                  i18n={i18n}
                 />
               )
             }
