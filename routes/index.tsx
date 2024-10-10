@@ -10,8 +10,6 @@ export default async function HomePage(
 ) {
   const devices = await getDevices()
 
-  const i18n = ctx.state.i18n
-
   return (
     <div class='px-4 py-5 mx-auto'>
       <div class='max-w-screen-md mx-auto'>

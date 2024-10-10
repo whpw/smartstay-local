@@ -1,0 +1,7 @@
+{
+    "devices": {
+        "jacuzzi": {
+            "ends-in": "Koniec za: {{hours}}:{{minutes}}"
+        }
+    }
+}

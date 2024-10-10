@@ -1,6 +1,8 @@
 import { HOUR, MINUTE, SECOND } from '$std/datetime/constants.ts'
 import { DeviceConfig, JacuzziConfig } from '@/model/device.ts'
 import { JWTData } from '@/model/jwt.ts'
+import { i18n } from '@/utils/i18next-browser.ts'
+import { isSessionRunning } from '@/utils/isSessionRunning.ts'
 import { useSWR } from '@/utils/useSWR.ts'
 import { useRef, useState } from 'preact/hooks'
 
@@ -33,10 +35,10 @@ export const TerneoDevice = (
     // TODO support loading state
     if (!data) return <div>Loading...</div>
 
-    // Checking if session is running
-    const isRunning = data.sessionEnd !== null
     // Calculating duration that is left
-    const duration = (data.sessionEnd || 0) - Date.now()
+    const duration = Math.max((data.sessionEnd || 0) - Date.now(), 0)
+    // Checking if session is running
+    const isRunning = isSessionRunning(data.sessionEnd)
     // Calculating hours and minutes left
     const hours = Math.floor(duration / HOUR)
     const minutes = Math.floor(duration % HOUR / MINUTE)
@@ -112,7 +114,10 @@ export const TerneoDevice = (
                         disabled={isRunning}
                     >
                         {isRunning
-                            ? `Koniec za: ${hours}:${minutes}`
+                            ? i18n.t('devices.jacuzzi.ends-in', {
+                                hours,
+                                minutes,
+                            })
                             : 'Uruchom'}
                     </button>
                 </div>

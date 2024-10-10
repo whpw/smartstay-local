@@ -60,6 +60,6 @@ export async function handler(
 
     // Either no JWT or invalid JWT
     return Response.redirect(
-        Deno.env.get('LOGIN_URL') as string,
+        `${Deno.env.get('AUTH_SERVICE_URL')}/login`,
     )
 }

@@ -10,7 +10,7 @@ i18next
       namespace: string,
       callback: (err: unknown, data?: unknown) => void,
     ) {
-      Deno.readTextFile(`./locales/${language}/${namespace}.json`).then(
+      Deno.readTextFile(`./static/locales/${language}/${namespace}.json`).then(
         (locales) => {
           callback(null, JSON.parse(locales))
         },
@@ -25,9 +25,6 @@ i18next
     preload: ['pl', 'en'],
     detection: {
       ...freshReqResMapping,
-    },
-    backend: {
-      loadPath: '/locales/{{lng}}/{{ns}}.json',
     },
   })
 

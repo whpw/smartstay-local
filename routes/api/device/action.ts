@@ -4,9 +4,10 @@ import { getDeviceById, setDevice } from '@/devices/config.ts'
 import { scheduleStop } from '@/devices/queue.ts'
 import { JacuzziConfig } from '@/model/device.ts'
 import { JWTData } from '@/model/jwt.ts'
+import { isSessionRunning } from '@/utils/isSessionRunning.ts'
 import { terneoFetch } from '@/utils/terneo.ts'
 import { endOfToday, formatISO } from 'date-fns'
-import { isNull, pick } from 'es-toolkit'
+import { pick } from 'es-toolkit'
 
 export const config: RouteConfig = {
     routeOverride: '/api/device/:id/action',
@@ -110,11 +111,12 @@ async function getSessionsCount(resNumber: string, day: string) {
 
 async function startSession(device: JacuzziConfig) {
     // Start session
-    if (isNull(device.sessionEnd)) {
-        const delay = 1 * MINUTE
+    if (!isSessionRunning(device.sessionEnd)) {
+        // Session duration in milliseconds
+        const endIn = device.sessionDuration * MINUTE
 
         // Set session end time
-        device.sessionEnd = Date.now() + delay
+        device.sessionEnd = Date.now() + endIn
         device.targetTemp = device.defaultTemperature
 
         console.log(
@@ -144,7 +146,7 @@ async function startSession(device: JacuzziConfig) {
         await setDevice(device)
 
         // Schedule stop
-        await scheduleStop(device.id, delay)
+        await scheduleStop(device.id, endIn)
     } else {
         throw new Error('Session already started')
     }

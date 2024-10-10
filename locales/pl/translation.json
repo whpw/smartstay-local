@@ -1,9 +1,0 @@
-{
-    "admin": {
-        "login": {
-            "password": "Hasło",
-            "unauthorized": "Błąd logowania",
-            "submit": "Zaloguj się"
-        }
-    }
-}

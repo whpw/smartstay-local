@@ -8,7 +8,7 @@ export const handler: Handlers = {
         const jwt = ctx.state.jwt as JWTData
 
         // Constructing the login URL
-        const loginUrl = `${Deno.env.get('LOGIN_URL')}/${
+        const loginUrl = `${Deno.env.get('AUTH_SERVICE_URL')}/login/${
             encodeURIComponent(jwt.res.number)
         }/${encodeURIComponent(jwt.res.lastName)}`
 
