@@ -1,0 +1,40 @@
+{
+  "imports": {
+    "@/": "./",
+    "@es-toolkit/es-toolkit": "jsr:@es-toolkit/es-toolkit@^1.33.0",
+    "@supabase/ssr": "npm:@supabase/ssr@^0.6.1",
+    "@supabase/supabase-js": "jsr:@supabase/supabase-js@^2.49.1",
+    "tailwindcss": "npm:tailwindcss@4.0.8",
+    "$std/": "https://deno.land/std@0.216.0/",
+    "@emotion/react": "npm:@emotion/react@^11",
+    "@emotion/styled": "npm:@emotion/styled@^11",
+    "@mui/icons-material": "npm:@mui/icons-material@^7",
+    "@mui/material": "npm:@mui/material@^7",
+    "@mui/material-nextjs": "npm:@mui/material-nextjs@^7",
+    "@toolpad/core": "npm:@toolpad/core@0.13.0",
+    "next": "npm:next@^15.3.0-canary.24",
+    "next-auth": "npm:next-auth@5.0.0-beta.25",
+    "react": "npm:react@^19",
+    "react-dom": "npm:react-dom@^19"
+  },
+  "unstable": ["unsafe-proto"],
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
+  },
+  "fmt": {
+    "options": {
+      "semiColons": false,
+      "singleQuote": true,
+      "lineWidth": 100,
+      "indentWidth": 2,
+      "useTabs": false
+    }
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "exclude": [".next/*"]
+}
