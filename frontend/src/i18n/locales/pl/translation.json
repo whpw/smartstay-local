@@ -1,0 +1,64 @@
+{
+  "login": {
+    "title": "Zaloguj się",
+    "resNumber": "Numer rezerwacji",
+    "lastName": "Nazwisko z rezerwacji",
+    "submit": "Zaloguj się",
+    "error": "Błąd logowania :(",
+    "errorEmpty": "Wypełnij wszystkie pola",
+    "errorNotArrivedYet": "Logowanie jest możliwe tylko w trakcie pobytu."
+  },
+  "admin": {
+    "login": {
+      "password": "Hasło",
+      "submit": "Zaloguj",
+      "unauthorized": "Nieautoryzowany"
+    }
+  },
+  "upsell-modal": {
+    "title": "Wykorzystałeś limit na dzisiaj :(",
+    "details": "Czy chcesz wykupić dostęp?",
+    "buy": "Wykup dostęp",
+    "cancel": "Anuluj",
+    "thanks": "Zakup dodatku...",
+    "refresh": "Jeżeli zakupiłeś dodatek naciśnij przycisk \"Uruchom\".",
+    "start": "Uruchom"
+  },
+  "devices": {
+    "jacuzzi": {
+      "start": "Uruchom",
+      "ends-in": "Koniec za: {{time}}",
+      "current-temp": "Bieżąca {{temp}} °C",
+      "initializing": "Łączenie...",
+      "slider.title": "Temperatura",
+      "modal": {
+        "title": "Czy uruchomić jacuzzi?",
+        "until": "Do godziny: {{time}}",
+        "more-info": "Przeczytaj więcej informacji",
+        "details": "Po uruchomieniu sesji nie będzie możliwości jej zatrzymania. Jeżeli jeszcze dzisiaj będziesz chciał skorzystać z jacuzzi, konieczne będzie wykupienie nielimitowanego dostępu.",
+        "safety-rules": "Zasady korzystania z jacuzzi:",
+        "shower-rule": "Weź prysznic przed wejściem do jacuzzi",
+        "no-liquids-rule": "Nie wlej płynów, mydeł kąpielowych ani soli do jacuzzi",
+        "no-animals-rule": "Nie wpuszczaj swojego zwierzęcia do jacuzzi",
+        "start": "Uruchom",
+        "cancel": "Anuluj"
+      }
+    },
+    "sauna": {
+      "start": "Uruchom",
+      "ends-in": "Koniec za: {{time}}",
+      "modal": {
+        "title": "Czy uruchomić saunę?",
+        "until": "Do godziny: {{time}}",
+        "more-info": "Przeczytaj więcej informacji",
+        "details": "Instrukcja obsługi sauny będzie dostępna po jej uruchomieniu.",
+        "start": "Uruchom",
+        "cancel": "Anuluj"
+      },
+      "instructions": {
+        "title": "Instrukcja obsługi sauny",
+        "details": "Saunę obsługuje się za pomocą dwóch pokręteł umieszczonych na piecu.\n Pokrętłem z lewej strony ustawia się czas, prosimy o ustawianie nie dłużej niż na 4 godziny (wartości na białym tle od 0 do 4).\n Pokrętłem z prawej strony ustawia się moc. Prosimy tak regulować mocą by nie przekroczyć 100°C. Z reguły 2/3 mocy jest wystarczające w naszych saunach.\n Po zakończeniu korzystania z sauny prosimy o ustawienie obu pokręteł do pozycji zero.\n Nasza sauna jest sauną typu fińskiego. Odpowiednia i zdrowa dla organizmu temperatura to max 100°C, wilgotność w granicach 40-60%.\n Prosimy nie zalewać zbyt obficie kamieni wodą (to nie jest sauna parowa). Wystarczy raz na około 10-15 minut wlać dwie chochelki wody. Prosimy uważnie polewać po kamieniach, nie zalewając pieca."
+      }
+    }
+  }
+}

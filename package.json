@@ -1,0 +1,26 @@
+{
+  "name": "client-smartstay-app-hono",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "concurrently --kill-others --names backend,frontend -c red,blue \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run -w backend dev",
+    "dev:frontend": "npm run -w frontend dev",
+    "build": "npm run build -w frontend",
+    "start": "npm run start -w backend"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "devDependencies": {
+    "@tanstack/eslint-config": "^0.3.2",
+    "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.7.3"
+  }
+}

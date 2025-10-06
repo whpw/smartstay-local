@@ -1,0 +1,63 @@
+{
+  "login": {
+    "resNumber": "Reservation number",
+    "lastName": "Last name",
+    "submit": "Login",
+    "error": "Login failed :(",
+    "errorEmpty": "Please fill all fields",
+    "errorNotArrivedYet": "Login is possible only during stay."
+  },
+  "admin": {
+    "login": {
+      "password": "Password",
+      "submit": "Login",
+      "unauthorized": "Unauthorized"
+    }
+  },
+  "upsell-modal": {
+    "title": "You've used the limit today :(",
+    "details": "Do you want to purchase addon?",
+    "buy": "Buy addon",
+    "cancel": "Cancel",
+    "thanks": "Addon purchase...",
+    "refresh": "If you've purchased an addon, click the \"Start\" button.",
+    "start": "Start"
+  },
+  "devices": {
+    "jacuzzi": {
+      "start": "Start",
+      "ends-in": "Ends in: {{time}}",
+      "current-temp": "Current {{temp}} °C",
+      "initializing": "Initializing...",
+      "slider.title": "Temperature",
+      "modal": {
+        "title": "Do you want to start the jacuzzi?",
+        "until": "Until: {{time}}",
+        "more-info": "Read more information",
+        "details": "After starting the session, it will not be possible to stop it. If you still want to use the jacuzzi today, you will need to purchase unlimited access.",
+        "safety-rules": "Jacuzzi usage rules",
+        "shower-rule": "Take a shower before using the jacuzzi",
+        "no-liquids-rule": "Do not pour any liquids, bath soaps, or salts into the jacuzzi",
+        "no-animals-rule": "Do not let your animal into the jacuzzi",
+        "start": "Start",
+        "cancel": "Cancel"
+      }
+    },
+    "sauna": {
+      "start": "Start",
+      "ends-in": "Ends in: {{time}}",
+      "modal": {
+        "title": "Do you want to start the sauna?",
+        "until": "Until: {{time}}",
+        "more-info": "Read more information",
+        "details": "The instructions for operating the sauna will be available after starting the session.",
+        "start": "Start",
+        "cancel": "Cancel"
+      },
+      "instructions": {
+        "title": "Instructions for operating the sauna",
+        "details": "The sauna is controlled by two knobs placed on the stove.\n The left knob sets the time, please set it no longer than 4 hours (values on the white background from 0 to 4).\n The right knob sets the power. Please regulate the power so that it does not exceed 100°C. By default 2/3 of the power is sufficient in our saunas.\n After using the sauna, please set both knobs to zero.\n Our sauna is a Finnish sauna. The appropriate and healthy temperature for the body is max 100°C, humidity in the range of 40-60%.\n Please do not pour too much water on the stones (this is not a steam sauna). You can pour two tablespoons of water once every 10-15 minutes. Please pour carefully, do not pour on the stove."
+      }
+    }
+  }
+}
