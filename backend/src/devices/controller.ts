@@ -1,6 +1,6 @@
 import type { DeviceConfig } from '@/config'
+import type { ResDetails } from '@/models/ResDetails'
 import type { QueueMessage } from '@/queue'
-import type { ResDetails } from '@/utils/ResDetails'
 
 export abstract class DeviceController {
   abstract get id(): string

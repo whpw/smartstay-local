@@ -17,7 +17,7 @@ const api = new Hono().post(
   ),
   async (c) => {
     // Destructuring data
-    const { resNumber, lastName } = c.req.valid('json')
+    const { resNumber, lastName } = await c.req.json()
 
     // Checking if there are any params
     const hasParams = resNumber && lastName

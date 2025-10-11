@@ -1,3 +1,4 @@
+import { TZDate } from '@date-fns/tz'
 import {
   Box,
   Checkbox,
@@ -12,7 +13,6 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogContentText from '@mui/material/DialogContentText'
 import DialogTitle from '@mui/material/DialogTitle'
 import { lightFormat } from 'date-fns'
-import { toZonedTime } from 'date-fns-tz'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -65,7 +65,7 @@ export default function JacuzziStartButton({
       >
         {isRunning
           ? t('devices.jacuzzi.ends-in', {
-              time: lightFormat(toZonedTime(duration, 'UTC'), 'HH:mm'),
+              time: lightFormat(new TZDate(duration, 'UTC'), 'HH:mm'),
             })
           : t('devices.jacuzzi.start')}
       </Button>

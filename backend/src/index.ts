@@ -6,6 +6,7 @@ import path, { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { initConfig } from './config'
 import { updateLocalIP } from './config/updateLocalIP'
+import { ecoMode } from './cron/ecoMode'
 import { initDevices } from './devices'
 import { initQueue } from './queue'
 import { api as authApi } from './routes/auth'
@@ -21,10 +22,15 @@ const config = await initConfig()
 
 // Updating local IP
 await updateLocalIP(config.port)
+
 // Initializing devices
 await initDevices()
+
 // Initializing queue
 initQueue()
+
+// Init eco mode
+ecoMode()
 
 const app = new Hono()
 

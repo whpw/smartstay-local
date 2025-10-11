@@ -1,7 +1,7 @@
 import { getResDetails } from './getResDetails'
 
 import { db, toKey } from '@/db'
-import type { AddonDTO, ResDetails } from './ResDetails'
+import type { AddonDTO, ResDetails } from '../models/ResDetails'
 
 const WEEK = 60 * 60 * 24 * 7
 
@@ -63,14 +63,6 @@ export async function canStartSession(
     if (!resDetails) {
       return true
     }
-
-    // Setting session
-    // await setAppSession({
-    //   data: {
-    //     isAuthed: true,
-    //     reservation: resDetails,
-    //   },
-    // })
 
     // Checking if session can be started
     return checkAddons(resDetails.addons, deviceType, resNumber, day)

@@ -1,5 +1,5 @@
 import ky from 'ky'
-import type { FailedHotresRequestDTO } from './DTOs'
+import type { FailedHotresRequestDTO } from '../models/DTOs'
 
 import { config } from '@/config'
 
@@ -21,10 +21,7 @@ const api = ky.extend({
 })
 
 class HotresError extends Error {
-  constructor(
-    message: string,
-    public request?: object,
-  ) {
+  constructor(message: string, public request?: object) {
     super(message)
     this.name = 'HotresError'
   }
@@ -40,7 +37,7 @@ function throwIfError<T>(data: T | FailedHotresRequestDTO, request?: object) {
 export const DAO = {
   get: function <T>(
     url: string,
-    params: Record<string, string | number | boolean> = {},
+    params: Record<string, string | number | boolean> = {}
   ) {
     return api
       .get<T | FailedHotresRequestDTO>(url, {

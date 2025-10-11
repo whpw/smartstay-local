@@ -7,15 +7,15 @@ import {
 } from 'date-fns'
 import Mustache from 'mustache'
 
-import type { HotresReservationDTO } from '@/utils/DTOs'
+import type { HotresReservationDTO } from '@/models/DTOs'
 
 import { config } from '@/config'
 import { DAO } from '@/utils/DAO'
-import { $ResDetails, type AddonDTO, type ResDetails } from './ResDetails'
-
-// export const tpl = new Template()
-
-// export const tz = { timeZone: Deno.env.get('TZ') as string }
+import {
+  $ResDetails,
+  type AddonDTO,
+  type ResDetails,
+} from '../models/ResDetails'
 
 const isDev = process.env.NODE_ENV === 'development'
 

@@ -3,8 +3,8 @@ import { action, computed, observable, toJS } from 'mobx'
 
 import type { DeviceConfig } from '@/config'
 import type { Action, DeviceViewData } from '@/devices/controller'
+import type { ResDetails } from '@/models/ResDetails'
 import type { QueueMessage } from '@/queue'
-import type { ResDetails } from '@/utils/ResDetails'
 
 import { db, toKey } from '@/db'
 import { DeviceController } from '@/devices/controller'

@@ -1,3 +1,4 @@
+import { TZDate } from '@date-fns/tz'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import Accordion from '@mui/material/Accordion'
 import AccordionDetails from '@mui/material/AccordionDetails'
@@ -9,12 +10,10 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogContentText from '@mui/material/DialogContentText'
 import DialogTitle from '@mui/material/DialogTitle'
 import Typography from '@mui/material/Typography'
+import type { SaunaViewData } from '@repo/backend/controllers'
 import { lightFormat } from 'date-fns'
-import { toZonedTime } from 'date-fns-tz'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-
-import type { SaunaViewData } from '@repo/backend/controllers'
 
 const MINUTE = 60_000
 
@@ -53,7 +52,7 @@ export default function SaunaStartButton({
       >
         {isRunning
           ? t('devices.sauna.ends-in', {
-              time: lightFormat(toZonedTime(duration, 'UTC'), 'HH:mm'),
+              time: lightFormat(new TZDate(duration, 'UTC'), 'HH:mm'),
             })
           : t('devices.sauna.start')}
       </Button>

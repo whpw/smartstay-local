@@ -5,7 +5,7 @@ export let _db: FlatCache | null = null
 export const db = (): FlatCache => {
   if (!_db) {
     _db = new FlatCache({
-      cacheDir: '../appdata/cache',
+      cacheDir: '../../appdata/cache',
       persistInterval: 1000,
     })
   }

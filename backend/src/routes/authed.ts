@@ -1,6 +1,6 @@
 import { config } from '@/config'
 import { getDeviceController } from '@/devices'
-import type { ResDetails } from '@/utils/ResDetails'
+import type { ResDetails } from '@/models/ResDetails'
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { contextStorage, getContext } from 'hono/context-storage'
@@ -57,7 +57,7 @@ const api = app
       })
     ),
     async (c) => {
-      const { deviceId, action } = c.req.valid('json')
+      const { deviceId, action } = await c.req.json()
 
       try {
         // Get controller
