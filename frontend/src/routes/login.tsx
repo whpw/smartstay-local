@@ -13,6 +13,7 @@ import { useMutation } from '@tanstack/react-query'
 import useSignIn from 'react-auth-kit/hooks/useSignIn'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
+import type translation from '../i18n/locales/pl/translation.json'
 
 const getCookies = function () {
   return document.cookie.split(';').reduce(
@@ -38,6 +39,15 @@ function parseJwt(token: string) {
   )
 
   return JSON.parse(jsonPayload)
+}
+
+const isError = (data: unknown): data is { code: typeof translation } => {
+  return (
+    data !== null &&
+    data !== undefined &&
+    typeof data === 'object' &&
+    'code' in data
+  )
 }
 
 export const LoginRoute = () => {
@@ -96,7 +106,10 @@ export const LoginRoute = () => {
   })
 
   // Getting login error
-  const loginError = error || authData?.code
+  const loginError = (isError(error) && error) ||
+    (isError(authData) && authData) || {
+      code: 'login.error',
+    }
 
   return (
     <Container maxWidth="md" sx={{ mt: 8 }}>
@@ -107,7 +120,7 @@ export const LoginRoute = () => {
 
         {loginError && (
           <Alert severity="error" sx={{ mb: 3 }}>
-            {'code' in loginError ? t(loginError.code) : t('login.error')}
+            {t(loginError.code as 'login.error')}
           </Alert>
         )}
 

@@ -1,8 +1,8 @@
+import type { Action } from '@/models/ViewData'
 import { getDeviceController } from './index'
 
 import type { AuthedEnv } from '@/routes/authed'
 import { getContext } from 'hono/context-storage'
-import type { Action } from './controller'
 
 export const actionHandler = async (data: {
   deviceId: string

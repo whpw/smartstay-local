@@ -1,12 +1,10 @@
 {
   "name": "@repo/backend",
   "version": "1.0.0",
-  "private": true,
   "type": "module",
   "exports": {
     "./client": "./src/client.ts",
-    "./utils": "./src/models/ResDetails.ts",
-    "./controllers": "./src/controllers/index.ts"
+    "./models": "./src/models/index.ts"
   },
   "scripts": {
     "dev": "NODE_ENV=development tsx watch src/index.ts",

@@ -7,15 +7,15 @@ import {
 } from 'date-fns'
 import Mustache from 'mustache'
 
-import type { HotresReservationDTO } from '@/models/DTOs'
+import type { HotresReservationDTO } from '@/models/HotresDTOs'
 
 import { config } from '@/config'
-import { DAO } from '@/utils/DAO'
 import {
   $ResDetails,
   type AddonDTO,
   type ResDetails,
-} from '../models/ResDetails'
+} from '@/models/ResDetails'
+import { DAO } from '@/utils/DAO'
 
 const isDev = process.env.NODE_ENV === 'development'
 

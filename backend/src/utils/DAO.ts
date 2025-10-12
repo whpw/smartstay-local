@@ -1,5 +1,5 @@
+import type { FailedHotresRequestDTO } from '@/models/HotresDTOs'
 import ky from 'ky'
-import type { FailedHotresRequestDTO } from '../models/DTOs'
 
 import { config } from '@/config'
 
@@ -21,9 +21,11 @@ const api = ky.extend({
 })
 
 class HotresError extends Error {
-  constructor(message: string, public request?: object) {
+  public request?: object
+  constructor(message: string, request?: object) {
     super(message)
     this.name = 'HotresError'
+    this.request = request
   }
 }
 

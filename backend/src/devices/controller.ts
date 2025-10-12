@@ -1,5 +1,6 @@
 import type { DeviceConfig } from '@/config'
 import type { ResDetails } from '@/models/ResDetails'
+import type { Action, DeviceViewData } from '@/models/ViewData'
 import type { QueueMessage } from '@/queue'
 
 export abstract class DeviceController {
@@ -9,15 +10,11 @@ export abstract class DeviceController {
   abstract dispose(): void
   abstract get viewData(): DeviceViewData
   abstract processQueueMessage(msg: QueueMessage): Promise<void>
-  abstract invokeAction(action: Action, res: ResDetails): Promise<unknown>
+  abstract invokeAction(
+    action: Action,
+    res: ResDetails
+  ): Promise<DeviceViewData | { error: string }>
   public async toggleEcoMode(_gap: number) {
     // Doing nothing
   }
 }
-
-export interface Action {
-  type: string
-  value?: unknown
-}
-
-export type DeviceViewData = object

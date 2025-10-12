@@ -1,7 +1,7 @@
 import { getResDetails } from './getResDetails'
 
 import { db, toKey } from '@/db'
-import type { AddonDTO, ResDetails } from '../models/ResDetails'
+import type { AddonDTO, ResDetails } from '@/models/ResDetails'
 
 const WEEK = 60 * 60 * 24 * 7
 

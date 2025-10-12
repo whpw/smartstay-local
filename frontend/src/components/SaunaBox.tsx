@@ -15,7 +15,7 @@ import { UpsellModal } from './UpsellModal'
 
 import { isSessionRunning } from '@/utils/isSessionRunning'
 import { authedClient } from '@repo/backend/client'
-import type { SaunaViewData } from '@repo/backend/controllers'
+import type { SaunaViewData } from '@repo/backend/models'
 import { useMutation } from '@tanstack/react-query'
 
 export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
@@ -45,7 +45,7 @@ export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
         return
       }
       // Setting da
-      setData(data)
+      setData(data as SaunaViewData)
     },
   })
 
@@ -57,7 +57,7 @@ export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
     evtSource.addEventListener('device-state-update', (event) => {
       const receivedData = JSON.parse(event.data)
       console.log('Received sauna state update:', receivedData)
-      setData(receivedData)
+      setData(receivedData as SaunaViewData)
     })
 
     return () => {

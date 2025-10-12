@@ -1,46 +1,28 @@
 import { formatISO } from 'date-fns/formatISO'
 import { action, computed, observable, toJS } from 'mobx'
 
-import type { DeviceConfig } from '@/config'
-import type { Action, DeviceViewData } from '@/devices/controller'
+import {
+  SaunaActionType,
+  type Action,
+  type DeviceState,
+  type SaunaPersistentState,
+  type SaunaViewData,
+} from '@/models'
 import type { ResDetails } from '@/models/ResDetails'
 import type { QueueMessage } from '@/queue'
 
+import type { DeviceConfig } from '@/config'
 import { db, toKey } from '@/db'
 import { DeviceController } from '@/devices/controller'
 import { enqueueMessage } from '@/queue'
 import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
-
-const MINUTE = 60 * 1000
-
-export type SaunaState = 'idle' | 'active'
-
-export type SaunaPersistentState = {
-  state: SaunaState
-  session: SaunaSession | null
-}
-
-export type SaunaSession = {
-  startTime: number
-  endTime: number
-}
 
 export type SaunaConfig = {
   // Duration in minutes
   sessionDuration: number
 } & DeviceConfig
 
-export type SaunaViewData = DeviceViewData & {
-  state: SaunaState
-  session: SaunaSession | null
-  currentTemp: string
-  sessionDuration: number
-}
-
-export enum SaunaActionType {
-  START = 'START',
-  SET_TARGET_TEMP = 'SET_TARGET_TEMP',
-}
+const MINUTE = 60 * 1000
 
 export class SaunaController extends DeviceController {
   //
@@ -57,7 +39,7 @@ export class SaunaController extends DeviceController {
   public accessor currentTemp = ''
 
   @computed
-  public get state(): SaunaState {
+  public get state(): DeviceState {
     return this.persistentState.state
   }
 

@@ -3,11 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently --kill-others --names backend,frontend -c red,blue \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "npm run -w backend dev",
-    "dev:frontend": "npm run -w frontend dev",
-    "build": "npm run build -w frontend",
-    "start": "npm run start -w backend"
+    "dev": "pnpm --parallel dev",
+    "build": "pnpm -F frontend -r build",
+    "start": "pnpm -F backend -r start"
   },
   "author": "Piotr Walczyszyn <piotr.walczyszyn@gmail.com>",
   "devDependencies": {
@@ -19,5 +17,9 @@
   },
   "dependencies": {
     "@types/node": "^24.7.2"
-  }
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ]
 }

@@ -4,32 +4,23 @@ import { addHours, differenceInSeconds } from 'date-fns'
 import { formatISO } from 'date-fns/formatISO'
 import { action, computed, observable, runInAction, toJS, when } from 'mobx'
 
-import type { DeviceConfig } from '@/config'
-import type { Action, DeviceViewData } from '@/devices/controller'
-import type { ResDetails } from '@/models/ResDetails'
-import type { QueueMessage } from '@/queue'
+import type { ResDetails } from '../models/ResDetails'
+import type { QueueMessage } from '../queue'
 
+import type { DeviceConfig } from '@/config'
 import { db, toKey } from '@/db'
 import { DeviceController } from '@/devices/controller'
+import {
+  JacuzziActionType,
+  type Action,
+  type DeviceState,
+  type JacuzziPersistentState,
+  type JacuzziViewData,
+} from '@/models'
 import { enqueueMessage } from '@/queue'
 import { Deferred } from '@/utils/Deferred'
 import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
 import { terneoFetch } from '@/utils/terneo'
-
-const MINUTE = 60 * 1000
-
-export type JacuzziState = 'initializing' | 'idle' | 'active' | 'eco'
-
-export type JacuzziPersistentState = {
-  state: JacuzziState
-  session: JacuzziSession | null
-}
-
-export type JacuzziSession = {
-  targetTemp: number
-  startTime: number
-  endTime: number
-}
 
 export type JacuzziConfig = {
   sn: string
@@ -59,20 +50,7 @@ export type TerneoUdpData = {
   display: string
 }
 
-export type JacuzziViewData = DeviceViewData & {
-  state: JacuzziState
-  session: JacuzziSession | null
-  currentTemp: string
-  targetTemp: string
-  minTemp: number
-  maxTemp: number
-  sessionDuration: number
-}
-
-export enum JacuzziActionType {
-  START = 'START',
-  SET_TARGET_TEMP = 'SET_TARGET_TEMP',
-}
+const MINUTE = 60 * 1000
 
 export class JacuzziController extends DeviceController {
   //
@@ -94,7 +72,7 @@ export class JacuzziController extends DeviceController {
   private accessor terneoAddress!: string
 
   @computed
-  public get state(): JacuzziState {
+  public get state(): DeviceState {
     return this.persistentState.state
   }
 

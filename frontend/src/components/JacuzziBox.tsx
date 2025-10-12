@@ -6,7 +6,7 @@ import JacuzziStartButton from './JacuzziStartButton'
 
 import { isSessionRunning } from '@/utils/isSessionRunning'
 import { authedClient } from '@repo/backend/client'
-import type { JacuzziViewData } from '@repo/backend/controllers'
+import type { JacuzziViewData } from '@repo/backend/models'
 import { useMutation } from '@tanstack/react-query'
 import { UpsellModal } from './UpsellModal'
 
@@ -17,8 +17,8 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
   // Data state
   const [data, setData] = useState<JacuzziViewData>()
 
-  const [targetTemp, setTargetTemp] = useState<number>(
-    data?.targetTemp ?? undefined
+  const [targetTemp, setTargetTemp] = useState<number | undefined>(
+    data?.targetTemp ? parseFloat(data.targetTemp) : undefined
   )
 
   const [upsellingModalOpen, setUpsellingModalOpen] = useState(false)
@@ -42,7 +42,7 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
         return
       }
       // Setting da
-      setData(data)
+      setData(data as JacuzziViewData)
     },
   })
 
@@ -54,7 +54,7 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
     evtSource.addEventListener('device-state-update', (event) => {
       const receivedData = JSON.parse(event.data)
       console.log('Received jacuzzi state update:', receivedData)
-      setData(receivedData)
+      setData(receivedData as JacuzziViewData)
     })
 
     return () => {
