@@ -37,7 +37,7 @@ setTimeout(() => {
 
 export async function ecoMode() {
   // Logging
-  console.log('Checking eco mode...', new Date())
+  console.log('Checking eco mode...')
 
   // Getting timezone
   const tz = process.env.TZ || 'Europe/Warsaw'

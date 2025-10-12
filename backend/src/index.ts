@@ -58,6 +58,7 @@ const server = serve(
   {
     fetch: app.fetch,
     port: isProd ? 8080 : 8081,
+    hostname: '0.0.0.0',
   },
   (info) => {
     console.log(`Server is running on http://localhost:${info.port}`)
@@ -66,8 +67,10 @@ const server = serve(
 
 // graceful shutdown
 process.on('SIGINT', () => {
-  server.close()
-  process.exit(0)
+  server.close(() => {
+    console.log('Server closed...')
+    process.exit(0)
+  })
 })
 process.on('SIGTERM', () => {
   server.close((err) => {
