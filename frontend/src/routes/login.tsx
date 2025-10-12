@@ -10,6 +10,7 @@ import {
   Typography,
 } from '@mui/material'
 import { useMutation } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 
@@ -26,10 +27,20 @@ export const LoginRoute = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const lastName = params.get('lastName')
+    const resNumber = params.get('resNumber')
+    if (lastName && resNumber) {
+      login({ lastName, resNumber })
+    }
+  }, [])
+
   const {
     mutate: login,
     data: authData,
     error: authError,
+    isPending,
   } = useMutation({
     mutationFn: async ({
       resNumber,
@@ -98,6 +109,7 @@ export const LoginRoute = () => {
               variant="outlined"
               fullWidth
               required
+              disabled={isPending}
             />
 
             <TextField
@@ -106,6 +118,7 @@ export const LoginRoute = () => {
               variant="outlined"
               fullWidth
               required
+              disabled={isPending}
             />
 
             <Button
@@ -114,6 +127,7 @@ export const LoginRoute = () => {
               size="large"
               fullWidth
               sx={{ mt: 2 }}
+              disabled={isPending}
             >
               {t('login.submit')}
             </Button>
