@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "pnpm --parallel dev",
     "build": "pnpm -F frontend -r build",
-    "start": "pnpm -F backend -r start"
+    "start": "pnpm -F backend -r start",
+    "ncu": "ncu -w"
   },
   "author": "Piotr Walczyszyn <piotr.walczyszyn@gmail.com>",
   "devDependencies": {
