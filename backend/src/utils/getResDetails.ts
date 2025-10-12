@@ -66,7 +66,7 @@ export async function getResDetails(
   // Getting reservation from Hotres
   const res = isDev
     ? devRes()
-    : await DAO.get<HotresReservationDTO>('/api_reservationdetails', {
+    : await DAO.get<HotresReservationDTO>('api_reservationdetails', {
         reservations_number: resNumber,
       }).catch((err: Error) => {
         console.error('Error getting reservation from Hotres:', err)

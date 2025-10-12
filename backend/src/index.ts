@@ -36,6 +36,9 @@ const app = new Hono()
 
 const isProd = process.env.NODE_ENV === 'production'
 
+app.route('/api', authApi)
+app.route('/api', authedApi)
+
 if (isProd) {
   const __dirname = path.dirname(fileURLToPath(import.meta.url))
   const relativePathToScript = path.relative(process.cwd(), __dirname)
@@ -43,16 +46,16 @@ if (isProd) {
     '*',
     serveStatic({
       root: `${relativePathToScript}/../../frontend/dist`,
+      index: 'index.html',
+      rewriteRequestPath: (path) => {
+        if (path === '/login') {
+          return '/index.html'
+        }
+        return path
+      },
     })
   )
 }
-
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
-})
-
-app.route('/api', authApi)
-app.route('/api', authedApi)
 
 const server = serve(
   {
