@@ -28,8 +28,8 @@ export const LoginRoute = () => {
 
   const {
     mutate: login,
-    error,
     data: authData,
+    error: authError,
   } = useMutation({
     mutationFn: async ({
       resNumber,
@@ -45,19 +45,24 @@ export const LoginRoute = () => {
         },
       })
 
-      return await res.json()
+      // If response is not 200, throw error
+      if (res.status !== 200) {
+        // Log error
+        console.error('Error logging in:', res.statusText)
+        // Return error json
+        throw await res.json().catch(() => {
+          return { code: 'login.error' }
+        })
+      }
     },
     onSuccess: () => {
       navigate('/')
-    },
-    onError: (error) => {
-      console.error('Error logging in', error)
     },
   })
 
   // Getting login error
   const loginError =
-    (isError(error) && error) || (isError(authData) && authData)
+    (isError(authError) && authError) || (isError(authData) && authData)
 
   return (
     <Container maxWidth="md" sx={{ mt: 8 }}>

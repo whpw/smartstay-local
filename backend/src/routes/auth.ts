@@ -36,13 +36,13 @@ const api = new Hono().post(
     // Handling errors
     if (!isResDetails(resDetails)) {
       if ('code' in resDetails) {
-        return c.json(resDetails, 400)
+        return c.json(resDetails, 401)
       }
       return c.json(
         {
           code: 'login.unknown',
         },
-        400
+        401
       )
     }
 
