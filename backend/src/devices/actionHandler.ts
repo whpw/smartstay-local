@@ -21,8 +21,12 @@ export const actionHandler = async (data: {
       throw new Error('Reservation not found')
     }
 
+    console.log('Invoking action:', action)
+
     // Invoke action
     const result = await device.invokeAction(action, resDetails)
+
+    console.log('Action result:', result)
 
     return result as {}
   } catch (error) {
