@@ -20,6 +20,8 @@ function parseJwt(token: string) {
 }
 
 export function useResDetails() {
-  const { payload } = parseJwt(cookies.get('_auth') || '')
+  const cookie = cookies.get('_auth')
+  if (!cookie) return null
+  const { payload } = parseJwt(cookie)
   return payload as ResDetails
 }

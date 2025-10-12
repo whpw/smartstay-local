@@ -14,8 +14,10 @@ export const UpsellModal = ({
   open: boolean
   handleClose: () => void
 }) => {
+  // Translation
   const { t } = useTranslation()
 
+  // Getting reservation details
   const resDetails = useResDetails()
 
   return (

@@ -9,8 +9,8 @@ import { LoginRoute } from './routes/login'
 import { useResDetails } from './utils/useResDetails'
 
 const AuthOutlet = ({ fallbackPath }: { fallbackPath: string }) => {
-  const resDetails = useResDetails()
-  return resDetails ? <Outlet /> : <Navigate to={fallbackPath} />
+  const isAuthorized = !!useResDetails()
+  return isAuthorized ? <Outlet /> : <Navigate to={fallbackPath} />
 }
 
 const router = createBrowserRouter([
