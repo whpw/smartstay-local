@@ -1,11 +1,10 @@
+import { useResDetails } from '@/utils/useResDetails'
 import Button from '@mui/material/Button'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogContentText from '@mui/material/DialogContentText'
 import DialogTitle from '@mui/material/DialogTitle'
-import type { ResDetails } from '@repo/backend/models'
-import useAuthUser from 'react-auth-kit/hooks/useAuthUser'
 import { useTranslation } from 'react-i18next'
 
 export const UpsellModal = ({
@@ -17,7 +16,7 @@ export const UpsellModal = ({
 }) => {
   const { t } = useTranslation()
 
-  const resDetails = useAuthUser<ResDetails>()
+  const resDetails = useResDetails()
 
   return (
     <Dialog open={open} onClose={handleClose}>

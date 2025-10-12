@@ -16,7 +16,7 @@ import { lightFormat } from 'date-fns'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import type { JacuzziViewData } from '@repo/backend/models'
+import type { JacuzziViewData } from '@backend/models'
 
 const MINUTE = 60_000
 

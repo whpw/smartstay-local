@@ -1,6 +1,6 @@
 import { JacuzziBox } from '@/components/JacuzziBox'
+import { authedClient } from '@/dao'
 import { Stack } from '@mui/material'
-import { authedClient } from '@repo/backend/client'
 import { useQuery } from '@tanstack/react-query'
 import { SaunaBox } from '../components/SaunaBox'
 

@@ -13,9 +13,9 @@ import { useTranslation } from 'react-i18next'
 import SaunaStartButton from './SaunaStartButton'
 import { UpsellModal } from './UpsellModal'
 
+import { authedClient } from '@/dao'
 import { isSessionRunning } from '@/utils/isSessionRunning'
-import { authedClient } from '@repo/backend/client'
-import type { SaunaViewData } from '@repo/backend/models'
+import type { SaunaViewData } from '@backend/models'
 import { useMutation } from '@tanstack/react-query'
 
 export const SaunaBox = ({ deviceId }: { deviceId: string }) => {

@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next'
 
 import JacuzziStartButton from './JacuzziStartButton'
 
+import { authedClient } from '@/dao'
 import { isSessionRunning } from '@/utils/isSessionRunning'
-import { authedClient } from '@repo/backend/client'
-import type { JacuzziViewData } from '@repo/backend/models'
+import type { JacuzziViewData } from '@backend/models'
 import { useMutation } from '@tanstack/react-query'
 import { UpsellModal } from './UpsellModal'
 

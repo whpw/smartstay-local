@@ -60,6 +60,7 @@ const api = new Hono().post(
     await setSignedCookie(c, '_auth', signed, 'cookie-secret', {
       expires: new Date(resDetails.departureDate),
       httpOnly: false,
+      sameSite: 'Strict',
     })
 
     return c.json({ isAuthed: true }, 200)
