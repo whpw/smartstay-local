@@ -28,7 +28,8 @@
     "jacuzzi": {
       "start": "Uruchom",
       "ends-in": "Koniec za: {{time}}",
-      "current-temp": "Bieżąca {{temp}} °C",
+      "target-temp": "→ {{temp}} °C",
+      "current-temp": "Obecnie {{temp}} °C",
       "initializing": "Łączenie...",
       "slider.title": "Temperatura",
       "modal": {
@@ -38,7 +39,7 @@
         "details": "Po uruchomieniu sesji nie będzie możliwości jej zatrzymania. Jeżeli jeszcze dzisiaj będziesz chciał skorzystać z jacuzzi, konieczne będzie wykupienie nielimitowanego dostępu.",
         "safety-rules": "Zasady korzystania z jacuzzi:",
         "shower-rule": "Weź prysznic przed wejściem do jacuzzi",
-        "no-liquids-rule": "Nie wlej płynów, mydeł kąpielowych ani soli do jacuzzi",
+        "no-liquids-rule": "Nie wlewaj płynów, mydeł kąpielowych ani soli do jacuzzi",
         "no-animals-rule": "Nie wpuszczaj swojego zwierzęcia do jacuzzi",
         "start": "Uruchom",
         "cancel": "Anuluj"

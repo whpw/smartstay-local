@@ -109,7 +109,9 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
           justifyContent="space-between"
         >
           <Typography variant="h6">Jacuzzi</Typography>
-          <Typography variant="h6">→ {data.targetTemp} °C</Typography>
+          <Typography variant="h6">
+            {t('devices.jacuzzi.target-temp', { temp: data.targetTemp })}
+          </Typography>
         </Stack>
         <Stack
           direction="row"

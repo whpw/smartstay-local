@@ -27,7 +27,8 @@
     "jacuzzi": {
       "start": "Start",
       "ends-in": "Ends in: {{time}}",
-      "current-temp": "Current {{temp}} °C",
+      "target-temp": "→ {{temp}} °C",
+      "current-temp": "Current water temp {{temp}} °C",
       "initializing": "Initializing...",
       "slider.title": "Temperature",
       "modal": {
