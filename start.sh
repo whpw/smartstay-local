@@ -1,3 +1,2 @@
 #!/bin/bash
-. /home/smartstay/.nvm/nvm.sh
-npm start
+. ~/.nvm/nvm-exec npm start
