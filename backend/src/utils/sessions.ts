@@ -1,4 +1,4 @@
-import { getResDetails } from './getResDetails'
+import { getResDetails } from '@/reservations'
 
 import { db, toKey } from '@/db'
 import type { AddonDTO, ResDetails } from '@/models/ResDetails'

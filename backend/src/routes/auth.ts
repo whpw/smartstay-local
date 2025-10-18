@@ -1,4 +1,4 @@
-import { getResDetails, isResDetails } from '@/utils/getResDetails'
+import { getResDetails, isResDetails } from '@/reservations'
 import { zValidator } from '@hono/zod-validator'
 import { differenceInSeconds } from 'date-fns'
 import { Hono } from 'hono'

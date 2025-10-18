@@ -64,7 +64,7 @@ export class JacuzziController extends DeviceController {
   }
 
   @observable
-  public accessor currentTemp = ''
+  public accessor currentTemp = 0
 
   private udpListener: dgram.Socket | null = null
 
@@ -91,9 +91,8 @@ export class JacuzziController extends DeviceController {
       state: this.state,
       session,
       currentTemp: this.currentTemp,
-      targetTemp: session
-        ? String(session.targetTemp)
-        : String(this.config.idleTemp),
+      targetTemp: session ? session.targetTemp : this.config.idleTemp,
+      defaultTemp: this.config.sessionTemp,
       minTemp: this.config.minTemp,
       maxTemp: this.config.maxTemp,
       sessionDuration: this.config.sessionDuration,
@@ -414,7 +413,7 @@ export class JacuzziController extends DeviceController {
           this.terneoAddress = rinfo.address
 
           // Set current temp
-          this.currentTemp = terneoData.display
+          this.currentTemp = parseFloat(terneoData.display || '0')
         })
       } else {
         console.log('UDP - Skipping device', terneoData)

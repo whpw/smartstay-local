@@ -26,8 +26,9 @@ export type JacuzziSession = {
 
 export type JacuzziViewData = DeviceViewData & {
   session: JacuzziSession | null
-  currentTemp: string
-  targetTemp: string
+  currentTemp: number
+  targetTemp: number
+  defaultTemp: number
   minTemp: number
   maxTemp: number
   sessionDuration: number

@@ -18,7 +18,7 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
   const [data, setData] = useState<JacuzziViewData>()
 
   const [targetTemp, setTargetTemp] = useState<number | undefined>(
-    data?.targetTemp ? parseFloat(data.targetTemp) : undefined
+    data?.targetTemp ? data.targetTemp : 0
   )
 
   const [upsellingModalOpen, setUpsellingModalOpen] = useState(false)
@@ -52,9 +52,9 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
     })
 
     evtSource.addEventListener('device-state-update', (event) => {
-      const receivedData = JSON.parse(event.data)
-      console.log('Received jacuzzi state update:', receivedData)
-      setData(receivedData as JacuzziViewData)
+      const receivedData = JSON.parse(event.data) as JacuzziViewData
+      setData(receivedData)
+      setTargetTemp(receivedData.targetTemp)
     })
 
     return () => {
@@ -88,7 +88,9 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
     startSession()
   }
 
+  // Checking if data is loaded
   if (!data) return <div>Loading...</div>
+
   return (
     <>
       <Stack
@@ -131,53 +133,34 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
         </Stack>
         {isRunning && (
           <Box>
-            <Stack spacing={2} direction="row" sx={{ alignItems: 'center' }}>
+            <Stack
+              spacing={2}
+              direction="row"
+              sx={{ alignItems: 'center', mb: 2 }}
+            >
               <Typography variant="body2">{data.minTemp}&nbsp;°C</Typography>
               <Slider
                 aria-label={t('devices.jacuzzi.slider.title')}
                 min={data.minTemp}
                 max={data.maxTemp}
                 value={targetTemp}
+                marks={[
+                  {
+                    value: data.defaultTemp,
+                    label: `${data.defaultTemp}°C`,
+                  },
+                ]}
                 valueLabelDisplay="auto"
-                onInput={(e) => {
-                  const target = e.target as HTMLInputElement
-                  if (target) {
-                    setTargetTemp(parseInt(target.value))
-                  }
+                onChange={(_e, value) => {
+                  setTargetTemp(value)
                 }}
-                onChange={(e) => {
-                  const target = e.target as HTMLInputElement
-                  if (target) {
-                    setTargetTemp(parseInt(target.value))
-                    onTemperatureChange(parseInt(target.value))
-                  }
+                onChangeCommitted={(_e, value) => {
+                  setTargetTemp(value)
+                  onTemperatureChange(value)
                 }}
               />
               <Typography variant="body2">{data.maxTemp}&nbsp;°C</Typography>
             </Stack>
-            {/* <input
-              type='range'
-              min={data.minTemp}
-              max={data.maxTemp}
-              value={targetTemp}
-              onInput={(e) => {
-                const target = e.target as HTMLInputElement
-                if (target) {
-                  setTargetTemp(target.value)
-                }
-              }}
-              onChange={(e) => {
-                const target = e.target as HTMLInputElement
-                if (target) {
-                  setTargetTemp(target.value)
-                  onTemperatureChange(parseInt(target.value))
-                }
-              }}
-              className='range range-accent [--range-fill:0] w-full'
-              step='1'
-              title={t('devices.jacuzzi.slider.title')}
-              disabled={isDisabled}
-            /> */}
           </Box>
         )}
       </Stack>

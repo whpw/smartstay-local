@@ -25,7 +25,7 @@ export const Layout = () => {
         mt: 8,
       }}
     >
-      <Stack sx={{ alignItems: 'center', gap: 2 }}>
+      <Stack sx={{ alignItems: 'center', gap: 2, mb: 3 }}>
         <Box component="img" src={logo} alt="logo" sx={{ width: 300 }} />
         <Typography variant="h6" fontSize={24} color="textSecondary">
           Lewy Brzeg Narwi

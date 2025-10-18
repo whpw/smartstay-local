@@ -1,10 +1,4 @@
-import {
-  addDays,
-  formatISO,
-  isWithinInterval,
-  setHours,
-  subDays,
-} from 'date-fns'
+import { isWithinInterval, setHours } from 'date-fns'
 import Mustache from 'mustache'
 
 import type { HotresReservationDTO } from '@/models/HotresDTOs'
@@ -16,6 +10,8 @@ import {
   type ResDetails,
 } from '@/models/ResDetails'
 import { DAO } from '@/utils/DAO'
+import { adminRes } from './admin'
+import { devRes } from './dev'
 
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -27,52 +23,31 @@ export function normalizeLastName(lastName: string) {
   return lastName.trim().toLowerCase()
 }
 
-// Development reservation
-const devRes = () => ({
-  id: '1',
-  number: 12345,
-  first_name: 'John',
-  last_name: 'test',
-  email: 'johndoe@wp.pl',
-  auth: 'xxx',
-  rooms: [
-    {
-      room_id: config.roomId,
-      arrival_date: formatISO(subDays(new Date(), 1), {
-        representation: 'date',
-      }),
-      departure_date: formatISO(addDays(new Date(), 1), {
-        representation: 'date',
-      }),
-      addons: [],
-    },
-  ],
-  addons: [
-    {
-      title: 'jedna sesja jacuzzi [kod: jacuzzi-per-session]',
-      quantity: '100',
-    },
-    {
-      title: 'Sauna na cały pobyt [kod: sauna-per-stay]',
-      quantity: '1',
-    },
-  ],
-})
-
 export async function getResDetails(
   resNumber: string,
   lastName: string
 ): Promise<ResDetails> {
-  // Getting reservation from Hotres
-  const res = isDev
-    ? devRes()
-    : await DAO.get<HotresReservationDTO>('api_reservationdetails', {
-        reservations_number: resNumber,
-      }).catch((err: Error) => {
-        console.error('Error getting reservation from Hotres:', err)
-        return []
-      })
+  // Checking if it's admin
+  const isAdmin =
+    resNumber === process.env.ADMIN_RES_NUMBER &&
+    lastName === process.env.ADMIN_LAST_NAME
 
+  // Getting reservation from Hotres
+  let res: HotresReservationDTO | never[]
+  if (isAdmin) {
+    res = adminRes()
+  } else if (isDev) {
+    res = devRes()
+  } else {
+    res = await DAO.get<HotresReservationDTO>('api_reservationdetails', {
+      reservations_number: resNumber,
+    }).catch((err: Error) => {
+      console.error('Error getting reservation from Hotres:', err)
+      return []
+    })
+  }
+
+  // In edge cases Hotres returns an empty array
   if (Array.isArray(res)) {
     console.error(
       'Error getting reservation from Hotres: Invalid response',
