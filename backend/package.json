@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "NODE_ENV=development tsx watch src/index.ts",
-    "start": "NODE_ENV=production tsx src/index.ts"
+    "start": "NODE_ENV=production node dist/index.js",
+    "build": "esbuild src/index.ts --bundle --platform=node --sourcemap --packages=external --format=esm --target=es2022 --outdir=./dist"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@types/ical": "^0.8.3",
-    "@types/mustache": "^4.2.6"
+    "@types/mustache": "^4.2.6",
+    "esbuild": "^0.25.11"
   }
 }
