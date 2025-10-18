@@ -76,9 +76,15 @@ export const LoginRoute = () => {
     (isError(authError) && authError) || (isError(authData) && authData)
 
   return (
-    <Container maxWidth="md" sx={{ mt: 8 }}>
+    <Container maxWidth="md" sx={{ mt: 2 }}>
       <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-        <Typography variant="h4" component="h1" gutterBottom align="center">
+        <Typography
+          variant="h5"
+          component="h2"
+          gutterBottom
+          align="center"
+          sx={{ mb: 3 }}
+        >
           {t('login.title')}
         </Typography>
 

@@ -53,11 +53,12 @@ export async function initConfig() {
       },
     })
     .json()
-    .then(async (resConfig: AppConfig) => {
+    .then((resConfig: AppConfig) => {
       console.log('Remote config initialized successfully')
 
       // Storing config
-      await db().set('config', resConfig)
+      db().set('config', resConfig)
+
       // Return received config
       return resConfig
     })
