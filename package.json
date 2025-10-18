@@ -6,17 +6,17 @@
     "dev": "pnpm --parallel dev",
     "build": "pnpm -F frontend -r build",
     "start": "pnpm -F backend -r start",
-    "ncu": "ncu -w"
+    "ncu": "ncu -w -u"
   },
   "author": "Piotr Walczyszyn <piotr.walczyszyn@gmail.com>",
   "devDependencies": {
     "@tanstack/eslint-config": "^0.3.2",
-    "pnpm": "^10.18.2",
+    "pnpm": "^10.18.3",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@types/node": "^24.7.2"
+    "@types/node": "^24.8.1"
   },
   "workspaces": [
     "backend",

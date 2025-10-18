@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { initConfig } from './config'
 import { updateLocalIP } from './config/updateLocalIP'
 import { ecoMode } from './cron/ecoMode'
-import { initDevices } from './devices'
+import { devices, initDevices } from './devices'
 import { initQueue } from './queue'
 import { api as authApi } from './routes/auth'
 import { api as authedApi } from './routes/authed'
@@ -72,6 +72,11 @@ const server = serve(
 process.on('SIGINT', () => {
   server.close(() => {
     console.log('Server closed...')
+
+    Object.values(devices).forEach((device) => {
+      device.dispose()
+    })
+
     process.exit(0)
   })
 })
