@@ -7,6 +7,7 @@ const isDev = process.env.NODE_ENV === 'development'
 export type DeviceConfig = {
   id: string
   type: string
+  name: string
 }
 
 export type AppConfig = {

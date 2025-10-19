@@ -55,6 +55,7 @@ export class SaunaController extends DeviceController {
   public get viewData(): SaunaViewData {
     const session = toJS(this.persistentState.session ?? null)
     return {
+      name: this.config.name,
       state: this.state,
       session,
       currentTemp: this.currentTemp,

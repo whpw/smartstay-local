@@ -18,7 +18,7 @@ export const HomeRoute = () => {
         if (device.type === 'sauna') {
           return <SaunaBox key={device.id} deviceId={device.id} />
         }
-        if (device.type === 'jacuzzi') {
+        if (device.type == 'jacuzzi') {
           return <JacuzziBox key={device.id} deviceId={device.id} />
         }
         return null

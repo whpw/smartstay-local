@@ -1,15 +1,11 @@
-import dgram from 'node:dgram'
-
-import { addHours, differenceInSeconds } from 'date-fns'
 import { formatISO } from 'date-fns/formatISO'
 import { action, computed, observable, runInAction, toJS, when } from 'mobx'
 
 import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
 
-import type { DeviceConfig } from '@/config'
 import { db, toKey } from '@/db'
-import { DeviceController } from '@/devices/controller'
+import { DeviceController, type JacuzziConfig } from '@/devices/controller'
 import {
   JacuzziActionType,
   type Action,
@@ -18,42 +14,12 @@ import {
   type JacuzziViewData,
 } from '@/models'
 import { enqueueMessage } from '@/queue'
-import { Deferred } from '@/utils/Deferred'
 import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
-import { terneoFetch } from '@/utils/terneo'
-import ky from 'ky'
-
-export type JacuzziConfig = {
-  sn: string
-  totp: string
-
-  // Duration in minutes
-  sessionDuration: number
-  sessionTemp: number
-  sessionHysteresis: number
-
-  ecoTemp: number
-  ecoHysteresis: number
-  ecoModeTreshold: number
-
-  idleTemp: number
-  idleHysteresis: number
-  minTemp: number
-  maxTemp: number
-} & DeviceConfig
-
-export type TerneoUdpData = {
-  sn: string
-  hw: string
-  cloud: string
-  connection: string
-  wifi: string
-  display: string
-}
+import ky, { type KyInstance } from 'ky'
 
 const MINUTE = 60 * 1000
 
-export class JacuzziController extends DeviceController {
+export class JacuzziThermoBoxController extends DeviceController {
   //
 
   private config!: JacuzziConfig
@@ -67,15 +33,12 @@ export class JacuzziController extends DeviceController {
   @observable
   public accessor currentTemp = 0
 
-  private udpListener: dgram.Socket | null = null
+  private deviceApi!: KyInstance
 
   private statePollingInterval: NodeJS.Timeout | null = null
 
   @observable
   private accessor pollingError = false
-
-  @observable
-  private accessor terneoAddress!: string
 
   @computed
   public get state(): DeviceState {
@@ -96,6 +59,7 @@ export class JacuzziController extends DeviceController {
     return {
       state: this.state,
       session,
+      name: this.config.name,
       currentTemp: this.currentTemp,
       targetTemp: session ? session.targetTemp : this.config.idleTemp,
       defaultTemp: this.config.sessionTemp,
@@ -111,10 +75,7 @@ export class JacuzziController extends DeviceController {
     this.config = config
 
     // Initialize UDP listener
-    this.initUdpListener()
-
-    // Wait for terneo address
-    await when(() => !!this.terneoAddress)
+    await this.initDeviceApi()
 
     // Load current session
     await this.loadCurrentState()
@@ -127,12 +88,6 @@ export class JacuzziController extends DeviceController {
   }
 
   public dispose() {
-    try {
-      // Dispose of the controller
-      this.udpListener?.close()
-    } catch (error) {
-      console.error('Error disposing of controller:', error)
-    }
     if (this.statePollingInterval) {
       clearInterval(this.statePollingInterval)
     }
@@ -140,11 +95,21 @@ export class JacuzziController extends DeviceController {
 
   public async processQueueMessage(msg: QueueMessage) {
     // Checking if message is for this device
-    if (msg.deviceId === this.id && msg.action === 'stop-session') {
-      // Waiting for active state
-      await when(() => this.state !== 'initializing')
-      // Stop session
-      await this.stopSession()
+    if (msg.deviceId === this.id) {
+      switch (msg.action) {
+        case 'stop-session':
+          // Waiting for active state
+          await when(() => this.state !== 'initializing')
+          // Stop session
+          await this.stopSession()
+          break
+        case 'stop-eco':
+          // Waiting for active state
+          await when(() => this.state !== 'initializing')
+          // Stop session
+          await this.stopSession()
+          break
+      }
     }
   }
 
@@ -226,7 +191,7 @@ export class JacuzziController extends DeviceController {
     this.persistentState = observable(state)
 
     // Start session
-    await this.updateDevice(true)
+    await this.updateDevice()
   }
 
   @action.bound
@@ -243,7 +208,7 @@ export class JacuzziController extends DeviceController {
       session.targetTemp = temp
 
       // Updating device
-      await this.updateDevice(true)
+      await this.updateDevice()
     }
   }
 
@@ -262,7 +227,7 @@ export class JacuzziController extends DeviceController {
     this.persistentState = observable(state)
 
     // Updating device after session was cleared
-    await this.updateDevice(true)
+    await this.updateDevice()
   }
 
   public override async toggleEcoMode(gap: number) {
@@ -276,38 +241,31 @@ export class JacuzziController extends DeviceController {
 
       // Turn on eco mode
       if (gap > ecoModeTreshold) {
-        // Calculating eco end
-        const ecoEnd = differenceInSeconds(
-          addHours(new Date(), gap - ecoModeTreshold),
-          new Date('2000-01-01T00:00:00')
-        )
-        // Enabling eco mode
-        await terneoFetch(this.deviceConnection, {
-          par: [
-            // Enabling away mode
-            [1, 6, String(ecoEnd)],
-            // Setting eco temp
-            [7, 1, String(ecoTemp)],
-            // Setting eco hysteresis
-            [19, 2, (ecoHysteresis * 10).toFixed(2)],
-            // Making sure it's locked
-            [124, 7, '1'],
-          ],
+        // Setting hysteresis (has to be first, for some reason it doesn't work otherwise)
+        await this.updateHysteresis(ecoHysteresis)
+
+        // Setting desired temp
+        await this.deviceApi.post('state', {
+          json: {
+            thermo: {
+              state: 1,
+              desiredTemp: ecoTemp * 100,
+            },
+          },
         })
+
+        // Schedule eco mode end
+        enqueueMessage(
+          {
+            deviceId: this.config.id,
+            action: 'stop-eco',
+          },
+          gap - ecoModeTreshold
+        )
 
         // Setting state
         state = 'eco'
       } else {
-        // Disabling eco mode
-        await terneoFetch(this.deviceConnection, {
-          par: [
-            // Setting schedule mode
-            [2, 2, '0'],
-            // Disabling away mode
-            [1, 6, '0'],
-          ],
-        })
-
         // Setting state
         state = 'idle'
       }
@@ -343,7 +301,7 @@ export class JacuzziController extends DeviceController {
     this.persistentState = observable(state)
   }
 
-  private async updateDevice(skipScheduleUpdate = false) {
+  private async updateDevice() {
     // Getting session
     const { state, session } = this.persistentState
 
@@ -352,90 +310,64 @@ export class JacuzziController extends DeviceController {
       return
     }
 
-    // Setting current temp
-    const targetTemp = session?.targetTemp ?? this.config.idleTemp
+    // Getting hysteresis
     const hysteresis = session
       ? this.config.sessionHysteresis
       : this.config.idleHysteresis
 
-    // Terneo parameters
-    const par = [
-      // Setting schedule mode
-      [2, 2, '0'],
-      // Disabling away mode, just in case
-      [1, 6, '0'],
-      // Setting temp
-      [29, 1, String(targetTemp)],
-      // Setting active hysteresis
-      [19, 2, (hysteresis * 10).toFixed(2)],
-      // Making sure it's locked
-      [124, 7, '1'],
-    ]
+    // Setting hysteresis (has to be first, for some reason it doesn't work otherwise)
+    await this.updateHysteresis(hysteresis)
 
-    // Setting temps
-    await terneoFetch(this.deviceConnection, {
-      par,
-    })
+    // Setting current temp
+    const targetTemp = session?.targetTemp ?? this.config.idleTemp
 
-    // Setting idle schedule
-    if (!skipScheduleUpdate) {
-      await this.setTerneoSchedule(this.config.idleTemp)
+    // Constructing json
+    const json = {
+      thermo: {
+        state: 1,
+        desiredTemp: targetTemp * 100,
+      },
     }
-  }
 
-  private get deviceConnection() {
-    return {
-      sn: this.config.sn,
-      totp: this.config.totp,
-      hostname: this.terneoAddress,
-    }
-  }
+    console.log('Updating ThermoBox with:', json)
 
-  private async setTerneoSchedule(temp: number) {
-    for (let i = 0; i <= 6; i++) {
-      await terneoFetch(this.deviceConnection, {
-        tt: {
-          [String(i)]: [[0, temp * 10]],
-        },
+    // Setting desired temp
+    const res = await this.deviceApi
+      .post('state', {
+        json,
       })
-    }
+      .json()
+
+    console.log('Updated ThermoBox response:', res)
   }
 
-  private async initUdpListener() {
-    // Creating deferred promise
-    const def = new Deferred<void>()
-
-    // Closing listener if it exists
-    if (this.udpListener) {
-      this.udpListener.close()
-    }
-
-    // Creating listener
-    this.udpListener = dgram.createSocket('udp4')
-
-    this.udpListener.once('message', (msg, rinfo) => {
-      // Parsing udp data
-      const terneoData: TerneoUdpData = JSON.parse(msg.toString())
-
-      // Check if device is jacuzzi
-      if (terneoData.sn === this.config.sn) {
-        // Update state
-        runInAction(() => {
-          // Set terneo address
-          this.terneoAddress = rinfo.address
-
-          // Set current temp
-          this.currentTemp = parseFloat(terneoData.display || '0')
-        })
-      } else {
-        console.log('UDP - Skipping device', terneoData)
-      }
+  private async updateHysteresis(hysteresis: number) {
+    // Setting hysteresis
+    await this.deviceApi.post('api/settings/set', {
+      json: {
+        settings: {
+          thermo: {
+            hysteresisWindow: [hysteresis * -10, 0],
+          },
+        },
+      },
     })
+  }
 
-    // Initialize the socket
-    this.udpListener.bind(23500)
+  private async initDeviceApi() {
+    // Getting info
+    const { device } = await ky
+      .get<{ device: { ip: string } }>(
+        `http://bbx-${this.config.sn}.local/info`
+      )
+      .json()
 
-    return def.promise
+    console.log('Found ThermoBox device at:', device.ip)
+
+    // Setting device api
+    this.deviceApi = ky.create({
+      prefixUrl: `http://${device.ip}`,
+    })
   }
 
   private async initStatePolling() {
@@ -445,29 +377,34 @@ export class JacuzziController extends DeviceController {
     // Creating interval
     this.statePollingInterval = setInterval(() => {
       // Skip if device connection is not set or def is not resolved
-      if (!this.deviceConnection || isFetching) return
+      if (!this.deviceApi || isFetching) return
 
       // Set fetching
       isFetching = true
 
-      // Fetching state
-      ky.post<{ 't.1': string; 't.5': string }>(
-        `http://${this.deviceConnection.hostname}/api.cgi`,
-        {
-          json: {
-            cmd: 4,
-          },
-          retry: 2,
-        }
-      )
+      this.deviceApi
+        .get<{
+          thermo: { state: number; desiredTemp: number }
+          sensors: Array<{
+            id: number
+            type: 'temperature'
+            value: number
+            state: number
+          }>
+        }>('state')
         .json()
-        .then((data) => {
-          console.log('Polled target temp:', parseFloat(data['t.5']) / 16)
-          console.log('Polled current temp:', parseFloat(data['t.1']) / 16)
+        .then(({ thermo, sensors }) => {
+          // Getting sensor
+          const sensor = sensors.find((s) => s.type === 'temperature')
+          const targetTemp = thermo.desiredTemp / 100
+          const currentTemp = (sensor?.value ?? 0) / 100
+
+          console.log('Polled target temp:', targetTemp)
+          console.log('Polled current temp:', currentTemp)
+
           runInAction(() => {
             // Setting current temp, rounding it to closest 0.5
-            this.currentTemp =
-              Math.round((parseFloat(data['t.1']) / 16) * 2) / 2
+            this.currentTemp = Math.round(currentTemp * 2) / 2
             // Setting polling error
             this.pollingError = false
           })
@@ -482,6 +419,6 @@ export class JacuzziController extends DeviceController {
         .finally(() => {
           isFetching = false
         })
-    }, 5000)
+    }, 8000)
   }
 }

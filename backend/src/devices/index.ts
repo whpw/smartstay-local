@@ -1,7 +1,8 @@
-import type { DeviceController } from '@/devices/controller'
+import type { DeviceController, JacuzziConfig } from '@/devices/controller'
 
 import { config } from '@/config'
-import { JacuzziController } from '@/controllers/JacuzziController'
+import { JacuzziThermoBoxController } from '@/controllers'
+import { JacuzziTerneoController } from '@/controllers/JacuzziTerneoController'
 import { SaunaController } from '@/controllers/SaunaController'
 
 export const devices: Record<string, DeviceController> = {}
@@ -12,8 +13,16 @@ export async function initDevices() {
 
   for (const device of config.devices) {
     let controller: DeviceController | undefined
-    if (device.type === 'jacuzzi') {
-      controller = new JacuzziController()
+    if (
+      device.type === 'jacuzzi' &&
+      (device as JacuzziConfig).thermostat === 'terneo'
+    ) {
+      controller = new JacuzziTerneoController()
+    } else if (
+      device.type === 'jacuzzi' &&
+      (device as JacuzziConfig).thermostat === 'thermobox'
+    ) {
+      controller = new JacuzziThermoBoxController()
     } else if (device.type === 'sauna') {
       controller = new SaunaController()
     }

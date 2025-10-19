@@ -112,7 +112,7 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
           alignItems="center"
           justifyContent="space-between"
         >
-          <Typography variant="h6">Jacuzzi</Typography>
+          <Typography variant="h6">{viewData.name}</Typography>
           <Typography variant="h6">
             {t('devices.jacuzzi.target-temp', { temp: viewData.targetTemp })}
           </Typography>

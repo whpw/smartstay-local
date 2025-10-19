@@ -20,7 +20,7 @@ import { useMutation } from '@tanstack/react-query'
 
 export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
   // Data state
-  const [data, setData] = useState<SaunaViewData>()
+  const [viewData, setViewData] = useState<SaunaViewData>()
 
   const { t } = useTranslation()
 
@@ -45,7 +45,7 @@ export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
         return
       }
       // Setting da
-      setData(data as SaunaViewData)
+      setViewData(data as SaunaViewData)
     },
   })
 
@@ -57,7 +57,7 @@ export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
     evtSource.addEventListener('device-state-update', (event) => {
       const receivedData = JSON.parse(event.data)
       console.log('Received sauna state update:', receivedData)
-      setData(receivedData as SaunaViewData)
+      setViewData(receivedData as SaunaViewData)
     })
 
     return () => {
@@ -67,17 +67,17 @@ export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
 
   // Calculating duration that is left
   const duration = useCallback(() => {
-    return Math.max((data?.session?.endTime ?? 0) - Date.now(), 0)
-  }, [data])
+    return Math.max((viewData?.session?.endTime ?? 0) - Date.now(), 0)
+  }, [viewData])
 
   // Checking if session is running
-  const isRunning = isSessionRunning(data?.session?.endTime)
+  const isRunning = isSessionRunning(viewData?.session?.endTime)
 
   const onConfirmedStartClick = () => {
     startSession()
   }
 
-  if (!data) return <div>Loading...</div>
+  if (!viewData) return <div>Loading...</div>
 
   return (
     <>
@@ -95,7 +95,7 @@ export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
           alignItems="center"
           justifyContent="space-between"
         >
-          <Typography variant="h6">Sauna</Typography>
+          <Typography variant="h6">{viewData.name}</Typography>
         </Stack>
         <Stack
           sx={{
@@ -107,7 +107,7 @@ export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
           <SaunaStartButton
             isRunning={isRunning}
             duration={duration()}
-            viewData={data}
+            viewData={viewData}
             onConfirmedStartClick={onConfirmedStartClick}
           />
         </Stack>

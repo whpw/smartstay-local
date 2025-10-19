@@ -18,3 +18,23 @@ export abstract class DeviceController {
     // Doing nothing
   }
 }
+
+export type JacuzziConfig = {
+  sn: string
+  totp: string
+  thermostat: 'thermobox' | 'terneo'
+
+  // Duration in minutes
+  sessionDuration: number
+  sessionTemp: number
+  sessionHysteresis: number
+
+  ecoTemp: number
+  ecoHysteresis: number
+  ecoModeTreshold: number
+
+  idleTemp: number
+  idleHysteresis: number
+  minTemp: number
+  maxTemp: number
+} & DeviceConfig

@@ -6,6 +6,7 @@ export interface Action {
 export type DeviceState = 'initializing' | 'idle' | 'active' | 'eco'
 
 export type DeviceViewData = {
+  name: string
   state: DeviceState
 }
 
