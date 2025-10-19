@@ -1,3 +1,3 @@
 export * from './JacuzziTerneoController'
-export * from './JacuzziThermoboxController'
+export * from './JacuzziThermoBoxController'
 export * from './SaunaController'
