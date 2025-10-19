@@ -16,7 +16,7 @@
     "@mui/material": "^7.3.4",
     "@repo/backend": "workspace:*",
     "@tanstack/react-query": "^5.90.5",
-    "@vitejs/plugin-react": "^5.0.4",
+    "@vitejs/plugin-react-swc": "^4.1.0",
     "date-fns": "^4.1.0",
     "hono": "^4.10.1",
     "i18next": "^25.6.0",
