@@ -14,11 +14,12 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
   // Translation
   const { t } = useTranslation()
 
-  // Data state
-  const [data, setData] = useState<JacuzziViewData>()
+  // View data
+  const [viewData, setDeviceData] = useState<JacuzziViewData>()
 
+  // Target temp
   const [targetTemp, setTargetTemp] = useState<number | undefined>(
-    data?.targetTemp ? data.targetTemp : 0
+    viewData?.targetTemp ? viewData.targetTemp : 0
   )
 
   const [upsellingModalOpen, setUpsellingModalOpen] = useState(false)
@@ -42,7 +43,7 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
         return
       }
       // Setting da
-      setData(data as JacuzziViewData)
+      setDeviceData(data as JacuzziViewData)
     },
   })
 
@@ -53,7 +54,7 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
 
     evtSource.addEventListener('device-state-update', (event) => {
       const receivedData = JSON.parse(event.data) as JacuzziViewData
-      setData(receivedData)
+      setDeviceData(receivedData)
       setTargetTemp(receivedData.targetTemp)
     })
 
@@ -78,18 +79,18 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
 
   // Calculating duration that is left
   const duration = useCallback(() => {
-    return Math.max((data?.session?.endTime ?? 0) - Date.now(), 0)
-  }, [data])
+    return Math.max((viewData?.session?.endTime ?? 0) - Date.now(), 0)
+  }, [viewData])
 
   // Checking if session is running
-  const isRunning = isSessionRunning(data?.session?.endTime)
+  const isRunning = isSessionRunning(viewData?.session?.endTime)
 
   const onConfirmedStartClick = () => {
     startSession()
   }
 
   // Checking if data is loaded
-  if (!data) return <div>Loading...</div>
+  if (!viewData) return <div>Loading...</div>
 
   return (
     <>
@@ -110,7 +111,7 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
         >
           <Typography variant="h6">Jacuzzi</Typography>
           <Typography variant="h6">
-            {t('devices.jacuzzi.target-temp', { temp: data.targetTemp })}
+            {t('devices.jacuzzi.target-temp', { temp: viewData.targetTemp })}
           </Typography>
         </Stack>
         <Stack
@@ -119,16 +120,17 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
           justifyContent="space-between"
         >
           <JacuzziStartButton
-            isRunning={isRunning}
             duration={duration()}
-            viewData={data}
+            viewData={viewData}
             onConfirmedStartClick={onConfirmedStartClick}
           />
           <Box>
             <Typography variant="body2">
-              {data.state !== 'initializing' &&
-                t('devices.jacuzzi.current-temp', { temp: data.currentTemp })}
-              {data.state === 'initializing' &&
+              {viewData.state !== 'initializing' &&
+                t('devices.jacuzzi.current-temp', {
+                  temp: viewData.currentTemp,
+                })}
+              {viewData.state === 'initializing' &&
                 t('devices.jacuzzi.initializing')}
             </Typography>
           </Box>
@@ -140,16 +142,19 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
               direction="row"
               sx={{ alignItems: 'center', mb: 2 }}
             >
-              <Typography variant="body2">{data.minTemp}&nbsp;°C</Typography>
+              <Typography variant="body2">
+                {viewData.minTemp}&nbsp;°C
+              </Typography>
               <Slider
                 aria-label={t('devices.jacuzzi.slider.title')}
-                min={data.minTemp}
-                max={data.maxTemp}
+                min={viewData.minTemp}
+                max={viewData.maxTemp}
                 value={targetTemp}
+                disabled={viewData.pollingError}
                 marks={[
                   {
-                    value: data.defaultTemp,
-                    label: `${data.defaultTemp}°C`,
+                    value: viewData.defaultTemp,
+                    label: `${viewData.defaultTemp}°C`,
                   },
                 ]}
                 valueLabelDisplay="auto"
@@ -161,7 +166,9 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
                   onTemperatureChange(value)
                 }}
               />
-              <Typography variant="body2">{data.maxTemp}&nbsp;°C</Typography>
+              <Typography variant="body2">
+                {viewData.maxTemp}&nbsp;°C
+              </Typography>
             </Stack>
           </Box>
         )}

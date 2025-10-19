@@ -21,14 +21,12 @@ import type { JacuzziViewData } from '@backend/models'
 const MINUTE = 60_000
 
 export default function JacuzziStartButton({
-  isRunning,
-  duration,
   viewData,
+  duration,
   onConfirmedStartClick,
 }: {
-  isRunning: boolean
-  duration: number
   viewData: JacuzziViewData
+  duration: number
   onConfirmedStartClick: () => void
 }) {
   // Translation
@@ -60,14 +58,14 @@ export default function JacuzziStartButton({
       <Button
         type="button"
         onClick={onStartClick}
-        disabled={isRunning}
+        disabled={viewData.state !== 'idle' || viewData.pollingError}
         variant="contained"
       >
-        {isRunning
-          ? t('devices.jacuzzi.ends-in', {
+        {viewData.state === 'idle'
+          ? t('devices.jacuzzi.start')
+          : t('devices.jacuzzi.ends-in', {
               time: lightFormat(new TZDate(duration, 'UTC'), 'HH:mm'),
-            })
-          : t('devices.jacuzzi.start')}
+            })}
       </Button>
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>{t('devices.jacuzzi.modal.title')}</DialogTitle>

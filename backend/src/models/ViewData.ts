@@ -32,6 +32,7 @@ export type JacuzziViewData = DeviceViewData & {
   minTemp: number
   maxTemp: number
   sessionDuration: number
+  pollingError: boolean
 }
 
 export const JacuzziActionType = {

@@ -21,6 +21,7 @@ import { enqueueMessage } from '@/queue'
 import { Deferred } from '@/utils/Deferred'
 import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
 import { terneoFetch } from '@/utils/terneo'
+import ky from 'ky'
 
 export type JacuzziConfig = {
   sn: string
@@ -68,6 +69,11 @@ export class JacuzziController extends DeviceController {
 
   private udpListener: dgram.Socket | null = null
 
+  private statePollingInterval: NodeJS.Timeout | null = null
+
+  @observable
+  private accessor pollingError = false
+
   @observable
   private accessor terneoAddress!: string
 
@@ -96,6 +102,7 @@ export class JacuzziController extends DeviceController {
       minTemp: this.config.minTemp,
       maxTemp: this.config.maxTemp,
       sessionDuration: this.config.sessionDuration,
+      pollingError: this.pollingError,
     }
   }
 
@@ -114,6 +121,9 @@ export class JacuzziController extends DeviceController {
 
     // Update device
     await this.updateDevice()
+
+    // Initialize state polling
+    await this.initStatePolling()
   }
 
   public dispose() {
@@ -122,6 +132,9 @@ export class JacuzziController extends DeviceController {
       this.udpListener?.close()
     } catch (error) {
       console.error('Error disposing of controller:', error)
+    }
+    if (this.statePollingInterval) {
+      clearInterval(this.statePollingInterval)
     }
   }
 
@@ -340,24 +353,23 @@ export class JacuzziController extends DeviceController {
     }
 
     // Setting current temp
-    const currentTemp = session?.targetTemp ?? this.config.idleTemp
+    const targetTemp = session?.targetTemp ?? this.config.idleTemp
     const hysteresis = session
       ? this.config.sessionHysteresis
       : this.config.idleHysteresis
 
     // Terneo parameters
     const par = [
+      // Setting schedule mode
+      [2, 2, '0'],
       // Disabling away mode, just in case
       [1, 6, '0'],
       // Setting temp
-      [29, 1, String(currentTemp)],
+      [29, 1, String(targetTemp)],
       // Setting active hysteresis
       [19, 2, (hysteresis * 10).toFixed(2)],
       // Making sure it's locked
       [124, 7, '1'],
-
-      // Setting schedule mode
-      [2, 2, '0'],
     ]
 
     // Setting temps
@@ -401,7 +413,7 @@ export class JacuzziController extends DeviceController {
     // Creating listener
     this.udpListener = dgram.createSocket('udp4')
 
-    this.udpListener.on('message', (msg, rinfo) => {
+    this.udpListener.once('message', (msg, rinfo) => {
       // Parsing udp data
       const terneoData: TerneoUdpData = JSON.parse(msg.toString())
 
@@ -420,18 +432,56 @@ export class JacuzziController extends DeviceController {
       }
     })
 
-    this.udpListener.on('error', (err) => {
-      console.error('[TerneoController] udp client error:', err)
-    })
-
-    this.udpListener.on('listening', () => {
-      console.log('[TerneoController] udp client listening')
-      def.resolve()
-    })
-
     // Initialize the socket
     this.udpListener.bind(23500)
 
     return def.promise
+  }
+
+  private async initStatePolling() {
+    // Creating deferred promise
+    let isFetching = false
+
+    // Creating interval
+    this.statePollingInterval = setInterval(() => {
+      // Skip if device connection is not set or def is not resolved
+      if (!this.deviceConnection || isFetching) return
+
+      // Set fetching
+      isFetching = true
+
+      // Fetching state
+      ky.post<{ 't.1': string; 't.5': string }>(
+        `http://${this.deviceConnection.hostname}/api.cgi`,
+        {
+          json: {
+            cmd: 4,
+          },
+          retry: 2,
+        }
+      )
+        .json()
+        .then((data) => {
+          console.log('Polled target temp:', parseFloat(data['t.5']) / 16)
+          console.log('Polled current temp:', parseFloat(data['t.1']) / 16)
+          runInAction(() => {
+            // Setting current temp, rounding it to closest 0.5
+            this.currentTemp =
+              Math.round((parseFloat(data['t.1']) / 16) * 2) / 2
+            // Setting polling error
+            this.pollingError = false
+          })
+        })
+        .catch((e) => {
+          console.error('Error polling state:', e)
+          runInAction(() => {
+            // Setting polling error
+            this.pollingError = true
+          })
+        })
+        .finally(() => {
+          isFetching = false
+        })
+    }, 5000)
   }
 }
