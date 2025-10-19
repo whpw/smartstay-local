@@ -7,6 +7,7 @@ import JacuzziStartButton from './JacuzziStartButton'
 import { authedClient } from '@/dao'
 import { isSessionRunning } from '@/utils/isSessionRunning'
 import type { JacuzziViewData } from '@backend/models'
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
 import { useMutation } from '@tanstack/react-query'
 import { UpsellModal } from './UpsellModal'
 
@@ -96,12 +97,14 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
     <>
       <Stack
         sx={{
+          position: 'relative',
           p: 2,
           borderRadius: 2,
           border: '1px solid',
           borderColor: 'divider',
           width: '100%',
           gap: 2,
+          overflow: 'hidden',
         }}
       >
         <Stack
@@ -168,6 +171,29 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
               />
               <Typography variant="body2">
                 {viewData.maxTemp}&nbsp;°C
+              </Typography>
+            </Stack>
+          </Box>
+        )}
+        {viewData.pollingError && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              color: 'white',
+            }}
+          >
+            <Stack direction="row" alignItems="center" spacing={2}>
+              <ErrorOutlineIcon />
+              <Typography variant="body2">
+                {t('devices.jacuzzi.polling-error')}
               </Typography>
             </Stack>
           </Box>

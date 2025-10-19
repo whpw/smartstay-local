@@ -32,6 +32,7 @@
       "current-temp": "Obecnie {{temp}} °C",
       "initializing": "Łączenie...",
       "slider.title": "Temperatura",
+      "polling-error": "Błąd połączenia :(",
       "modal": {
         "title": "Czy uruchomić jacuzzi?",
         "until": "Do godziny: {{time}}",

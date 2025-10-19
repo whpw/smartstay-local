@@ -61,11 +61,11 @@ export default function JacuzziStartButton({
         disabled={viewData.state !== 'idle' || viewData.pollingError}
         variant="contained"
       >
-        {viewData.state === 'idle'
-          ? t('devices.jacuzzi.start')
-          : t('devices.jacuzzi.ends-in', {
+        {viewData.state === 'active'
+          ? t('devices.jacuzzi.ends-in', {
               time: lightFormat(new TZDate(duration, 'UTC'), 'HH:mm'),
-            })}
+            })
+          : t('devices.jacuzzi.start')}
       </Button>
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>{t('devices.jacuzzi.modal.title')}</DialogTitle>

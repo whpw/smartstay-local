@@ -31,6 +31,7 @@
       "current-temp": "Current water temp {{temp}} °C",
       "initializing": "Initializing...",
       "slider.title": "Temperature",
+      "polling-error": "Connection error :(",
       "modal": {
         "title": "Do you want to start the jacuzzi?",
         "until": "Until: {{time}}",

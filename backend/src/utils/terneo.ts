@@ -30,8 +30,6 @@ export async function terneoFetch(device: TerneoDevice, payload: object) {
     ...payload,
   })
 
-  console.log('Terneo request:', data)
-
   return await fetch(`http://${device.hostname}/api.cgi`, {
     method: 'POST',
     headers: {
