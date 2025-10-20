@@ -1,9 +1,12 @@
 import type { AuthApi } from '@/routes/auth'
 import type { AuthedApi } from '@/routes/authed'
+import type { InfoApi } from '@/routes/info'
 import { hc } from 'hono/client'
 import Cookies from 'universal-cookie'
 
 const cookies = new Cookies(null, { path: '/' })
+
+export const infoClient = hc<InfoApi>('/api')
 
 export const authClient = hc<AuthApi>('/api', {
   init: {

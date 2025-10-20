@@ -11,6 +11,7 @@ import { devices, initDevices } from './devices'
 import { initQueue } from './queue'
 import { api as authApi } from './routes/auth'
 import { api as authedApi } from './routes/authed'
+import { api as infoApi } from './routes/info'
 
 // Loading env
 dotenv.config({
@@ -18,10 +19,10 @@ dotenv.config({
 })
 
 // Initializing config
-const config = await initConfig()
+await initConfig()
 
 // Updating local IP
-await updateLocalIP(config.port)
+await updateLocalIP()
 
 // Initializing devices
 await initDevices()
@@ -36,6 +37,7 @@ const app = new Hono()
 
 const isProd = process.env.NODE_ENV === 'production'
 
+app.route('/api', infoApi)
 app.route('/api', authApi)
 app.route('/api', authedApi)
 

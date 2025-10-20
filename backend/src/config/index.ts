@@ -10,32 +10,42 @@ export type DeviceConfig = {
   name: string
 }
 
-export type AppConfig = {
+export type Config = {
   icalUrl: string
-  devices: Array<DeviceConfig>
   checkinHour: number
   checkoutHour: number
   jwtSecret: string
-  adminPassword: string
-  objectSlug: string
-  roomSlug: string
   roomId: string
   loginUrl: string
   hotresAuthCode: string
   hotresApiKey: string
   hotresAddonsUrl: string
-  port: number
+  devices: Array<DeviceConfig>
+}
+
+export type AppConfig = {
+  objectName: string
+  apiKey: string
+  wifi: {
+    name: string
+    ssid: string
+    pwd: string
+    ip: string
+  }
+  config: Config
 }
 
 // Exporting initialized config
-export let config!: AppConfig
+export let config!: Config
+export let appConfig!: AppConfig
 
 // Exporting config initialization function
 export async function initConfig() {
   console.log('Initializing config...')
 
-  const CONFIG_API_URL = process.env.CONFIG_API_URL
-  const CONFIG_API_KEY = process.env.CONFIG_API_KEY
+  const CONFIG_API_URL = process.env.CONFIG_API_URL as string
+  const CONFIG_API_KEY = process.env.CONFIG_API_KEY as string
+  const CONFIG_API_INPUT = process.env.CONFIG_API_INPUT as string
 
   if (isDev) {
     const localConfig = db().get<AppConfig | undefined>('config')
@@ -48,26 +58,30 @@ export async function initConfig() {
 
   // Get devices config
   const loadedConfig = await ky
-    .get<AppConfig>(`${CONFIG_API_URL}/config`, {
+    .get<{ result: { data: AppConfig } }>(CONFIG_API_URL, {
       headers: {
         Authorization: `Bearer ${CONFIG_API_KEY}`,
       },
+      searchParams: {
+        input: CONFIG_API_INPUT,
+      },
     })
     .json()
-    .then((resConfig: AppConfig) => {
-      console.log('Remote config initialized successfully')
+    .then(({ result: { data: appConfig } }) => {
+      console.log('Remote config initialized successfully', appConfig)
 
       // Storing config
-      db().set('config', resConfig)
+      db().set('config', appConfig.config)
+      db().set('appConfig', appConfig)
 
       // Return received config
-      return resConfig
+      return appConfig
     })
     .catch((err) => {
       console.error('Error getting remote config:', err.message)
 
       // Using cached version of the config
-      const configFromDb = db().get<AppConfig | undefined>('config')
+      const configFromDb = db().get<AppConfig | undefined>('appConfig')
 
       if (!configFromDb) {
         throw new Error('Local config not found')
@@ -79,7 +93,8 @@ export async function initConfig() {
     })
 
   // Assigning config to the exported variable
-  config = loadedConfig
+  appConfig = loadedConfig
+  config = loadedConfig.config
 
-  return config
+  return appConfig
 }
