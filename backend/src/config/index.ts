@@ -45,7 +45,8 @@ export async function initConfig() {
 
   const CONFIG_API_URL = process.env.CONFIG_API_URL as string
   const CONFIG_API_KEY = process.env.CONFIG_API_KEY as string
-  const CONFIG_API_INPUT = process.env.CONFIG_API_INPUT as string
+  const CONFIG_ROOM_ID = process.env.CONFIG_ROOM_ID as string
+  const CONFIG_OBJECT_ID = process.env.CONFIG_OBJECT_ID as string
 
   if (isDev) {
     const localConfig = db().get<AppConfig | undefined>('config')
@@ -63,7 +64,10 @@ export async function initConfig() {
         Authorization: `Bearer ${CONFIG_API_KEY}`,
       },
       searchParams: {
-        input: CONFIG_API_INPUT,
+        input: JSON.stringify({
+          roomId: CONFIG_ROOM_ID,
+          objectId: CONFIG_OBJECT_ID,
+        }),
       },
     })
     .json()

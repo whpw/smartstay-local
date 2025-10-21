@@ -9,11 +9,16 @@ export async function updateLocalIP() {
     // Getting local address
     const networkAddr = ip()
 
-    const CONFIG_API_INPUT = process.env.CONFIG_API_INPUT as string
+    const CONFIG_ROOM_ID = process.env.CONFIG_ROOM_ID as string
+    const CONFIG_OBJECT_ID = process.env.CONFIG_OBJECT_ID as string
 
     // Sending request to update local address
     await ky.post(`${process.env.CONFIG_UPDATE_IP_URL}`, {
-      json: { ip: networkAddr, ...JSON.parse(CONFIG_API_INPUT) },
+      json: {
+        ip: networkAddr,
+        roomId: CONFIG_ROOM_ID,
+        objectId: CONFIG_OBJECT_ID,
+      },
       headers: {
         Authorization: `Bearer ${process.env.CONFIG_API_KEY}`,
       },
