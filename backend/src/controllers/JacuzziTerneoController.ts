@@ -431,21 +431,11 @@ export class JacuzziTerneoController extends DeviceController {
       isFetching = true
 
       // Fetching state
-      // ky.post<{ 't.1': string; 't.5': string }>(
-      //   `http://${this.deviceConnection.hostname}/api.cgi`,
-      //   {
-      //     json: {
-      //       cmd: 4,
-      //     },
-      //     retry: 2,
-      //   }
-      // )
-      //   .json()
       terneoFetch(this.deviceConnection, {
         cmd: 4,
       })
         .then((data) => {
-          console.log('Polled data:', data)
+          console.log('Polled from Terneo...')
           console.log('Polled target temp:', parseFloat(data['t.5']) / 16)
           console.log('Polled current temp:', parseFloat(data['t.1']) / 16)
           runInAction(() => {

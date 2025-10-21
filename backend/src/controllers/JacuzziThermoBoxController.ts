@@ -399,6 +399,7 @@ export class JacuzziThermoBoxController extends DeviceController {
           const targetTemp = thermo.desiredTemp / 100
           const currentTemp = (sensor?.value ?? 0) / 100
 
+          console.log('Polled from ThermoBox...')
           console.log('Polled target temp:', targetTemp)
           console.log('Polled current temp:', currentTemp)
 

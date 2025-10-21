@@ -1,6 +1,10 @@
 import { TZDate } from '@date-fns/tz'
 import { differenceInSeconds } from 'date-fns'
+import child_process from 'node:child_process'
+import { promisify } from 'node:util'
 import { TOTP } from 'totp-generator'
+
+const exec = promisify(child_process.exec)
 
 export type TerneoDevice = {
   sn: string
@@ -30,23 +34,15 @@ export async function terneoFetch(device: TerneoDevice, payload: object) {
     ...payload,
   })
 
-  return await fetch(`http://${device.hostname}/api.cgi`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: data,
-  })
-    .then((res) =>
-      res.text().then((text) => {
-        try {
-          return text ? JSON.parse(text) : {}
-        } catch (error) {
-          console.error('Error parsing Terneo response:', text)
-          return Promise.reject(error)
-        }
-      })
-    )
+  return exec(
+    `curl -X POST -H 'Content-Type: application/json' -d '${data}' http://${device.hostname}/api.cgi`
+  )
+    .then(({ stdout, stderr }) => {
+      // if (stderr) {
+      //   throw new Error(stderr)
+      // }
+      return JSON.parse(stdout)
+    })
     .catch((error) => {
       console.error('Error calling Terneo device:', error)
       console.error('Failed request payload:', payload)
