@@ -443,6 +443,7 @@ export class JacuzziTerneoController extends DeviceController {
       )
         .json()
         .then((data) => {
+          console.log('Polled data:', data)
           console.log('Polled target temp:', parseFloat(data['t.5']) / 16)
           console.log('Polled current temp:', parseFloat(data['t.1']) / 16)
           runInAction(() => {
