@@ -20,7 +20,6 @@ import { enqueueMessage } from '@/queue'
 import { Deferred } from '@/utils/Deferred'
 import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
 import { terneoFetch } from '@/utils/terneo'
-import ky from 'ky'
 
 export type TerneoUdpData = {
   sn: string
@@ -432,16 +431,19 @@ export class JacuzziTerneoController extends DeviceController {
       isFetching = true
 
       // Fetching state
-      ky.post<{ 't.1': string; 't.5': string }>(
-        `http://${this.deviceConnection.hostname}/api.cgi`,
-        {
-          json: {
-            cmd: 4,
-          },
-          retry: 2,
-        }
-      )
-        .json()
+      // ky.post<{ 't.1': string; 't.5': string }>(
+      //   `http://${this.deviceConnection.hostname}/api.cgi`,
+      //   {
+      //     json: {
+      //       cmd: 4,
+      //     },
+      //     retry: 2,
+      //   }
+      // )
+      //   .json()
+      terneoFetch(this.deviceConnection, {
+        cmd: 4,
+      })
         .then((data) => {
           console.log('Polled data:', data)
           console.log('Polled target temp:', parseFloat(data['t.5']) / 16)
