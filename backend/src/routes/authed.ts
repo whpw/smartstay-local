@@ -52,7 +52,13 @@ const api = app
         deviceId: z.string(),
         action: z.object({
           type: z.enum(['START', 'STOP', 'SET_TARGET_TEMP']),
-          value: z.union([z.number(), z.string()]).optional(),
+          value: z
+            .union([
+              z.number(),
+              z.string(),
+              z.object({ dayTemp: z.number(), nightTemp: z.number() }),
+            ])
+            .optional(),
         }),
       })
     ),
@@ -73,6 +79,14 @@ const api = app
         return c.json(result, 200)
       } catch (error) {
         console.error('Error invoking action:', error)
+        if (error instanceof Error) {
+          return c.json(
+            {
+              error: error.message,
+            },
+            400
+          )
+        }
         return c.json(
           {
             error: 'UNKNOWN_ERROR',

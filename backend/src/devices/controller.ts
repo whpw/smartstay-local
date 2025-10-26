@@ -38,3 +38,16 @@ export type JacuzziConfig = {
   minTemp: number
   maxTemp: number
 } & DeviceConfig
+
+export type HeatingConfig = {
+  sn: string
+  thermostat: 'thermobox'
+  dayStart: number
+  nightStart: number
+  dayTemp: number
+  nightTemp: number
+  ecoTemp: number
+  ecoModeTreshold: number
+  minTemp: number
+  maxTemp: number
+} & DeviceConfig

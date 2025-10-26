@@ -1,6 +1,7 @@
 import ky from 'ky'
 
 import { db } from '@/db'
+import console from 'console'
 
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -48,15 +49,6 @@ export async function initConfig() {
   const CONFIG_ROOM_ID = process.env.CONFIG_ROOM_ID as string
   const CONFIG_OBJECT_ID = process.env.CONFIG_OBJECT_ID as string
 
-  if (isDev) {
-    const localConfig = db().get<AppConfig | undefined>('config')
-
-    if (localConfig) {
-      console.log('Local config initialized successfully')
-      return localConfig
-    }
-  }
-
   // Get devices config
   const loadedConfig = await ky
     .get<{ result: { data: AppConfig } }>(CONFIG_API_URL, {
@@ -82,10 +74,12 @@ export async function initConfig() {
       return appConfig
     })
     .catch((err) => {
-      console.error('Error getting remote config:', err.message)
+      console.error('Error getting remote config:', err)
 
       // Using cached version of the config
       const configFromDb = db().get<AppConfig | undefined>('appConfig')
+
+      console.log('Using cached config', db().all())
 
       if (!configFromDb) {
         throw new Error('Local config not found')

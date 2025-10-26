@@ -1,5 +1,4 @@
-import ContrastIcon from '@mui/icons-material/Contrast'
-import { Fab, useColorScheme } from '@mui/material'
+import { SnackbarProvider } from 'notistack'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 
 import { Navigate, Outlet } from 'react-router'
@@ -36,18 +35,13 @@ const router = createBrowserRouter([
 ])
 
 function App() {
-  const { mode, setMode } = useColorScheme()
+  // const { mode, setMode } = useColorScheme()
 
   return (
     <>
-      <RouterProvider router={router} />
-      <Fab
-        color="primary"
-        onClick={() => setMode(mode === 'light' ? 'dark' : 'light')}
-        sx={{ position: 'fixed', bottom: 24, right: 24 }}
-      >
-        <ContrastIcon />
-      </Fab>
+      <SnackbarProvider maxSnack={3}>
+        <RouterProvider router={router} />
+      </SnackbarProvider>
     </>
   )
 }

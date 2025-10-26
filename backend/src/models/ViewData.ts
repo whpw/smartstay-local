@@ -11,6 +11,28 @@ export type DeviceViewData = {
 }
 
 /**
+ * Heating types
+ */
+
+export type HeatingViewData = DeviceViewData & {
+  currentTemp: number
+  targetTemp: number
+  dayStart: number
+  nightStart: number
+  dayTemp: number
+  nightTemp: number
+  minTemp: number
+  maxTemp: number
+  pollingError: boolean
+}
+
+export type HeatingPersistentState = {
+  state: DeviceState
+  dayTemp: number
+  nightTemp: number
+}
+
+/**
  * Jacuzzi types
  */
 

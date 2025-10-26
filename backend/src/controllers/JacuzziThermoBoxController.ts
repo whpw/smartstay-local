@@ -355,11 +355,18 @@ export class JacuzziThermoBoxController extends DeviceController {
   }
 
   private async initDeviceApi() {
+    const apiUrl = `http://bbx-${this.config.sn}.local/info`
+
+    console.log('Initializing ThermoBox device api at:', apiUrl)
+
     // Getting info
     const { device } = await ky
-      .get<{ device: { ip: string } }>(
-        `http://bbx-${this.config.sn}.local/info`
-      )
+      .get<{ device: { ip: string } }>(apiUrl, {
+        retry: {
+          retryOnTimeout: true,
+          limit: Number.POSITIVE_INFINITY,
+        },
+      })
       .json()
 
     console.log('Found ThermoBox device at:', device.ip)

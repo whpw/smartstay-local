@@ -25,14 +25,14 @@
     "start": "Uruchom"
   },
   "devices": {
+    "polling-error": "Błąd połączenia :(",
     "jacuzzi": {
       "start": "Uruchom",
       "ends-in": "Koniec za: {{time}}",
-      "target-temp": "→ {{temp}} °C",
+      "target-temp": "➟ {{temp}} °C",
       "current-temp": "Obecnie {{temp}} °C",
       "initializing": "Łączenie...",
       "slider.title": "Temperatura",
-      "polling-error": "Błąd połączenia :(",
       "modal": {
         "title": "Czy uruchomić jacuzzi?",
         "until": "Do godziny: {{time}}",
@@ -61,6 +61,18 @@
         "title": "Instrukcja obsługi sauny",
         "details": "Saunę obsługuje się za pomocą dwóch pokręteł umieszczonych na piecu.\n Pokrętłem z lewej strony ustawia się czas, prosimy o ustawianie nie dłużej niż na 4 godziny (wartości na białym tle od 0 do 4).\n Pokrętłem z prawej strony ustawia się moc. Prosimy tak regulować mocą by nie przekroczyć 100°C. Z reguły 2/3 mocy jest wystarczające w naszych saunach.\n Po zakończeniu korzystania z sauny prosimy o ustawienie obu pokręteł do pozycji zero.\n Nasza sauna jest sauną typu fińskiego. Odpowiednia i zdrowa dla organizmu temperatura to max 100°C, wilgotność w granicach 40-60%.\n Prosimy nie zalewać zbyt obficie kamieni wodą (to nie jest sauna parowa). Wystarczy raz na około 10-15 minut wlać dwie chochelki wody. Prosimy uważnie polewać po kamieniach, nie zalewając pieca."
       }
+    },
+    "heating": {
+      "title": "Ustaw temperaturę",
+      "dayPart": "Dzienna {{range}}",
+      "nightPart": "Nocna {{range}}",
+      "edit": "Edytuj",
+      "save": "Zapisz",
+      "cancel": "Anuluj",
+      "current-temp": "Obecnie {{temp}} °C",
+      "target-temp": "➟ {{temp}} °C",
+      "update-success": "Temperatura została zaktualizowana!",
+      "update-error": "Błąd podczas aktualizacji temperatury :("
     }
   }
 }

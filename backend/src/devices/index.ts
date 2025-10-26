@@ -1,7 +1,14 @@
-import type { DeviceController, JacuzziConfig } from '@/devices/controller'
+import type {
+  DeviceController,
+  HeatingConfig,
+  JacuzziConfig,
+} from '@/devices/controller'
 
 import { config } from '@/config'
-import { JacuzziThermoBoxController } from '@/controllers'
+import {
+  HeatingThermoBoxController,
+  JacuzziThermoBoxController,
+} from '@/controllers'
 import { JacuzziTerneoController } from '@/controllers/JacuzziTerneoController'
 import { SaunaController } from '@/controllers/SaunaController'
 
@@ -23,6 +30,11 @@ export async function initDevices() {
       (device as JacuzziConfig).thermostat === 'thermobox'
     ) {
       controller = new JacuzziThermoBoxController()
+    } else if (
+      device.type === 'heating' &&
+      (device as HeatingConfig).thermostat === 'thermobox'
+    ) {
+      controller = new HeatingThermoBoxController()
     } else if (device.type === 'sauna') {
       controller = new SaunaController()
     }

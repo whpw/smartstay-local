@@ -1,4 +1,4 @@
-import { Box, Slider, Stack, Typography } from '@mui/material'
+import { Box, Slider, Stack } from '@mui/material'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -7,9 +7,12 @@ import JacuzziStartButton from './JacuzziStartButton'
 import { authedClient } from '@/dao'
 import { isSessionRunning } from '@/utils/isSessionRunning'
 import type { JacuzziViewData } from '@backend/models'
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
 import { useMutation } from '@tanstack/react-query'
+import { BoxContainer } from './BoxContainer'
 import { UpsellModal } from './UpsellModal'
+
+import jacuzziIcon from '@/assets/jacuzzi.png'
+import { PollingErrorCover } from './PollingErrorCover'
 
 export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
   // Translation
@@ -94,115 +97,77 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
   if (!viewData) return <div>Loading...</div>
 
   return (
-    <>
-      <Stack
-        sx={{
-          position: 'relative',
-          p: 2,
-          borderRadius: 2,
-          border: '1px solid',
-          borderColor: 'divider',
-          width: '100%',
-          gap: 2,
-          overflow: 'hidden',
-        }}
-      >
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-        >
-          <Typography variant="h6">{viewData.name}</Typography>
-          <Typography variant="h6">
-            {t('devices.jacuzzi.target-temp', { temp: viewData.targetTemp })}
-          </Typography>
+    <BoxContainer
+      title={
+        <Stack direction="row" alignItems="center" gap={1}>
+          <Box component="img" src={jacuzziIcon} sx={{ width: 24 }} />
+          <>{viewData.name}</>
         </Stack>
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-        >
-          <JacuzziStartButton
-            duration={duration()}
-            viewData={viewData}
-            onConfirmedStartClick={onConfirmedStartClick}
-          />
-          <Box>
-            <Typography variant="body2">
-              {viewData.state !== 'initializing' &&
-                t('devices.jacuzzi.current-temp', {
-                  temp: viewData.currentTemp,
-                })}
-              {viewData.state === 'initializing' &&
-                t('devices.jacuzzi.initializing')}
-            </Typography>
-          </Box>
-        </Stack>
-        {isRunning && (
-          <Box>
-            <Stack
-              spacing={2}
-              direction="row"
-              sx={{ alignItems: 'center', mb: 2 }}
-            >
-              <Typography variant="body2">
-                {viewData.minTemp}&nbsp;°C
-              </Typography>
-              <Slider
-                aria-label={t('devices.jacuzzi.slider.title')}
-                min={viewData.minTemp}
-                max={viewData.maxTemp}
-                value={targetTemp}
-                disabled={viewData.pollingError}
-                marks={[
-                  {
-                    value: viewData.defaultTemp,
-                    label: `${viewData.defaultTemp}°C`,
-                  },
-                ]}
-                valueLabelDisplay="auto"
-                onChange={(_e, value) => {
-                  setTargetTemp(value)
-                }}
-                onChangeCommitted={(_e, value) => {
-                  setTargetTemp(value)
-                  onTemperatureChange(value)
-                }}
-              />
-              <Typography variant="body2">
-                {viewData.maxTemp}&nbsp;°C
-              </Typography>
-            </Stack>
-          </Box>
-        )}
-        {viewData.pollingError && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              color: 'white',
-            }}
+      }
+      ctaButton={
+        <JacuzziStartButton
+          duration={duration()}
+          viewData={viewData}
+          onConfirmedStartClick={onConfirmedStartClick}
+        />
+      }
+      currentTemp={
+        viewData.state === 'initializing'
+          ? t('devices.jacuzzi.initializing')
+          : t('devices.jacuzzi.current-temp', {
+              temp: viewData.currentTemp,
+            })
+      }
+      targetTemp={t('devices.jacuzzi.target-temp', {
+        temp: viewData.targetTemp,
+      })}
+    >
+      {isRunning && (
+        <Box>
+          <Stack
+            spacing={2}
+            direction="row"
+            sx={{ alignItems: 'center', mb: 2, px: 2 }}
           >
-            <Stack direction="row" alignItems="center" spacing={2}>
-              <ErrorOutlineIcon />
-              <Typography variant="body2">
-                {t('devices.jacuzzi.polling-error')}
-              </Typography>
-            </Stack>
-          </Box>
-        )}
-      </Stack>
+            <Slider
+              aria-label={t('devices.jacuzzi.slider.title')}
+              min={viewData.minTemp}
+              max={viewData.maxTemp}
+              value={targetTemp}
+              disabled={viewData.pollingError}
+              marks={[
+                {
+                  value: viewData.minTemp,
+                  label: `${viewData.minTemp}°C`,
+                },
+                {
+                  value: viewData.defaultTemp,
+                  label: `${viewData.defaultTemp}°C`,
+                },
+                {
+                  value: viewData.maxTemp,
+                  label: `${viewData.maxTemp}°C`,
+                },
+              ]}
+              valueLabelDisplay="auto"
+              onChange={(_e, value) => {
+                setTargetTemp(value)
+              }}
+              onChangeCommitted={(_e, value) => {
+                setTargetTemp(value)
+                onTemperatureChange(value)
+              }}
+            />
+          </Stack>
+        </Box>
+      )}
+
+      {viewData.pollingError && <PollingErrorCover />}
+
       <UpsellModal
         open={upsellingModalOpen}
         handleClose={() => setUpsellingModalOpen(false)}
       />
-    </>
+    </BoxContainer>
   )
 }

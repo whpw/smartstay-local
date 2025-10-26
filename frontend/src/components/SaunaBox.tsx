@@ -13,10 +13,12 @@ import { useTranslation } from 'react-i18next'
 import SaunaStartButton from './SaunaStartButton'
 import { UpsellModal } from './UpsellModal'
 
+import saunaIcon from '@/assets/sauna.png'
 import { authedClient } from '@/dao'
 import { isSessionRunning } from '@/utils/isSessionRunning'
 import type { SaunaViewData } from '@backend/models'
 import { useMutation } from '@tanstack/react-query'
+import { BoxContainer } from './BoxContainer'
 
 export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
   // Data state
@@ -80,66 +82,50 @@ export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
   if (!viewData) return <div>Loading...</div>
 
   return (
-    <>
-      <Stack
-        sx={{
-          p: 2,
-          borderRadius: 2,
-          border: '1px solid',
-          borderColor: 'divider',
-          width: '100%',
-        }}
-      >
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-        >
-          <Typography variant="h6">{viewData.name}</Typography>
+    <BoxContainer
+      title={
+        <Stack direction="row" alignItems="center" gap={1}>
+          <Box component="img" src={saunaIcon} sx={{ width: 24 }} />
+          <>{viewData.name}</>
         </Stack>
-        <Stack
-          sx={{
-            mt: 2,
-            display: 'flex',
-            justifyContent: 'space-between',
-          }}
-        >
-          <SaunaStartButton
-            isRunning={isRunning}
-            duration={duration()}
-            viewData={viewData}
-            onConfirmedStartClick={onConfirmedStartClick}
-          />
-        </Stack>
-        {isRunning && (
-          <Box sx={{ mt: 2 }}>
-            <Accordion>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography className="font-semibold">
-                  {t('devices.sauna.instructions.title')}
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <ol className="list-decimal">
-                  {t('devices.sauna.instructions.details', {
-                    defaultValue: '',
-                  })
-                    .split('\n')
-                    .map((line, index) => (
-                      <li key={index} className="first:mt-0 mt-4">
-                        {line}
-                      </li>
-                    ))}
-                </ol>
-              </AccordionDetails>
-            </Accordion>
-          </Box>
-        )}
-      </Stack>
+      }
+      ctaButton={
+        <SaunaStartButton
+          isRunning={isRunning}
+          duration={duration()}
+          viewData={viewData}
+          onConfirmedStartClick={onConfirmedStartClick}
+        />
+      }
+    >
+      {isRunning && (
+        <Box sx={{ mt: 2 }}>
+          <Accordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography className="font-semibold">
+                {t('devices.sauna.instructions.title')}
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <ol className="list-decimal">
+                {t('devices.sauna.instructions.details', {
+                  defaultValue: '',
+                })
+                  .split('\n')
+                  .map((line, index) => (
+                    <li key={index} className="first:mt-0 mt-4">
+                      {line}
+                    </li>
+                  ))}
+              </ol>
+            </AccordionDetails>
+          </Accordion>
+        </Box>
+      )}
       <UpsellModal
         open={upsellingModalOpen}
         handleClose={() => setUpsellingModalOpen(false)}
       />
-    </>
+    </BoxContainer>
   )
 }

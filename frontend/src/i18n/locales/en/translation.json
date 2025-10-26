@@ -1,5 +1,6 @@
 {
   "login": {
+    "title": "Login",
     "resNumber": "Reservation number",
     "lastName": "Last name",
     "submit": "Login",
@@ -24,14 +25,14 @@
     "start": "Start"
   },
   "devices": {
+    "polling-error": "Connection error :(",
     "jacuzzi": {
       "start": "Start",
       "ends-in": "Ends in: {{time}}",
-      "target-temp": "→ {{temp}} °C",
+      "target-temp": "➟ {{temp}} °C",
       "current-temp": "Current water temp {{temp}} °C",
       "initializing": "Initializing...",
       "slider.title": "Temperature",
-      "polling-error": "Connection error :(",
       "modal": {
         "title": "Do you want to start the jacuzzi?",
         "until": "Until: {{time}}",
@@ -60,6 +61,18 @@
         "title": "Instructions for operating the sauna",
         "details": "The sauna is controlled by two knobs placed on the stove.\n The left knob sets the time, please set it no longer than 4 hours (values on the white background from 0 to 4).\n The right knob sets the power. Please regulate the power so that it does not exceed 100°C. By default 2/3 of the power is sufficient in our saunas.\n After using the sauna, please set both knobs to zero.\n Our sauna is a Finnish sauna. The appropriate and healthy temperature for the body is max 100°C, humidity in the range of 40-60%.\n Please do not pour too much water on the stones (this is not a steam sauna). You can pour two tablespoons of water once every 10-15 minutes. Please pour carefully, do not pour on the stove."
       }
+    },
+    "heating": {
+      "title": "Set temperature",
+      "dayPart": "Day {{range}}",
+      "nightPart": "Night {{range}}",
+      "edit": "Edit",
+      "save": "Save",
+      "cancel": "Cancel",
+      "current-temp": "Current {{temp}} °C",
+      "target-temp": "➟ {{temp}} °C",
+      "update-success": "Temperature updated!",
+      "update-error": "Error updating temperature :("
     }
   }
 }

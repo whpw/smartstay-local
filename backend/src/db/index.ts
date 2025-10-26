@@ -8,6 +8,7 @@ export const db = (): FlatCache => {
       cacheDir: '../../appdata/cache',
       persistInterval: 1000,
     })
+    _db.load()
   }
   return _db
 }
