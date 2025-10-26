@@ -20,6 +20,16 @@ export async function initDevices() {
 
   for (const device of config.devices) {
     let controller: DeviceController | undefined
+
+    if (device.disabled) {
+      console.log(
+        'Device [',
+        device.id,
+        '] is disabled, skipping initialization'
+      )
+      continue
+    }
+
     if (
       device.type === 'jacuzzi' &&
       (device as JacuzziConfig).thermostat === 'terneo'

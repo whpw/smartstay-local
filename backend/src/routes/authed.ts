@@ -99,7 +99,7 @@ const api = app
 
   // Devices
   .get('/devices', async (c) => {
-    const devices = config.devices
+    const devices = config.devices.filter((device) => !device.disabled)
     return c.json(devices, 200)
   })
 

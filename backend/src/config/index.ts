@@ -9,6 +9,7 @@ export type DeviceConfig = {
   id: string
   type: string
   name: string
+  disabled: boolean
 }
 
 export type Config = {
