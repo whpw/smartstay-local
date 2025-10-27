@@ -329,7 +329,7 @@ export class JacuzziThermoBoxController extends DeviceController {
       },
     }
 
-    console.log('Updating ThermoBox with:', json)
+    this.log('Updating device with:', json)
 
     // Setting desired temp
     const res = await this.deviceApi
@@ -338,7 +338,7 @@ export class JacuzziThermoBoxController extends DeviceController {
       })
       .json()
 
-    console.log('Updated ThermoBox response:', res)
+    this.log('Updated device response:', res)
   }
 
   private async updateHysteresis(hysteresis: number) {
@@ -357,7 +357,7 @@ export class JacuzziThermoBoxController extends DeviceController {
   private async initDeviceApi() {
     const apiUrl = `http://bbx-${this.config.sn}.local/info`
 
-    console.log('Initializing ThermoBox device api at:', apiUrl)
+    this.log('Initializing API at:', apiUrl)
 
     // Getting info
     const { device } = await ky
@@ -369,7 +369,7 @@ export class JacuzziThermoBoxController extends DeviceController {
       })
       .json()
 
-    console.log('Found ThermoBox device at:', device.ip)
+    this.log('Found API at:', device.ip)
 
     // Setting device api
     this.deviceApi = ky.create({
@@ -405,10 +405,6 @@ export class JacuzziThermoBoxController extends DeviceController {
           const sensor = sensors.find((s) => s.type === 'temperature')
           const targetTemp = thermo.desiredTemp / 100
           const currentTemp = (sensor?.value ?? 0) / 100
-
-          console.log('Polled from ThermoBox...')
-          console.log('Polled target temp:', targetTemp)
-          console.log('Polled current temp:', currentTemp)
 
           runInAction(() => {
             // Setting current temp, rounding it to closest 0.5

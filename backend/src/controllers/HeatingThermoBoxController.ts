@@ -1,4 +1,12 @@
-import { action, computed, observable, runInAction } from 'mobx'
+import {
+  action,
+  computed,
+  observable,
+  reaction,
+  runInAction,
+  toJS,
+  type IReactionDisposer,
+} from 'mobx'
 
 import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
@@ -13,6 +21,7 @@ import {
   type HeatingViewData,
 } from '@/models'
 import { enqueueMessage } from '@/queue'
+import { weather } from '@/utils/weather'
 import { TZDate } from '@date-fns/tz'
 import ky, { type KyInstance } from 'ky'
 
@@ -41,6 +50,8 @@ export class HeatingThermoBoxController extends DeviceController {
   private dayPartInterval: NodeJS.Timeout | null = null
 
   private statePollingInterval: NodeJS.Timeout | null = null
+
+  private weatherDisposer: IReactionDisposer | null = null
 
   @observable
   private accessor pollingError = false
@@ -85,14 +96,86 @@ export class HeatingThermoBoxController extends DeviceController {
     // Load current session
     await this.loadCurrentState()
 
-    // Update device
-    await this.updateDevice()
-
     // Initialize state polling
     await this.initStatePolling()
 
+    // Initialize weather monitoring
+    this.initWeatherMonitoring()
+
     // Initialize day part interval
     this.initDayPartInterval()
+  }
+
+  private initWeatherMonitoring() {
+    this.log('Initializing weather monitoring...')
+    this.weatherDisposer = reaction(
+      () => weather.averageTemp < this.config.externalTempLimit,
+      (isEnabled) => {
+        this.log('Weather monitoring changed:', isEnabled)
+        if (isEnabled) {
+          this.turnOn()
+        } else {
+          this.turnOff()
+        }
+      },
+      {
+        fireImmediately: true,
+      }
+    )
+  }
+
+  private async turnOn() {
+    // Skipping if device is already active
+    if (this.state === 'active') {
+      return
+    }
+
+    // Creating active state based on current state
+    const activeState = {
+      ...toJS(this.persistentState),
+      state: 'active',
+    } as HeatingPersistentState
+
+    // Saving idle state
+    db().set(toKey('device-state', this.config.id), activeState)
+
+    // Setting idle state
+    runInAction(() => {
+      this.persistentState = observable(activeState)
+    })
+
+    // Updating device
+    await this.updateDevice()
+  }
+
+  private async turnOff() {
+    // Skipping if device is already idle
+    if (this.state === 'idle') {
+      return
+    }
+
+    // Turning off thermostat
+    await this.deviceApi.post('state', {
+      json: {
+        thermo: {
+          state: 0,
+        },
+      },
+    })
+
+    // Creating idle state based on current state
+    const idleState = {
+      ...toJS(this.persistentState),
+      state: 'idle',
+    } as HeatingPersistentState
+
+    // Saving idle state
+    db().set(toKey('device-state', this.config.id), idleState)
+
+    // Setting idle state
+    runInAction(() => {
+      this.persistentState = observable(idleState)
+    })
   }
 
   public dispose() {
@@ -102,9 +185,14 @@ export class HeatingThermoBoxController extends DeviceController {
     if (this.dayPartInterval) {
       clearInterval(this.dayPartInterval)
     }
+
+    if (this.weatherDisposer) {
+      this.weatherDisposer()
+    }
   }
 
   private initDayPartInterval() {
+    this.log('Initializing day part interval...')
     this.dayPartInterval = setInterval(() => {
       this.updateDevice()
     }, 60_000)
@@ -157,15 +245,15 @@ export class HeatingThermoBoxController extends DeviceController {
     // Getting expire in
     const expireIn = new Date(res.departureDate).getTime() - Date.now()
 
-    console.log(
+    this.log(
       'Setting user defined temparatures:',
       res.firstName,
       res.lastName,
       res.number
     )
-    console.log('Day temp:', dayTemp)
-    console.log('Night temp:', nightTemp)
-    console.log('Expires at:', new Date(res.departureDate))
+    this.log('Day temp:', dayTemp)
+    this.log('Night temp:', nightTemp)
+    this.log('Expires at:', new Date(res.departureDate))
 
     // Setting device state
     db().set(toKey('device-state', this.config.id), newState, expireIn)
@@ -190,6 +278,9 @@ export class HeatingThermoBoxController extends DeviceController {
 
     // Setting state
     this.persistentState = observable(state)
+
+    // Update device
+    return this.updateDevice()
   }
 
   private isNightNow() {
@@ -205,8 +296,8 @@ export class HeatingThermoBoxController extends DeviceController {
     // Getting session
     const { state, dayTemp, nightTemp } = this.persistentState
 
-    // This doesn't work for eco mode
-    if (state === 'eco') {
+    // This doesn't work for eco mode or idle state
+    if (state === 'eco' || state === 'idle') {
       return
     }
 
@@ -221,7 +312,7 @@ export class HeatingThermoBoxController extends DeviceController {
       },
     }
 
-    console.log('Updating ThermoBox heating with:', json)
+    this.log('Updating device with:', json)
 
     // Setting desired temp
     const res = await this.deviceApi
@@ -235,13 +326,14 @@ export class HeatingThermoBoxController extends DeviceController {
       this.targetTemp = targetTemp
     })
 
-    console.log('Updated ThermoBox heating response:', res)
+    this.log('Updated device response:', res)
   }
 
   private async initDeviceApi() {
+    // Getting api url
     const apiUrl = `http://bbx-${this.config.sn}.local/info`
 
-    console.log('Initializing ThermoBox device api at:', apiUrl)
+    this.log('Initializing API at:', apiUrl)
 
     // Getting info
     const { device } = await ky
@@ -249,11 +341,12 @@ export class HeatingThermoBoxController extends DeviceController {
         retry: {
           retryOnTimeout: true,
           limit: Number.POSITIVE_INFINITY,
+          backoffLimit: 15_000,
         },
       })
       .json()
 
-    console.log('Found ThermoBox device at:', device.ip)
+    this.log('Found API at:', device.ip)
 
     // Setting device api
     this.deviceApi = ky.create({
@@ -290,10 +383,6 @@ export class HeatingThermoBoxController extends DeviceController {
           const targetTemp = thermo.desiredTemp / 100
           const currentTemp = (sensor?.value ?? 0) / 100
 
-          console.log('Polled from ThermoBox...')
-          console.log('Polled target temp:', targetTemp)
-          console.log('Polled current temp:', currentTemp)
-
           runInAction(() => {
             // Setting current temp, rounding it to closest 0.5
             this.currentTemp = Math.round(currentTemp * 2) / 2
@@ -307,6 +396,9 @@ export class HeatingThermoBoxController extends DeviceController {
             // Setting polling error
             this.pollingError = true
           })
+
+          // Reinitializing device api
+          this.initDeviceApi()
         })
         .finally(() => {
           isFetching = false

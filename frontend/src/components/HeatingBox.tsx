@@ -74,6 +74,8 @@ export const HeatingBox = ({ deviceId }: { deviceId: string }) => {
     },
   })
 
+  const isTurnedOff = viewData.state !== 'active'
+
   return (
     <BoxContainer
       title={
@@ -86,16 +88,18 @@ export const HeatingBox = ({ deviceId }: { deviceId: string }) => {
         <Button
           variant="contained"
           onClick={() => setEditMode(true)}
-          disabled={viewData.pollingError}
+          disabled={viewData.pollingError || isTurnedOff}
         >
-          {t('devices.heating.edit')}
+          {isTurnedOff
+            ? t('devices.heating.turned-off')
+            : t('devices.heating.edit')}
         </Button>
       }
       currentTemp={t('devices.heating.current-temp', {
-        temp: viewData.currentTemp,
+        temp: isTurnedOff ? '--' : viewData.currentTemp,
       })}
       targetTemp={t('devices.heating.target-temp', {
-        temp: viewData.targetTemp,
+        temp: isTurnedOff ? '--' : viewData.targetTemp,
       })}
     >
       {viewData.pollingError && <PollingErrorCover />}

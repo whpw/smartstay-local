@@ -72,7 +72,8 @@
       "current-temp": "Obecnie {{temp}} °C",
       "target-temp": "➟ {{temp}} °C",
       "update-success": "Temperatura została zaktualizowana!",
-      "update-error": "Błąd podczas aktualizacji temperatury :("
+      "update-error": "Błąd podczas aktualizacji temperatury :(",
+      "turned-off": "Wyłączone"
     }
   }
 }

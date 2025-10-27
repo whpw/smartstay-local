@@ -28,6 +28,7 @@ export type Config = {
 export type AppConfig = {
   objectName: string
   apiKey: string
+  weatherUrl: string
   wifi: {
     name: string
     ssid: string

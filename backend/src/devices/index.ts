@@ -61,8 +61,6 @@ export async function initDevices() {
         })
     }
   }
-
-  console.log('Devices initialized successfully')
 }
 
 export function getDeviceController(id: string): DeviceController {

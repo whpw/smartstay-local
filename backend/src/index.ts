@@ -12,6 +12,7 @@ import { initQueue } from './queue'
 import { api as authApi } from './routes/auth'
 import { api as authedApi } from './routes/authed'
 import { api as infoApi } from './routes/info'
+import { initWeather } from './utils/weather'
 
 // Loading env
 dotenv.config({
@@ -32,6 +33,9 @@ initQueue()
 
 // Init eco mode
 ecoMode()
+
+// Init weather
+const disposeWeather = initWeather()
 
 const app = new Hono()
 
@@ -78,6 +82,11 @@ process.on('SIGINT', () => {
     Object.values(devices).forEach((device) => {
       device.dispose()
     })
+
+    // Disposing weather timer
+    if (disposeWeather) {
+      disposeWeather()
+    }
 
     process.exit(0)
   })

@@ -17,6 +17,9 @@ export abstract class DeviceController {
   public async toggleEcoMode(_gap: number) {
     // Doing nothing
   }
+  protected log(...msg: unknown[]) {
+    console.log(`[${this.id}]`, ...msg)
+  }
 }
 
 export type JacuzziConfig = {
@@ -50,4 +53,5 @@ export type HeatingConfig = {
   ecoModeTreshold: number
   minTemp: number
   maxTemp: number
+  externalTempLimit: number
 } & DeviceConfig
