@@ -184,7 +184,7 @@ export class JacuzziThermoBoxController extends DeviceController {
   }
 
   @action.bound
-  public async startSession(departureDate: string) {
+  public startSession(departureDate: string) {
     // Calculate max delay
     const maxDelay = new Date(departureDate).getTime() - Date.now()
 
@@ -208,9 +208,6 @@ export class JacuzziThermoBoxController extends DeviceController {
     }
 
     // Enqueue message to stop session
-    db().set(toKey('device-state', this.config.id), state)
-
-    // Enqueue message to stop session
     enqueueMessage(
       {
         deviceId: this.config.id,
@@ -219,11 +216,7 @@ export class JacuzziThermoBoxController extends DeviceController {
       delay
     )
 
-    // Setting state
-    this.persistentState = observable(state)
-
-    // Start session
-    await this.updateDevice()
+    return this.updateState(state, delay)
   }
 
   @action.bound
@@ -245,78 +238,13 @@ export class JacuzziThermoBoxController extends DeviceController {
   }
 
   @action.bound
-  public async stopSession() {
-    // Creating state object
-    const state: JacuzziPersistentState = {
+  public stopSession() {
+    // Creating idle state
+    const idleState: JacuzziPersistentState = {
       state: 'idle',
       session: null,
     }
-
-    // Setting state
-    db().set(toKey('device-state', this.config.id), state)
-
-    // Setting state
-    this.persistentState = observable(state)
-
-    // Updating device after session was cleared
-    await this.updateDevice()
-  }
-
-  public override async toggleEcoMode(gap: number) {
-    // This makes sense if gap is > 0
-    if (gap > 0 && this.state !== 'initializing') {
-      // Getting config
-      const { ecoModeTreshold, ecoTemp, ecoHysteresis } = this.config
-
-      // Final state
-      let state = 'idle'
-
-      // Turn on eco mode
-      if (gap > ecoModeTreshold) {
-        // Setting hysteresis (has to be first, for some reason it doesn't work otherwise)
-        await this.updateHysteresis(ecoHysteresis)
-
-        // Setting desired temp
-        await this.deviceApi.post('state', {
-          json: {
-            thermo: {
-              state: 1,
-              desiredTemp: ecoTemp * 100,
-            },
-          },
-        })
-
-        // Schedule eco mode end
-        enqueueMessage(
-          {
-            deviceId: this.config.id,
-            action: 'stop-eco',
-          },
-          gap - ecoModeTreshold
-        )
-
-        // Setting state
-        state = 'eco'
-      } else {
-        // Setting state
-        state = 'idle'
-      }
-
-      // Creating state object
-      const newState = {
-        state,
-        session: null,
-      } as JacuzziPersistentState
-
-      // Setting state
-      db().set(toKey('device-state', this.config.id), newState)
-
-      // Setting state
-      this.persistentState = observable(newState)
-
-      // Updating device
-      await this.updateDevice()
-    }
+    return this.updateState(idleState)
   }
 
   @action.bound
@@ -330,7 +258,19 @@ export class JacuzziThermoBoxController extends DeviceController {
     }
 
     // Setting state
-    this.persistentState = observable(state)
+    return this.updateState(state)
+  }
+
+  @action.bound
+  private updateState(value: JacuzziPersistentState, expireIn?: number) {
+    // Setting state
+    this.persistentState = observable(value)
+
+    // Setting state
+    db().set(toKey('device-state', this.config.id), value, expireIn)
+
+    // Updating device
+    return this.updateDevice()
   }
 
   private async updateDevice() {
@@ -456,5 +396,53 @@ export class JacuzziThermoBoxController extends DeviceController {
           isFetching = false
         })
     }, 8000)
+  }
+
+  public override async toggleEcoMode(gap: number) {
+    // This makes sense if gap is > 0
+    if (gap > 0 && this.state !== 'initializing') {
+      // Getting config
+      const { ecoModeTreshold, ecoTemp, ecoHysteresis } = this.config
+
+      // Final state
+      let state = 'idle'
+
+      // Turn on eco mode
+      if (gap > ecoModeTreshold) {
+        // Setting hysteresis (has to be first, for some reason it doesn't work otherwise)
+        await this.updateHysteresis(ecoHysteresis)
+
+        // Setting desired temp
+        await this.deviceApi.post('state', {
+          json: {
+            thermo: {
+              state: 1,
+              desiredTemp: ecoTemp * 100,
+            },
+          },
+        })
+
+        // Schedule eco mode end
+        enqueueMessage(
+          {
+            deviceId: this.config.id,
+            action: 'stop-eco',
+          },
+          gap - ecoModeTreshold
+        )
+
+        // Setting state
+        state = 'eco'
+      }
+
+      // Creating state object
+      const newState = {
+        state,
+        session: null,
+      } as JacuzziPersistentState
+
+      // Setting state
+      await this.updateState(newState)
+    }
   }
 }

@@ -194,9 +194,6 @@ export class JacuzziTerneoController extends DeviceController {
     }
 
     // Enqueue message to stop session
-    db().set(toKey('device-state', this.config.id), state)
-
-    // Enqueue message to stop session
     enqueueMessage(
       {
         deviceId: this.config.id,
@@ -204,6 +201,9 @@ export class JacuzziTerneoController extends DeviceController {
       },
       delay
     )
+
+    // Enqueue message to stop session
+    db().set(toKey('device-state', this.config.id), state)
 
     // Setting state
     this.persistentState = observable(state)
