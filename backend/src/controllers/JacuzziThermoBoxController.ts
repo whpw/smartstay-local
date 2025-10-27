@@ -15,6 +15,7 @@ import {
 } from '@/models'
 import { enqueueMessage } from '@/queue'
 import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
+import { weather } from '@/utils/weather'
 import ky, { type KyInstance } from 'ky'
 
 const MINUTE = 60 * 1000
@@ -61,12 +62,43 @@ export class JacuzziThermoBoxController extends DeviceController {
       session,
       name: this.config.name,
       currentTemp: this.currentTemp,
-      targetTemp: session ? session.targetTemp : this.config.idleTemp,
-      defaultTemp: this.config.sessionTemp,
+      targetTemp: this.targetTemp,
+      defaultTemp: this.defaultTemp,
       minTemp: this.config.minTemp,
       maxTemp: this.config.maxTemp,
       sessionDuration: this.config.sessionDuration,
       pollingError: this.pollingError,
+    }
+  }
+
+  @computed
+  public get targetTemp(): number {
+    const { session } = this.persistentState
+    if (session) {
+      return session.targetTemp
+    }
+    return this.idleTemp
+  }
+
+  @computed
+  public get defaultTemp(): number {
+    if (weather.averageTemp < this.config.lowTempThreshold) {
+      return this.config.lowTempDefault
+    } else if (weather.averageTemp < this.config.midTempThreshold) {
+      return this.config.midTempDefault
+    } else {
+      return this.config.highTempDefault
+    }
+  }
+
+  @computed
+  public get idleTemp(): number {
+    if (weather.averageTemp < this.config.lowTempThreshold) {
+      return this.config.lowTempIdleDefault
+    } else if (weather.averageTemp < this.config.midTempThreshold) {
+      return this.config.midTempIdleDefault
+    } else {
+      return this.config.highTempDefault
     }
   }
 
@@ -164,7 +196,7 @@ export class JacuzziThermoBoxController extends DeviceController {
 
     // Creating session object
     const session = {
-      targetTemp: this.config.sessionTemp,
+      targetTemp: this.defaultTemp,
       startTime: Date.now(),
       endTime: Date.now() + delay,
     }
@@ -312,14 +344,14 @@ export class JacuzziThermoBoxController extends DeviceController {
 
     // Getting hysteresis
     const hysteresis = session
-      ? this.config.sessionHysteresis
+      ? this.config.activeHysteresis
       : this.config.idleHysteresis
 
     // Setting hysteresis (has to be first, for some reason it doesn't work otherwise)
     await this.updateHysteresis(hysteresis)
 
     // Setting current temp
-    const targetTemp = session?.targetTemp ?? this.config.idleTemp
+    const targetTemp = session?.targetTemp ?? this.idleTemp
 
     // Constructing json
     const json = {

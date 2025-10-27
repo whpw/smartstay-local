@@ -40,10 +40,10 @@ export class HeatingThermoBoxController extends DeviceController {
   }
 
   @observable
-  public accessor currentTemp = 0
+  public accessor targetTemp = 0
 
   @observable
-  public accessor targetTemp = 0
+  public accessor currentTemp = 0
 
   private deviceApi!: KyInstance
 
@@ -108,6 +108,8 @@ export class HeatingThermoBoxController extends DeviceController {
 
   private initWeatherMonitoring() {
     this.log('Initializing weather monitoring...')
+
+    // Setting weather monitoring
     this.weatherDisposer = reaction(
       () => weather.averageTemp < this.config.externalTempLimit,
       (isEnabled) => {
@@ -124,11 +126,13 @@ export class HeatingThermoBoxController extends DeviceController {
     )
   }
 
-  private async turnOn() {
+  private turnOn() {
     // Skipping if device is already active
     if (this.state === 'active') {
       return
     }
+
+    this.log('Turning on device...')
 
     // Creating active state based on current state
     const activeState = {
@@ -136,16 +140,7 @@ export class HeatingThermoBoxController extends DeviceController {
       state: 'active',
     } as HeatingPersistentState
 
-    // Saving idle state
-    db().set(toKey('device-state', this.config.id), activeState)
-
-    // Setting idle state
-    runInAction(() => {
-      this.persistentState = observable(activeState)
-    })
-
-    // Updating device
-    await this.updateDevice()
+    return this.updateState(activeState)
   }
 
   private async turnOff() {
@@ -153,6 +148,8 @@ export class HeatingThermoBoxController extends DeviceController {
     if (this.state === 'idle') {
       return
     }
+
+    this.log('Turning off device...')
 
     // Turning off thermostat
     await this.deviceApi.post('state', {
@@ -169,13 +166,7 @@ export class HeatingThermoBoxController extends DeviceController {
       state: 'idle',
     } as HeatingPersistentState
 
-    // Saving idle state
-    db().set(toKey('device-state', this.config.id), idleState)
-
-    // Setting idle state
-    runInAction(() => {
-      this.persistentState = observable(idleState)
-    })
+    await this.updateState(idleState)
   }
 
   public dispose() {
@@ -193,6 +184,8 @@ export class HeatingThermoBoxController extends DeviceController {
 
   private initDayPartInterval() {
     this.log('Initializing day part interval...')
+
+    // Setting day part interval
     this.dayPartInterval = setInterval(() => {
       this.updateDevice()
     }, 60_000)
@@ -255,20 +248,13 @@ export class HeatingThermoBoxController extends DeviceController {
     this.log('Night temp:', nightTemp)
     this.log('Expires at:', new Date(res.departureDate))
 
-    // Setting device state
-    db().set(toKey('device-state', this.config.id), newState, expireIn)
-
-    // Setting state
-    this.persistentState = observable(newState)
-
-    // Updating device
-    await this.updateDevice()
+    await this.updateState(newState, expireIn)
   }
 
   @action.bound
   private loadCurrentState() {
-    // Load current state
-    const state = db().get<HeatingPersistentState>(
+    // Getting current state
+    const currentState = db().get<HeatingPersistentState>(
       toKey('device-state', this.config.id)
     ) || {
       state: 'active',
@@ -276,11 +262,8 @@ export class HeatingThermoBoxController extends DeviceController {
       nightTemp: this.config.nightTemp,
     }
 
-    // Setting state
-    this.persistentState = observable(state)
-
-    // Update device
-    return this.updateDevice()
+    // Updating state
+    return this.updateState(currentState)
   }
 
   private isNightNow() {
@@ -290,6 +273,17 @@ export class HeatingThermoBoxController extends DeviceController {
     const hours = now.getHours()
 
     return hours >= nightStart && hours < dayStart
+  }
+
+  @action.bound
+  private updateState(value: HeatingPersistentState, expireIn?: number) {
+    // Setting state
+    this.persistentState = observable(value)
+
+    // Setting state
+    db().set(toKey('device-state', this.config.id), value, expireIn)
+
+    return this.updateDevice()
   }
 
   private async updateDevice() {
@@ -408,7 +402,7 @@ export class HeatingThermoBoxController extends DeviceController {
 
   public override async toggleEcoMode(gap: number) {
     // This makes sense if gap is > 0
-    if (gap > 0 && this.state !== 'initializing') {
+    if (gap > 0 && (this.state === 'eco' || this.state === 'active')) {
       // Getting config
       const { ecoModeTreshold, ecoTemp } = this.config
 
@@ -455,14 +449,7 @@ export class HeatingThermoBoxController extends DeviceController {
         nightTemp,
       } as HeatingPersistentState
 
-      // Setting state
-      db().set(toKey('device-state', this.config.id), newState)
-
-      // Setting state
-      this.persistentState = observable(newState)
-
-      // Updating device
-      await this.updateDevice()
+      await this.updateState(newState)
     }
   }
 }

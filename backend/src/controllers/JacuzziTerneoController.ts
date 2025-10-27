@@ -8,7 +8,10 @@ import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
 
 import { db, toKey } from '@/db'
-import { DeviceController, type JacuzziConfig } from '@/devices/controller'
+import {
+  DeviceController,
+  type JacuzziTerneoConfig,
+} from '@/devices/controller'
 import {
   JacuzziActionType,
   type Action,
@@ -35,7 +38,7 @@ const MINUTE = 60 * 1000
 export class JacuzziTerneoController extends DeviceController {
   //
 
-  private config!: JacuzziConfig
+  private config!: JacuzziTerneoConfig
 
   @observable
   public accessor persistentState: JacuzziPersistentState = {
@@ -86,7 +89,7 @@ export class JacuzziTerneoController extends DeviceController {
     }
   }
 
-  public async init(config: JacuzziConfig) {
+  public async init(config: JacuzziTerneoConfig) {
     // Setting config
     this.config = config
 

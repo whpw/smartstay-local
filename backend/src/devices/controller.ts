@@ -21,8 +21,7 @@ export abstract class DeviceController {
     console.log(`[${this.id}]`, ...msg)
   }
 }
-
-export type JacuzziConfig = {
+export type JacuzziTerneoConfig = {
   sn: string
   totp: string
   thermostat: 'thermobox' | 'terneo'
@@ -38,6 +37,36 @@ export type JacuzziConfig = {
 
   idleTemp: number
   idleHysteresis: number
+  minTemp: number
+  maxTemp: number
+} & DeviceConfig
+
+export type JacuzziConfig = {
+  sn: string
+  totp: string
+  thermostat: 'thermobox' | 'terneo'
+
+  // Duration in minutes
+  sessionDuration: number
+
+  idleHysteresis: number
+  activeHysteresis: number
+
+  lowTempDefault: number
+  lowTempIdleDefault: number
+  lowTempThreshold: number
+
+  midTempDefault: number
+  midTempIdleDefault: number
+  midTempThreshold: number
+
+  highTempDefault: number
+  highTempIdleDefault: number
+
+  ecoTemp: number
+  ecoHysteresis: number
+  ecoModeTreshold: number
+
   minTemp: number
   maxTemp: number
 } & DeviceConfig
