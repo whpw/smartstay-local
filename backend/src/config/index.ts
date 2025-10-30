@@ -50,13 +50,13 @@ export async function initConfig() {
 
   // Get devices config
   const loadedConfig = await ky
-    .get<{ result: { data: AppConfig } }>(CONFIG_API_URL, {
+    .get<AppConfig>(CONFIG_API_URL, {
       headers: {
         Authorization: `Bearer ${CONFIG_API_KEY}`,
       },
     })
     .json()
-    .then(({ result: { data: appConfig } }) => {
+    .then((appConfig) => {
       console.log('Remote config initialized successfully', appConfig)
 
       // Storing config
