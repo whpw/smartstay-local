@@ -16,7 +16,6 @@ export type Config = {
   icalUrl: string
   checkinHour: number
   checkoutHour: number
-  jwtSecret: string
   roomId: string
   loginUrl: string
   hotresAuthCode: string

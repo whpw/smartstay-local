@@ -10,6 +10,10 @@ export const weather = observable({
 
 function checkWeather() {
   console.log('Checking weather...')
+  if (!appConfig.weatherUrl) {
+    console.warn('No weather URL found')
+    return
+  }
   ky.get<
     Array<{ temperatura_powietrza: string; temperatura_powietrza_data: string }>
   >(appConfig.weatherUrl)
