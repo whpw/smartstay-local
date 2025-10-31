@@ -13,7 +13,7 @@ import { DAO } from '@/utils/DAO'
 import { adminRes } from './admin'
 import { devRes } from './dev'
 
-const isDev = process.env.NODE_ENV === 'development'
+const isDev = () => process.env.NODE_ENV === 'development'
 
 export const isResDetails = (res: any): res is ResDetails => {
   return $ResDetails.safeParse(res).success
@@ -32,11 +32,13 @@ export async function getResDetails(
     resNumber === process.env.ADMIN_RES_NUMBER &&
     lastName === process.env.ADMIN_LAST_NAME
 
+  console.log('Getting reservation defails of:', resNumber, lastName)
+
   // Getting reservation from Hotres
   let res: HotresReservationDTO | never[]
   if (isAdmin) {
     res = adminRes()
-  } else if (isDev) {
+  } else if (isDev()) {
     res = devRes()
   } else {
     res = await DAO.get<HotresReservationDTO>('api_reservationdetails', {

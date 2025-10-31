@@ -3,8 +3,6 @@ import ky from 'ky'
 import { db } from '@/db'
 import console from 'console'
 
-const isDev = process.env.NODE_ENV === 'development'
-
 export type DeviceConfig = {
   id: string
   type: string
