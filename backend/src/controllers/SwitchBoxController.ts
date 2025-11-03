@@ -113,7 +113,7 @@ export class SwitchBoxController extends DeviceController {
             addMinutes(sunset.start, sunsetMode.turnOnShift),
           ])
 
-          this.logger.debug('Setting day schedule...', {
+          this.logger.info('Setting day schedule...', {
             startTime,
             endTime,
           })

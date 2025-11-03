@@ -37,7 +37,7 @@ function checkWeather() {
         const averageTemp =
           temps.reduce((acc, item) => acc + item, 0) / temps.length
 
-        logger.info('Setting average weather temp:', averageTemp)
+        logger.info('Setting average weather temp:', { averageTemp })
 
         // Setting average temp
         runInAction(() => {
