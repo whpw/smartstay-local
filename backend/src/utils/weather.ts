@@ -2,6 +2,7 @@ import { observable, runInAction } from 'mobx'
 
 import { appConfig } from '@/config'
 import { db } from '@/db'
+import { logger } from '@/utils/logger'
 import ky from 'ky'
 
 export const weather = observable({
@@ -9,11 +10,13 @@ export const weather = observable({
 })
 
 function checkWeather() {
-  console.log('Checking weather...')
+  logger.debug('Checking weather...')
+
   if (!appConfig.weatherUrl) {
-    console.warn('No weather URL found')
+    logger.warn('No weather URL found')
     return
   }
+
   ky.get<
     Array<{ temperatura_powietrza: string; temperatura_powietrza_data: string }>
   >(appConfig.weatherUrl)
@@ -34,7 +37,7 @@ function checkWeather() {
         const averageTemp =
           temps.reduce((acc, item) => acc + item, 0) / temps.length
 
-        console.log('Setting average weather temp:', averageTemp)
+        logger.info('Setting average weather temp:', averageTemp)
 
         // Setting average temp
         runInAction(() => {
@@ -43,7 +46,7 @@ function checkWeather() {
       }
     })
     .catch((err) => {
-      console.error('Error checking weather:', err)
+      logger.error('Error checking weather:', err)
     })
 }
 

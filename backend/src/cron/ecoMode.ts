@@ -31,7 +31,9 @@ const untilNextHour = differenceInMilliseconds(nextHour, new Date())
 setTimeout(() => {
   // Set interval for next runs
   setInterval(() => {
-    ecoMode()
+    ecoMode().catch((e) => {
+      console.error('Error checking eco mode:', e)
+    })
   }, 60 * 60 * 1000)
 }, untilNextHour)
 
@@ -48,29 +50,32 @@ export async function ecoMode() {
   // Parsing ical
   const calendar = ical.parseICS(icalData)
 
+  // Getting entries
   const entries = Object.values(calendar)
 
   // Sorting events by start date
-  const events = entries
+  const [event] = entries
     .sort((a, b) => compareAsc(a.start as Date, b.start as Date))
     .map((event) => ({
       start: setHours(new TZDate(event.start as Date, tz), config.checkinHour),
       end: setHours(new TZDate(event.end as Date, tz), config.checkoutHour),
     }))
 
-  const upcomingEvent = events[0] && {
-    start: setHours(
-      new TZDate(events[0].start as Date, tz),
-      config.checkinHour
-    ),
-    end: setHours(new TZDate(events[0].end as Date, tz), config.checkoutHour),
+  if (!event) {
+    console.log('No events found')
+    return
+  }
+
+  const upcomingEvent = {
+    start: setHours(new TZDate(event.start as Date, tz), config.checkinHour),
+    end: setHours(new TZDate(event.end as Date, tz), config.checkoutHour),
   }
 
   // Getting current time
   const now = new TZDate(new Date(), tz)
 
   // Calculating gap in hours
-  const gap = differenceInHours(upcomingEvent.start, now)
+  const gap = Math.max(differenceInHours(upcomingEvent.start, now), 0)
 
   // Getting device controller
   Object.values(devices).forEach((device) => {

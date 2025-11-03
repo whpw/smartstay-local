@@ -88,3 +88,11 @@ export const SaunaActionType = {
   START: 'START',
   SET_TARGET_TEMP: 'SET_TARGET_TEMP',
 }
+
+export type SwitchBoxViewData = DeviceViewData & {
+  pollingError: boolean
+}
+
+export const SwitchBoxActionType = {
+  SET_STATE: 'SET_STATE',
+}

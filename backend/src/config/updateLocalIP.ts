@@ -1,11 +1,10 @@
+import { logger } from '@/utils/logger'
 import { ip } from 'address'
 import ky from 'ky'
 
 export async function updateLocalIP() {
+  logger.debug('Updating local IP...')
   try {
-    //
-    console.log('Updating local IP...')
-
     // Getting local address
     const networkAddr = ip()
 
@@ -19,8 +18,8 @@ export async function updateLocalIP() {
       },
     })
 
-    console.log('Local IP updated successfully:', networkAddr)
+    logger.info('Local IP updated successfully')
   } catch (err) {
-    console.error('Error updating local IP:', err)
+    logger.error('Error updating local IP:', err)
   }
 }

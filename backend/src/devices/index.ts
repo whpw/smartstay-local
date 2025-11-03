@@ -11,6 +11,7 @@ import {
 } from '@/controllers'
 import { JacuzziTerneoController } from '@/controllers/JacuzziTerneoController'
 import { SaunaController } from '@/controllers/SaunaController'
+import { SwitchBoxController } from '@/controllers/SwitchBoxController'
 
 export const devices: Record<string, DeviceController> = {}
 
@@ -47,6 +48,8 @@ export async function initDevices() {
       controller = new HeatingThermoBoxController()
     } else if (device.type === 'sauna') {
       controller = new SaunaController()
+    } else if (device.type === 'switch') {
+      controller = new SwitchBoxController()
     }
     if (controller) {
       // Adding controller to the map

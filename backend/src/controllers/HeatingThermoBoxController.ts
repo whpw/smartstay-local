@@ -107,13 +107,13 @@ export class HeatingThermoBoxController extends DeviceController {
   }
 
   private initWeatherMonitoring() {
-    this.log('Initializing weather monitoring...')
+    this.logger.info('Initializing weather monitoring...')
 
     // Setting weather monitoring
     this.weatherDisposer = reaction(
       () => weather.averageTemp < this.config.externalTempLimit,
       (isEnabled) => {
-        this.log('Weather monitoring changed:', isEnabled)
+        this.logger.debug('Weather monitoring changed:', isEnabled)
         if (isEnabled) {
           this.turnOn()
         } else {
@@ -132,7 +132,7 @@ export class HeatingThermoBoxController extends DeviceController {
       return
     }
 
-    this.log('Turning on device...')
+    this.logger.debug('Turning on device...')
 
     // Creating active state based on current state
     const activeState = {
@@ -149,7 +149,7 @@ export class HeatingThermoBoxController extends DeviceController {
       return
     }
 
-    this.log('Turning off device...')
+    this.logger.debug('Turning off device...')
 
     // Turning off thermostat
     await this.deviceApi.post('state', {
@@ -183,7 +183,7 @@ export class HeatingThermoBoxController extends DeviceController {
   }
 
   private initDayPartInterval() {
-    this.log('Initializing day part interval...')
+    this.logger.info('Initializing day part interval...')
 
     // Setting day part interval
     this.dayPartInterval = setInterval(() => {
@@ -238,15 +238,15 @@ export class HeatingThermoBoxController extends DeviceController {
     // Getting expire in
     const expireIn = new Date(res.departureDate).getTime() - Date.now()
 
-    this.log(
+    this.logger.debug(
       'Setting user defined temparatures:',
       res.firstName,
       res.lastName,
       res.number
     )
-    this.log('Day temp:', dayTemp)
-    this.log('Night temp:', nightTemp)
-    this.log('Expires at:', new Date(res.departureDate))
+    this.logger.debug('Day temp:', dayTemp)
+    this.logger.debug('Night temp:', nightTemp)
+    this.logger.debug('Expires at:', new Date(res.departureDate))
 
     await this.updateState(newState, expireIn)
   }
@@ -306,7 +306,7 @@ export class HeatingThermoBoxController extends DeviceController {
       },
     }
 
-    this.log('Updating device with:', json)
+    this.logger.debug('Updating device with:', json)
 
     // Setting desired temp
     const res = await this.deviceApi
@@ -320,14 +320,14 @@ export class HeatingThermoBoxController extends DeviceController {
       this.targetTemp = targetTemp
     })
 
-    this.log('Updated device response:', res)
+    this.logger.debug('Updated device response:', res)
   }
 
   private async initDeviceApi() {
     // Getting api url
     const apiUrl = `http://bbx-${this.config.sn}.local/info`
 
-    this.log('Initializing API at:', apiUrl)
+    this.logger.info('Initializing API at:', apiUrl)
 
     // Getting info
     const { device } = await ky
@@ -340,7 +340,7 @@ export class HeatingThermoBoxController extends DeviceController {
       })
       .json()
 
-    this.log('Found API at:', device.ip)
+    this.logger.info('Found API at:', device.ip)
 
     // Setting device api
     this.deviceApi = ky.create({
@@ -385,7 +385,7 @@ export class HeatingThermoBoxController extends DeviceController {
           })
         })
         .catch((e) => {
-          console.error('Error polling state:', e)
+          this.logger.error('Error polling state:', e)
           runInAction(() => {
             // Setting polling error
             this.pollingError = true

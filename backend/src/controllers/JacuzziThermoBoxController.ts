@@ -301,7 +301,7 @@ export class JacuzziThermoBoxController extends DeviceController {
       },
     }
 
-    this.log('Updating device with:', json)
+    this.logger.debug('Updating device with:', json)
 
     // Setting desired temp
     const res = await this.deviceApi
@@ -310,7 +310,7 @@ export class JacuzziThermoBoxController extends DeviceController {
       })
       .json()
 
-    this.log('Updated device response:', res)
+    this.logger.debug('Updated device response:', res)
   }
 
   private async updateHysteresis(hysteresis: number) {
@@ -329,7 +329,7 @@ export class JacuzziThermoBoxController extends DeviceController {
   private async initDeviceApi() {
     const apiUrl = `http://bbx-${this.config.sn}.local/info`
 
-    this.log('Initializing API at:', apiUrl)
+    this.logger.info('Initializing API at:', apiUrl)
 
     // Getting info
     const { device } = await ky
@@ -341,7 +341,7 @@ export class JacuzziThermoBoxController extends DeviceController {
       })
       .json()
 
-    this.log('Found API at:', device.ip)
+    this.logger.info('Found API at:', device.ip)
 
     // Setting device api
     this.deviceApi = ky.create({

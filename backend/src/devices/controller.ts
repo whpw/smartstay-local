@@ -2,6 +2,7 @@ import type { DeviceConfig } from '@/config'
 import type { ResDetails } from '@/models/ResDetails'
 import type { Action, DeviceViewData } from '@/models/ViewData'
 import type { QueueMessage } from '@/queue'
+import { createLogger } from '@/utils/logger'
 
 export abstract class DeviceController {
   abstract get id(): string
@@ -17,8 +18,11 @@ export abstract class DeviceController {
   public async toggleEcoMode(_gap: number) {
     // Doing nothing
   }
-  protected log(...msg: unknown[]) {
-    console.log(`[${this.id}]`, ...msg)
+
+  protected logger: ReturnType<typeof createLogger>
+
+  constructor() {
+    this.logger = createLogger(this.constructor.name)
   }
 }
 export type JacuzziTerneoConfig = {
@@ -83,4 +87,13 @@ export type HeatingConfig = {
   minTemp: number
   maxTemp: number
   externalTempLimit: number
+} & DeviceConfig
+
+export type SwitchBoxConfig = {
+  sn: string
+  sunsetMode: {
+    turnOnShift: number // minutes
+    turnOffAt: `${number}:${number}` // HH:MM
+    ecoMode: boolean // should be disabled if true
+  }
 } & DeviceConfig

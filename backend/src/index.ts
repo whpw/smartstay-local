@@ -12,6 +12,8 @@ import { initQueue } from './queue'
 import { api as authApi } from './routes/auth'
 import { api as authedApi } from './routes/authed'
 import { api as infoApi } from './routes/info'
+import { logger } from './utils/logger'
+import { initSunset } from './utils/sunset'
 import { initWeather } from './utils/weather'
 
 // Loading env
@@ -33,6 +35,9 @@ initQueue()
 
 // Init eco mode
 ecoMode()
+
+// Init sunset
+const disposeSunset = initSunset()
 
 // Init weather
 const disposeWeather = initWeather()
@@ -70,14 +75,14 @@ const server = serve(
     hostname: '0.0.0.0',
   },
   (info) => {
-    console.log(`Server is running on http://localhost:${info.port}`)
+    logger.info(`Server is running on http://localhost:${info.port}`)
   }
 )
 
 // graceful shutdown
 process.on('SIGINT', () => {
   server.close(() => {
-    console.log('Server closed...')
+    logger.info('Server closed...')
 
     Object.values(devices).forEach((device) => {
       device.dispose()
@@ -86,6 +91,11 @@ process.on('SIGINT', () => {
     // Disposing weather timer
     if (disposeWeather) {
       disposeWeather()
+    }
+
+    // Disposing sunset timer
+    if (disposeSunset) {
+      disposeSunset()
     }
 
     process.exit(0)

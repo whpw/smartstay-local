@@ -1,4 +1,5 @@
 import { FlatCache } from 'flat-cache'
+import superjson from 'superjson'
 
 export let _db: FlatCache | null = null
 
@@ -7,6 +8,8 @@ export const db = (): FlatCache => {
     _db = new FlatCache({
       cacheDir: '../../appdata/cache',
       persistInterval: 1000,
+      serialize: superjson.stringify,
+      deserialize: superjson.parse,
     })
     _db.load()
   }

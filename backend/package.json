@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "NODE_ENV=development tsx watch src/index.ts",
-    "start": "NODE_ENV=production node dist/index.js",
+    "dev": "NODE_ENV=development DEBUG=* tsx watch src/index.ts",
+    "start": "NODE_ENV=production DEBUG=*,-debug node dist/index.js",
     "build": "esbuild src/index.ts --bundle --platform=node --sourcemap --packages=external --format=esm --target=es2022 --outdir=./dist"
   },
   "dependencies": {
@@ -12,7 +12,9 @@
     "@hono/node-server": "^1.19.5",
     "@hono/zod-validator": "^0.7.4",
     "address": "^2.0.3",
+    "cron": "^4.3.3",
     "date-fns": "^4.1.0",
+    "debug-logfmt": "^1.4.6",
     "dotenv": "^17.2.3",
     "flat-cache": "^6.1.18",
     "hono": "^4.10.3",
@@ -20,6 +22,7 @@
     "ky": "^1.13.0",
     "mobx": "^6.15.0",
     "mustache": "^4.2.0",
+    "superjson": "^2.2.5",
     "totp-generator": "^2.0.0",
     "zod": "^4.1.12"
   },

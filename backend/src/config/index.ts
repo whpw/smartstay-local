@@ -1,7 +1,7 @@
 import ky from 'ky'
 
 import { db } from '@/db'
-import console from 'console'
+import { logger } from '@/utils/logger'
 
 export type DeviceConfig = {
   id: string
@@ -26,6 +26,7 @@ export type AppConfig = {
   objectName: string
   apiKey: string
   weatherUrl: string
+  sunsetUrl: string
   wifi: {
     name: string
     ssid: string
@@ -41,7 +42,7 @@ export let appConfig!: AppConfig
 
 // Exporting config initialization function
 export async function initConfig() {
-  console.log('Initializing config...')
+  logger.debug('Initializing config...')
 
   const CONFIG_API_URL = process.env.CONFIG_API_URL as string
   const CONFIG_API_KEY = process.env.CONFIG_API_KEY as string
@@ -55,7 +56,7 @@ export async function initConfig() {
     })
     .json()
     .then((appConfig) => {
-      console.log('Remote config initialized successfully', appConfig)
+      logger.info('Remote config initialized successfully')
 
       // Storing config
       db().set('config', appConfig.config)
@@ -65,18 +66,16 @@ export async function initConfig() {
       return appConfig
     })
     .catch((err) => {
-      console.error('Error getting remote config:', err)
+      logger.error('Error getting remote config:', err)
 
       // Using cached version of the config
       const configFromDb = db().get<AppConfig | undefined>('appConfig')
 
-      console.log('Using cached config', db().all())
+      logger.info('Using cached config', db().all())
 
       if (!configFromDb) {
         throw new Error('Local config not found')
       }
-
-      console.log('Local config initialized successfully')
 
       return configFromDb
     })
