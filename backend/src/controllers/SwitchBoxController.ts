@@ -1,4 +1,4 @@
-import { computed, observable, runInAction } from 'mobx'
+import { action, computed, observable, runInAction } from 'mobx'
 
 import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
@@ -12,9 +12,15 @@ import {
 } from '@/models'
 
 import { sunset } from '@/utils/sunset'
-import { CronJob } from 'cron'
-import { addMinutes, addSeconds, isAfter, max, parse } from 'date-fns'
+import { CronJob, CronTime } from 'cron'
+import { addMinutes, addSeconds, isAfter, isBefore, max, parse } from 'date-fns'
 import ky, { type KyInstance } from 'ky'
+
+function getScheduledTime(cron?: CronJob) {
+  return (
+    (cron && cron.isActive && cron.cronTime.sendAt().toJSDate()) || undefined
+  )
+}
 
 export class SwitchBoxController extends DeviceController {
   //
@@ -36,6 +42,8 @@ export class SwitchBoxController extends DeviceController {
 
   private turnOffSchedule?: CronJob
 
+  private manualTurnOffSchedule?: CronJob
+
   private statePollingInterval: NodeJS.Timeout | null = null
 
   @observable
@@ -55,6 +63,8 @@ export class SwitchBoxController extends DeviceController {
       state: this.state,
       name: this.config.name,
       pollingError: this.pollingError,
+      turnsOnAt: getScheduledTime(this.turnOnSchedule),
+      turnsOffAt: getScheduledTime(this.turnOffSchedule),
     }
   }
 
@@ -84,6 +94,9 @@ export class SwitchBoxController extends DeviceController {
     }
     if (this.turnOffSchedule) {
       this.turnOffSchedule.stop()
+    }
+    if (this.manualTurnOffSchedule) {
+      this.manualTurnOffSchedule.stop()
     }
   }
 
@@ -149,12 +162,48 @@ export class SwitchBoxController extends DeviceController {
 
   public async processQueueMessage(_msg: QueueMessage) {}
 
+  @action.bound
   public async invokeAction(actionToInvoke: Action, res: ResDetails) {
     switch (actionToInvoke.type) {
-      case SwitchBoxActionType.SET_STATE:
+      case SwitchBoxActionType.START:
         {
           // Setting state
-          await this.setDeviceState(actionToInvoke.value as DeviceState)
+          await this.setDeviceState('active')
+
+          // Setting manual turn off schedule
+          const offTime = addMinutes(new Date(), this.config.sessionDuration)
+
+          // Getting sunset on/off schedule
+          const sunsetOnTime =
+            getScheduledTime(this.turnOnSchedule) || new Date()
+          const sunsetOffTime =
+            getScheduledTime(this.turnOffSchedule) || new Date()
+
+          // Just in case stop previous schedule
+          if (this.manualTurnOffSchedule) {
+            this.manualTurnOffSchedule.stop()
+          }
+
+          // Handling edge cases
+          if (isBefore(offTime, sunsetOnTime)) {
+            // If off time is before sunset on time, schedule manual turn off
+            this.manualTurnOffSchedule = CronJob.from({
+              cronTime: offTime,
+              onTick: () => {
+                this.setDeviceState('idle')
+              },
+              start: true,
+            })
+          } else if (isAfter(offTime, sunsetOffTime)) {
+            // If off time is after sunset off time, update turn off schedule
+            this.turnOffSchedule?.setTime(new CronTime(offTime))
+          }
+        }
+        break
+      case SwitchBoxActionType.STOP:
+        {
+          // Setting state
+          await this.setDeviceState('idle')
         }
         break
     }
@@ -174,6 +223,11 @@ export class SwitchBoxController extends DeviceController {
             },
           ],
         },
+      })
+      .then(() => {
+        runInAction(() => {
+          this.state = state
+        })
       })
       .catch((e) => {
         this.logger.error('Error setting state:', e)

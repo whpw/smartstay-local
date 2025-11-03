@@ -48,7 +48,7 @@ export async function initDevices() {
       controller = new HeatingThermoBoxController()
     } else if (device.type === 'sauna') {
       controller = new SaunaController()
-    } else if (device.type === 'switch') {
+    } else if (device.type === 'light-switch') {
       controller = new SwitchBoxController()
     }
     if (controller) {

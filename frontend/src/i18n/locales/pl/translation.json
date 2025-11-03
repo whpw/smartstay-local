@@ -74,6 +74,11 @@
       "update-success": "Temperatura została zaktualizowana!",
       "update-error": "Błąd podczas aktualizacji temperatury :(",
       "turned-off": "Wyłączone"
+    },
+    "light-switch": {
+      "initializing": "Łączenie...",
+      "on": "Włącz",
+      "off": "Wyłącz"
     }
   }
 }

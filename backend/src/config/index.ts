@@ -5,7 +5,7 @@ import { logger } from '@/utils/logger'
 
 export type DeviceConfig = {
   id: string
-  type: string
+  type: 'sauna' | 'jacuzzi' | 'heating' | 'light-switch'
   name: string
   disabled: boolean
 }

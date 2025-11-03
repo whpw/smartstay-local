@@ -74,6 +74,11 @@
       "update-success": "Temperature updated!",
       "update-error": "Error updating temperature :(",
       "turned-off": "Turned off"
+    },
+    "light-switch": {
+      "initializing": "Initializing...",
+      "on": "Turn on",
+      "off": "Turn off"
     }
   }
 }

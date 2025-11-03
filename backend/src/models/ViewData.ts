@@ -91,8 +91,11 @@ export const SaunaActionType = {
 
 export type SwitchBoxViewData = DeviceViewData & {
   pollingError: boolean
+  turnsOnAt?: Date
+  turnsOffAt?: Date
 }
 
 export const SwitchBoxActionType = {
-  SET_STATE: 'SET_STATE',
+  START: 'START',
+  STOP: 'STOP',
 }

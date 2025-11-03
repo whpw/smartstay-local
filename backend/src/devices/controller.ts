@@ -96,4 +96,5 @@ export type SwitchBoxConfig = {
     turnOffAt: `${number}:${number}` // HH:MM
     ecoMode: boolean // should be disabled if true
   }
+  sessionDuration: number // minutes
 } & DeviceConfig

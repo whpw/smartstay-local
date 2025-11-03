@@ -3,6 +3,7 @@ import { authedClient } from '@/dao'
 import { Stack } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
 import { HeatingBox } from '../components/HeatingBox'
+import { LightSwitchBox } from '../components/LightSwitchBox'
 import { SaunaBox } from '../components/SaunaBox'
 
 export const HomeRoute = () => {
@@ -23,6 +24,8 @@ export const HomeRoute = () => {
             return <JacuzziBox key={device.id} deviceId={device.id} />
           case 'heating':
             return <HeatingBox key={device.id} deviceId={device.id} />
+          case 'light-switch':
+            return <LightSwitchBox key={device.id} deviceId={device.id} />
           default:
             return null
         }
