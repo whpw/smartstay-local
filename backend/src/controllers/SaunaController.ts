@@ -11,23 +11,15 @@ import {
 import type { ResDetails } from '@/models/ResDetails'
 import type { QueueMessage } from '@/queue'
 
-import type { DeviceConfig } from '@/config'
 import { db, toKey } from '@/db'
-import { DeviceController } from '@/devices/controller'
+import { DevController, type SaunaConfig } from '@/devices/controller'
 import { enqueueMessage } from '@/queue'
 import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
 
-export type SaunaConfig = {
-  // Duration in minutes
-  sessionDuration: number
-} & DeviceConfig
-
 const MINUTE = 60 * 1000
 
-export class SaunaController extends DeviceController {
+export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
   //
-
-  private config!: SaunaConfig
 
   @observable
   public accessor persistentState: SaunaPersistentState = {
@@ -43,16 +35,8 @@ export class SaunaController extends DeviceController {
     return this.persistentState.state
   }
 
-  public override get id(): string {
-    return this.config.id
-  }
-
-  public override get type(): string {
-    return this.config.type
-  }
-
   @computed
-  public get viewData(): SaunaViewData {
+  public get viewData() {
     const session = toJS(this.persistentState.session ?? null)
     return {
       name: this.config.name,
@@ -63,10 +47,7 @@ export class SaunaController extends DeviceController {
     }
   }
 
-  public async init(config: SaunaConfig) {
-    // Setting config
-    this.config = config
-
+  public async init() {
     // Load current session
     await this.loadCurrentState()
   }

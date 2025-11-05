@@ -4,27 +4,45 @@ import type { Action, DeviceViewData } from '@/models/ViewData'
 import type { QueueMessage } from '@/queue'
 import { createLogger } from '@/utils/logger'
 
-export abstract class DeviceController {
-  abstract get id(): string
-  abstract get type(): string
-  abstract init(config: DeviceConfig): Promise<void>
+export abstract class DevController<
+  T extends DeviceConfig,
+  V extends DeviceViewData
+> {
+  protected config: T
+
+  protected logger: ReturnType<typeof createLogger>
+
+  public get id(): string {
+    return this.config.id
+  }
+
+  public get type(): string {
+    return this.config.type
+  }
+
+  abstract init(): Promise<void>
+
   abstract dispose(): void
-  abstract get viewData(): DeviceViewData
+
+  abstract get viewData(): V
+
   abstract processQueueMessage(msg: QueueMessage): Promise<void>
+
   abstract invokeAction(
     action: Action,
     res: ResDetails
-  ): Promise<DeviceViewData | { error: string }>
+  ): Promise<V | { error: string }>
+
   public async toggleEcoMode(_gap: number) {
     // Doing nothing
   }
 
-  protected logger: ReturnType<typeof createLogger>
-
-  constructor() {
+  constructor(config: T) {
+    this.config = config
     this.logger = createLogger(this.constructor.name)
   }
 }
+
 export type JacuzziTerneoConfig = {
   sn: string
   totp: string
@@ -89,7 +107,7 @@ export type HeatingConfig = {
   externalTempLimit: number
 } & DeviceConfig
 
-export type SwitchBoxConfig = {
+export type LightSwitchConfig = {
   sn: string
   sunsetMode: {
     turnOnShift: number // minutes
@@ -97,4 +115,9 @@ export type SwitchBoxConfig = {
     ecoMode: boolean // should be disabled if true
   }
   sessionDuration: number // minutes
+} & DeviceConfig
+
+export type SaunaConfig = {
+  // Duration in minutes
+  sessionDuration: number
 } & DeviceConfig

@@ -2,6 +2,7 @@ import ical from 'ical'
 
 import { config } from '@/config'
 import { devices } from '@/devices'
+import { logger } from '@/utils/logger'
 import { TZDate } from '@date-fns/tz'
 import {
   addHours,
@@ -32,14 +33,14 @@ setTimeout(() => {
   // Set interval for next runs
   setInterval(() => {
     ecoMode().catch((e) => {
-      console.error('Error checking eco mode:', e)
+      logger.error('Error checking eco mode:', e)
     })
   }, 60 * 60 * 1000)
 }, untilNextHour)
 
 export async function ecoMode() {
   // Logging
-  console.log('Checking eco mode...')
+  logger.info('Checking eco mode...')
 
   // Getting timezone
   const tz = process.env.TZ || 'Europe/Warsaw'
@@ -62,7 +63,7 @@ export async function ecoMode() {
     }))
 
   if (!event) {
-    console.log('No events found')
+    logger.warn('No events found')
     return
   }
 

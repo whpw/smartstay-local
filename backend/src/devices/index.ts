@@ -1,29 +1,37 @@
 import type {
-  DeviceController,
+  DevController,
   HeatingConfig,
   JacuzziConfig,
+  JacuzziTerneoConfig,
+  LightSwitchConfig,
+  SaunaConfig,
 } from '@/devices/controller'
 
-import { config } from '@/config'
+import { config, type DeviceConfig } from '@/config'
 import {
   HeatingThermoBoxController,
   JacuzziThermoBoxController,
 } from '@/controllers'
 import { JacuzziTerneoController } from '@/controllers/JacuzziTerneoController'
+import { LightSwitchController } from '@/controllers/LightSwitchController'
 import { SaunaController } from '@/controllers/SaunaController'
-import { SwitchBoxController } from '@/controllers/SwitchBoxController'
+import type { DeviceViewData } from '@/models'
+import { logger } from '@/utils/logger'
 
-export const devices: Record<string, DeviceController> = {}
+export const devices: Record<
+  string,
+  DevController<DeviceConfig, DeviceViewData>
+> = {}
 
 export async function initDevices() {
   //
-  console.log('Initializing devices...')
+  logger.info('Initializing devices...')
 
   for (const device of config.devices) {
-    let controller: DeviceController | undefined
+    let controller: DevController<DeviceConfig, DeviceViewData> | undefined
 
     if (device.disabled) {
-      console.log(
+      logger.warn(
         'Device [',
         device.id,
         '] is disabled, skipping initialization'
@@ -31,42 +39,46 @@ export async function initDevices() {
       continue
     }
 
+    const config = device as DeviceConfig
+
     if (
-      device.type === 'jacuzzi' &&
-      (device as JacuzziConfig).thermostat === 'terneo'
+      config.type === 'jacuzzi' &&
+      (config as JacuzziConfig).thermostat === 'terneo'
     ) {
-      controller = new JacuzziTerneoController()
+      controller = new JacuzziTerneoController(config as JacuzziTerneoConfig)
     } else if (
-      device.type === 'jacuzzi' &&
-      (device as JacuzziConfig).thermostat === 'thermobox'
+      config.type === 'jacuzzi' &&
+      (config as JacuzziConfig).thermostat === 'thermobox'
     ) {
-      controller = new JacuzziThermoBoxController()
+      controller = new JacuzziThermoBoxController(config as JacuzziConfig)
     } else if (
       device.type === 'heating' &&
       (device as HeatingConfig).thermostat === 'thermobox'
     ) {
-      controller = new HeatingThermoBoxController()
+      controller = new HeatingThermoBoxController(config as HeatingConfig)
     } else if (device.type === 'sauna') {
-      controller = new SaunaController()
+      controller = new SaunaController(config as SaunaConfig)
     } else if (device.type === 'light-switch') {
-      controller = new SwitchBoxController()
+      controller = new LightSwitchController(config as LightSwitchConfig)
     }
     if (controller) {
       // Adding controller to the map
       devices[device.id] = controller
       controller
-        .init(device)
+        .init()
         .then(() => {
-          console.log('Device [', device.id, '] initialized successfully')
+          logger.info('Device [', device.id, '] initialized successfully')
         })
         .catch((err) => {
-          console.error('Error initializing device', device.id, err)
+          logger.error('Error initializing device', device.id, err)
         })
     }
   }
 }
 
-export function getDeviceController(id: string): DeviceController {
+export function getDeviceController(
+  id: string
+): DevController<DeviceConfig, DeviceViewData> {
   const device = devices[id]
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!device) {

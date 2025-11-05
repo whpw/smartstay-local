@@ -12,7 +12,7 @@ import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
 
 import { db, toKey } from '@/db'
-import { DeviceController, type HeatingConfig } from '@/devices/controller'
+import { DevController, type HeatingConfig } from '@/devices/controller'
 import {
   JacuzziActionType,
   type Action,
@@ -27,10 +27,11 @@ import ky, { type KyInstance } from 'ky'
 
 const TZ = process.env.TZ || 'Europe/Warsaw'
 
-export class HeatingThermoBoxController extends DeviceController {
+export class HeatingThermoBoxController extends DevController<
+  HeatingConfig,
+  HeatingViewData
+> {
   //
-
-  private config!: HeatingConfig
 
   @observable
   public accessor persistentState: HeatingPersistentState = {
@@ -61,14 +62,6 @@ export class HeatingThermoBoxController extends DeviceController {
     return this.persistentState.state
   }
 
-  public override get id(): string {
-    return this.config.id
-  }
-
-  public override get type(): string {
-    return this.config.type
-  }
-
   @computed
   public get viewData(): HeatingViewData {
     return {
@@ -86,10 +79,7 @@ export class HeatingThermoBoxController extends DeviceController {
     }
   }
 
-  public async init(config: HeatingConfig) {
-    // Setting config
-    this.config = config
-
+  public async init() {
     // Initialize UDP listener
     await this.initDeviceApi()
 
@@ -194,6 +184,12 @@ export class HeatingThermoBoxController extends DeviceController {
   public async processQueueMessage(_msg: QueueMessage) {}
 
   public async invokeAction(actionToInvoke: Action, res: ResDetails) {
+    // Logging user action
+    this.logger.info('Invoking action:', {
+      action: actionToInvoke.type,
+      ...(actionToInvoke.value || {}),
+    })
+
     switch (actionToInvoke.type) {
       case JacuzziActionType.SET_TARGET_TEMP:
         {
@@ -374,7 +370,6 @@ export class HeatingThermoBoxController extends DeviceController {
         .then(({ thermo, sensors }) => {
           // Getting sensor
           const sensor = sensors.find((s) => s.type === 'temperature')
-          const targetTemp = thermo.desiredTemp / 100
           const currentTemp = (sensor?.value ?? 0) / 100
 
           runInAction(() => {

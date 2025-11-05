@@ -3,7 +3,7 @@ import { action, computed, observable, runInAction } from 'mobx'
 import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
 
-import { DeviceController, type SwitchBoxConfig } from '@/devices/controller'
+import { DevController, type LightSwitchConfig } from '@/devices/controller'
 import {
   SwitchBoxActionType,
   type Action,
@@ -22,10 +22,11 @@ function getScheduledTime(cron?: CronJob) {
   )
 }
 
-export class SwitchBoxController extends DeviceController {
+export class LightSwitchController extends DevController<
+  LightSwitchConfig,
+  SwitchBoxViewData
+> {
   //
-
-  private config!: SwitchBoxConfig
 
   @observable
   public accessor state: DeviceState = 'initializing'
@@ -49,16 +50,8 @@ export class SwitchBoxController extends DeviceController {
   @observable
   private accessor pollingError = false
 
-  public override get id(): string {
-    return this.config.id
-  }
-
-  public override get type(): string {
-    return this.config.type
-  }
-
   @computed
-  public get viewData(): SwitchBoxViewData {
+  public get viewData() {
     return {
       state: this.state,
       name: this.config.name,
@@ -68,10 +61,7 @@ export class SwitchBoxController extends DeviceController {
     }
   }
 
-  public async init(config: SwitchBoxConfig) {
-    // Setting config
-    this.config = config
-
+  public async init() {
     // Initialize UDP listener
     await this.initDeviceApi()
 

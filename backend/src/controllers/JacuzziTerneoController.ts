@@ -8,10 +8,7 @@ import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
 
 import { db, toKey } from '@/db'
-import {
-  DeviceController,
-  type JacuzziTerneoConfig,
-} from '@/devices/controller'
+import { DevController, type JacuzziTerneoConfig } from '@/devices/controller'
 import {
   JacuzziActionType,
   type Action,
@@ -35,10 +32,11 @@ export type TerneoUdpData = {
 
 const MINUTE = 60 * 1000
 
-export class JacuzziTerneoController extends DeviceController {
+export class JacuzziTerneoController extends DevController<
+  JacuzziTerneoConfig,
+  JacuzziViewData
+> {
   //
-
-  private config!: JacuzziTerneoConfig
 
   @observable
   public accessor persistentState: JacuzziPersistentState = {
@@ -64,16 +62,8 @@ export class JacuzziTerneoController extends DeviceController {
     return this.persistentState.state
   }
 
-  public override get id(): string {
-    return this.config.id
-  }
-
-  public override get type(): string {
-    return this.config.type
-  }
-
   @computed
-  public get viewData(): JacuzziViewData {
+  public get viewData() {
     const session = toJS(this.persistentState.session ?? null)
     return {
       state: this.state,
@@ -89,10 +79,7 @@ export class JacuzziTerneoController extends DeviceController {
     }
   }
 
-  public async init(config: JacuzziTerneoConfig) {
-    // Setting config
-    this.config = config
-
+  public async init() {
     // Initialize UDP listener
     this.initUdpListener()
 

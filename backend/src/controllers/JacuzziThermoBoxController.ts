@@ -5,7 +5,7 @@ import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
 
 import { db, toKey } from '@/db'
-import { DeviceController, type JacuzziConfig } from '@/devices/controller'
+import { DevController, type JacuzziConfig } from '@/devices/controller'
 import {
   JacuzziActionType,
   type Action,
@@ -20,10 +20,11 @@ import ky, { type KyInstance } from 'ky'
 
 const MINUTE = 60 * 1000
 
-export class JacuzziThermoBoxController extends DeviceController {
+export class JacuzziThermoBoxController extends DevController<
+  JacuzziConfig,
+  JacuzziViewData
+> {
   //
-
-  private config!: JacuzziConfig
 
   @observable
   public accessor persistentState: JacuzziPersistentState = {
@@ -46,16 +47,8 @@ export class JacuzziThermoBoxController extends DeviceController {
     return this.persistentState.state
   }
 
-  public override get id(): string {
-    return this.config.id
-  }
-
-  public override get type(): string {
-    return this.config.type
-  }
-
   @computed
-  public get viewData(): JacuzziViewData {
+  public get viewData() {
     const session = toJS(this.persistentState.session ?? null)
     return {
       state: this.state,
@@ -102,10 +95,7 @@ export class JacuzziThermoBoxController extends DeviceController {
     }
   }
 
-  public async init(config: JacuzziConfig) {
-    // Setting config
-    this.config = config
-
+  public async init() {
     // Initialize UDP listener
     await this.initDeviceApi()
 
@@ -146,6 +136,9 @@ export class JacuzziThermoBoxController extends DeviceController {
   }
 
   public async invokeAction(actionToInvoke: Action, res: ResDetails) {
+    // Logging user action
+    this.logger.info('Invoking action:', actionToInvoke)
+
     switch (actionToInvoke.type) {
       case JacuzziActionType.START:
         {

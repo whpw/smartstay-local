@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import { db } from '@/db'
 import { getDeviceController } from '@/devices'
+import { logger } from '@/utils/logger'
 
 export type QueueMessage = {
   deviceId: string
@@ -47,7 +48,7 @@ function scheduleMessageProcessing(msg: QueueMessageWrapper) {
 }
 
 export const initQueue = () => {
-  console.log('Initializing queue...')
+  logger.info('Initializing queue...')
 
   // Load queue messages
   const queueMessages = getQueueMessages()
@@ -56,8 +57,6 @@ export const initQueue = () => {
   for (const msg of queueMessages) {
     scheduleMessageProcessing(msg)
   }
-
-  console.log('Queue initialized successfully')
 }
 
 export const enqueueMessage = (msg: QueueMessage, ttl: number) => {
