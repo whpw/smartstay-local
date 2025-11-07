@@ -47,6 +47,9 @@ export async function initConfig() {
   const CONFIG_API_URL = process.env.CONFIG_API_URL as string
   const CONFIG_API_KEY = process.env.CONFIG_API_KEY as string
 
+  logger.debug('Config API URL:', CONFIG_API_URL)
+  logger.debug('Config API Key:', CONFIG_API_KEY)
+
   // Get devices config
   const loadedConfig = await ky
     .get<AppConfig>(CONFIG_API_URL, {
@@ -57,6 +60,7 @@ export async function initConfig() {
     .json()
     .then((appConfig) => {
       logger.info('Remote config initialized successfully')
+      console.log('Remote config:', appConfig)
 
       // Storing config
       db().set('config', appConfig.config)
