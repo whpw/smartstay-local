@@ -302,11 +302,11 @@ export class HeatingThermoBoxController extends DevController<
       },
     }
 
-    this.logger.debug('Updating device with:', json)
+    this.logger.debug('Updating device with:', json.thermo)
 
     // Setting desired temp
     const res = await this.deviceApi
-      .post('state', {
+      .post<{ thermo: object; badges: object; sensors: object }>('state', {
         json,
       })
       .json()
@@ -316,7 +316,7 @@ export class HeatingThermoBoxController extends DevController<
       this.targetTemp = targetTemp
     })
 
-    this.logger.debug('Updated device response:', res)
+    this.logger.debug('Updated device response:', res.thermo)
   }
 
   private async initDeviceApi() {

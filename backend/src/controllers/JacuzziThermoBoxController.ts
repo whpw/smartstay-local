@@ -294,16 +294,16 @@ export class JacuzziThermoBoxController extends DevController<
       },
     }
 
-    this.logger.debug('Updating device with:', json)
+    this.logger.debug('Updating device with:', json.thermo)
 
     // Setting desired temp
     const res = await this.deviceApi
-      .post('state', {
+      .post<{ thermo: object; badges: object; sensors: object }>('state', {
         json,
       })
       .json()
 
-    this.logger.debug('Updated device response:', res)
+    this.logger.debug('Updated device response:', res.thermo)
   }
 
   private async updateHysteresis(hysteresis: number) {
@@ -365,10 +365,9 @@ export class JacuzziThermoBoxController extends DevController<
           }>
         }>('state')
         .json()
-        .then(({ thermo, sensors }) => {
+        .then(({ sensors }) => {
           // Getting sensor
           const sensor = sensors.find((s) => s.type === 'temperature')
-          const targetTemp = thermo.desiredTemp / 100
           const currentTemp = (sensor?.value ?? 0) / 100
 
           runInAction(() => {
@@ -379,11 +378,14 @@ export class JacuzziThermoBoxController extends DevController<
           })
         })
         .catch((e) => {
-          console.error('Error polling state:', e)
+          this.logger.error('Error polling state:', e)
           runInAction(() => {
             // Setting polling error
             this.pollingError = true
           })
+
+          // Reinitializing device api
+          this.initDeviceApi()
         })
         .finally(() => {
           isFetching = false

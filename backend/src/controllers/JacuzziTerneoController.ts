@@ -437,7 +437,7 @@ export class JacuzziTerneoController extends DevController<
           })
         })
         .catch((e) => {
-          console.error('Error polling state:', e)
+          this.logger.error('Error polling state:', e)
           runInAction(() => {
             // Setting polling error
             this.pollingError = true
