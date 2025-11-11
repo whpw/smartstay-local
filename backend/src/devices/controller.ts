@@ -39,7 +39,7 @@ export abstract class DevController<
 
   constructor(config: T) {
     this.config = config
-    this.logger = createLogger(this.constructor.name)
+    this.logger = createLogger(`${this.constructor.name}[${this.config.name}]`)
   }
 }
 
