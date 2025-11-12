@@ -10,6 +10,7 @@ import {
   type ResDetails,
 } from '@/models/ResDetails'
 import { DAO } from '@/utils/DAO'
+import { logger } from '@/utils/logger'
 import { adminRes } from './admin'
 import { devRes } from './dev'
 
@@ -32,7 +33,7 @@ export async function getResDetails(
     resNumber === process.env.ADMIN_RES_NUMBER &&
     lastName === process.env.ADMIN_LAST_NAME
 
-  console.log('Getting reservation defails of:', resNumber, lastName)
+  logger.info('Getting reservation defails:', { lastName, resNumber })
 
   // Getting reservation from Hotres
   let res: HotresReservationDTO | never[]
@@ -44,15 +45,15 @@ export async function getResDetails(
     res = await DAO.get<HotresReservationDTO>('api_reservationdetails', {
       reservations_number: resNumber,
     }).catch((err: Error) => {
-      console.error('Error getting reservation from Hotres:', err)
+      logger.error('Error getting reservation from Hotres:', err)
       return []
     })
   }
 
   // In edge cases Hotres returns an empty array
   if (Array.isArray(res)) {
-    console.error(
-      'Error getting reservation from Hotres: Invalid response',
+    logger.error(
+      'Error getting reservation from Hotres: Invalid response:',
       res
     )
     throw {
@@ -67,7 +68,7 @@ export async function getResDetails(
     !lastName ||
     normalizeLastName(last_name) !== normalizeLastName(lastName)
   ) {
-    console.error('Error getting reservation from Hotres: Invalid last name', {
+    logger.error('Error getting reservation from Hotres: Invalid last name:', {
       last_name,
       lastName,
     })

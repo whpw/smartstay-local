@@ -9,17 +9,17 @@
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
-    "@hono/node-server": "^1.19.5",
+    "@hono/node-server": "^1.19.6",
     "@hono/zod-validator": "^0.7.4",
     "address": "^2.0.3",
-    "cron": "^4.3.3",
+    "cron": "^4.3.4",
     "date-fns": "^4.1.0",
     "debug-logfmt": "^1.4.6",
     "dotenv": "^17.2.3",
     "flat-cache": "^6.1.18",
-    "hono": "^4.10.3",
+    "hono": "^4.10.5",
     "ical": "^0.8.0",
-    "ky": "^1.13.0",
+    "ky": "^1.14.0",
     "mobx": "^6.15.0",
     "mustache": "^4.2.0",
     "superjson": "^2.2.5",
@@ -29,6 +29,6 @@
   "devDependencies": {
     "@types/ical": "^0.8.3",
     "@types/mustache": "^4.2.6",
-    "esbuild": "^0.25.11"
+    "esbuild": "^0.27.0"
   }
 }

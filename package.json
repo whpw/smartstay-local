@@ -11,12 +11,12 @@
   "author": "Piotr Walczyszyn <piotr.walczyszyn@gmail.com>",
   "devDependencies": {
     "@tanstack/eslint-config": "^0.3.2",
-    "pnpm": "^10.19.0",
+    "pnpm": "^10.22.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@types/node": "^24.9.1"
+    "@types/node": "^24.10.1"
   },
   "workspaces": [
     "backend",
