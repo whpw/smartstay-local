@@ -153,7 +153,7 @@ export class LightSwitchController extends DevController<
   public async processQueueMessage(_msg: QueueMessage) {}
 
   @action.bound
-  public async invokeAction(actionToInvoke: Action, res: ResDetails) {
+  public async invokeAction(actionToInvoke: Action, _res: ResDetails) {
     switch (actionToInvoke.type) {
       case SwitchBoxActionType.START:
         {

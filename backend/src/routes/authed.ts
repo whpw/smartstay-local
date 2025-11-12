@@ -1,6 +1,7 @@
 import { config } from '@/config'
 import { getDeviceController } from '@/devices'
 import type { ResDetails } from '@/models/ResDetails'
+import { logger } from '@/utils/logger'
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { contextStorage, getContext } from 'hono/context-storage'
@@ -72,13 +73,21 @@ const api = app
         // Get ResDetails
         const resDetails = getContext<AuthedEnv>().get('resDetails')
 
+        // Log action
+        logger.info('User action:', action)
+
         // Invoke action
         const result = await device.invokeAction(action, resDetails)
 
         // Return result
+        logger.info('User action result:', result)
+
         return c.json(result, 200)
       } catch (error) {
-        console.error('Error invoking action:', error)
+        // Log error
+        logger.error('Error invoking user action:', error)
+
+        // Return error
         if (error instanceof Error) {
           return c.json(
             {

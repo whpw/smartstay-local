@@ -136,9 +136,6 @@ export class JacuzziThermoBoxController extends DevController<
   }
 
   public async invokeAction(actionToInvoke: Action, res: ResDetails) {
-    // Logging user action
-    this.logger.info('Invoking action:', actionToInvoke)
-
     switch (actionToInvoke.type) {
       case JacuzziActionType.START:
         {

@@ -184,12 +184,6 @@ export class HeatingThermoBoxController extends DevController<
   public async processQueueMessage(_msg: QueueMessage) {}
 
   public async invokeAction(actionToInvoke: Action, res: ResDetails) {
-    // Logging user action
-    this.logger.info('Invoking action:', {
-      action: actionToInvoke.type,
-      ...(actionToInvoke.value || {}),
-    })
-
     switch (actionToInvoke.type) {
       case JacuzziActionType.SET_TARGET_TEMP:
         {
