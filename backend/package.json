@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "NODE_ENV=development DEBUG=* tsx watch src/index.ts",
-    "start": "NODE_ENV=production DEBUG=*,-debug node dist/index.js",
+    "start": "NODE_ENV=production DEBUG=*,-*:debug node dist/index.js",
     "build": "esbuild src/index.ts --bundle --platform=node --sourcemap --packages=external --format=esm --target=es2022 --outdir=./dist"
   },
   "dependencies": {
