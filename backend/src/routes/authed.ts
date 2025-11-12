@@ -1,5 +1,7 @@
-import { config } from '@/config'
+import { config, type DeviceConfig } from '@/config'
 import { getDeviceController } from '@/devices'
+import type { DevController } from '@/devices/controller'
+import type { DeviceViewData } from '@/models'
 import type { ResDetails } from '@/models/ResDetails'
 import { logger } from '@/utils/logger'
 import { zValidator } from '@hono/zod-validator'
@@ -66,26 +68,28 @@ const api = app
     async (c) => {
       const { deviceId, action } = await c.req.json()
 
+      let device: DevController<DeviceConfig, DeviceViewData> | undefined
+
       try {
         // Get controller
-        const device = getDeviceController(deviceId)
+        device = getDeviceController(deviceId)
 
         // Get ResDetails
         const resDetails = getContext<AuthedEnv>().get('resDetails')
 
         // Log action
-        logger.info('User action:', action)
+        device.logger.info('User action:', action)
 
         // Invoke action
         const result = await device.invokeAction(action, resDetails)
 
         // Return result
-        logger.info('User action result:', result)
+        device.logger.info('User action result:', result)
 
         return c.json(result, 200)
       } catch (error) {
         // Log error
-        logger.error('Error invoking user action:', error)
+        ;(device?.logger || logger).error('Error invoking user action:', error)
 
         // Return error
         if (error instanceof Error) {

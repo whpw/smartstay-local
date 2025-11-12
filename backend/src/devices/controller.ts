@@ -10,7 +10,7 @@ export abstract class DevController<
 > {
   protected config: T
 
-  protected logger: ReturnType<typeof createLogger>
+  public logger: ReturnType<typeof createLogger>
 
   public get id(): string {
     return this.config.id
