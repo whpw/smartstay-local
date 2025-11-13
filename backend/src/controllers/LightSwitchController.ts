@@ -98,6 +98,7 @@ export class LightSwitchController extends DevController<
       // Scheduling day schedule
       this.dayScheduleInterval = CronJob.from({
         cronTime: '0 0 0 * * *',
+        timeZone: process.env.TZ,
         onTick: () => {
           // Adding 5 seconds to avoid cron job execution error
           const now = addSeconds(new Date(), 5)

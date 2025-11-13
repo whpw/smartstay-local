@@ -70,6 +70,7 @@ function checkSunset() {
 export function initSunset() {
   const interval = CronJob.from({
     cronTime: '0 0 0 * * *',
+    timeZone: process.env.TZ,
     onTick: checkSunset,
     start: true,
     runOnInit: true,
