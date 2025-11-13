@@ -1,4 +1,4 @@
-import { action, computed, observable, runInAction } from 'mobx'
+import { action, computed, observable, runInAction, toJS } from 'mobx'
 
 import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
@@ -110,6 +110,12 @@ export class LightSwitchController extends DevController<
           if (isAfter(now, endTime)) {
             return
           }
+
+          this.logger.info(
+            'Calculating start time from sunset:',
+            toJS(sunset),
+            sunsetMode
+          )
 
           // Getting start time
           const startTime = max([

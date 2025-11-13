@@ -1,4 +1,4 @@
-import { observable, runInAction } from 'mobx'
+import { observable, runInAction, toJS } from 'mobx'
 
 import { appConfig } from '@/config'
 import { db } from '@/db'
@@ -55,6 +55,8 @@ function checkSunset() {
         sunset.start = new TZDate(sunsetStart, TZ)
         sunset.end = new TZDate(sunsetEnd, TZ)
       })
+
+      logger.info('Updated sunset times:', toJS(sunset))
 
       // Setting sunset in db
       db().set('sunset', {
