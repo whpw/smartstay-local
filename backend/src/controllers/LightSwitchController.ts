@@ -11,6 +11,7 @@ import {
   type SwitchBoxViewData,
 } from '@/models'
 
+import { appConfig } from '@/config'
 import { sunset } from '@/utils/sunset'
 import { CronJob, CronTime } from 'cron'
 import { addMinutes, addSeconds, isAfter, isBefore, max, parse } from 'date-fns'
@@ -98,7 +99,7 @@ export class LightSwitchController extends DevController<
       // Scheduling day schedule
       this.dayScheduleInterval = CronJob.from({
         cronTime: '0 0 0 * * *',
-        timeZone: process.env.TZ,
+        timeZone: appConfig.tz,
         onTick: () => {
           // Adding 5 seconds to avoid cron job execution error
           const now = addSeconds(new Date(), 5)

@@ -1,9 +1,9 @@
-import { observable, runInAction } from 'mobx'
-
 import { appConfig } from '@/config'
 import { db } from '@/db'
 import { logger } from '@/utils/logger'
+import { CronJob } from 'cron'
 import ky from 'ky'
+import { observable, runInAction } from 'mobx'
 
 export const weather = observable({
   averageTemp: 0,
@@ -51,7 +51,12 @@ function checkWeather() {
 }
 
 export function initWeather() {
-  const interval = setInterval(checkWeather, 60 * 60_000)
-  checkWeather()
-  return () => clearInterval(interval)
+  const cronJob = CronJob.from({
+    // Every hour
+    cronTime: '0 0 * * * *',
+    onTick: checkWeather,
+    start: true,
+    runOnInit: true,
+  })
+  return () => cronJob.stop()
 }

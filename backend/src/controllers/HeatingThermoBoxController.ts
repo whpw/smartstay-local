@@ -11,6 +11,7 @@ import {
 import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
 
+import { appConfig } from '@/config'
 import { db, toKey } from '@/db'
 import { DevController, type HeatingConfig } from '@/devices/controller'
 import {
@@ -24,8 +25,6 @@ import { enqueueMessage } from '@/queue'
 import { weather } from '@/utils/weather'
 import { TZDate } from '@date-fns/tz'
 import ky, { type KyInstance } from 'ky'
-
-const TZ = process.env.TZ || 'Europe/Warsaw'
 
 export class HeatingThermoBoxController extends DevController<
   HeatingConfig,
@@ -259,7 +258,7 @@ export class HeatingThermoBoxController extends DevController<
   private isNightNow() {
     const { dayStart, nightStart } = this.config
 
-    const now = TZDate.tz(TZ)
+    const now = TZDate.tz(appConfig.tz)
     const hours = now.getHours()
 
     return hours >= nightStart && hours < dayStart

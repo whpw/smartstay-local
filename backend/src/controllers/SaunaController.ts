@@ -1,4 +1,3 @@
-import { formatISO } from 'date-fns/formatISO'
 import { action, computed, observable, toJS } from 'mobx'
 
 import {
@@ -68,13 +67,8 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
     switch (actionToInvoke.type) {
       case SaunaActionType.START:
         {
-          // Getting current day
-          const today = formatISO(new Date(), {
-            representation: 'date',
-          })
-
           // Checking if session can be started
-          if (!(await canStartSession(res, today, this.config.type))) {
+          if (!(await canStartSession(res, this.config.type))) {
             return {
               error: 'REACHED_LIMIT',
             }
@@ -84,7 +78,7 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
           await this.startSession(res.departureDate)
 
           // Increment sessions count
-          await incrementSessionsCount(res, today, this.config.type)
+          incrementSessionsCount(res, this.config.type)
         }
         break
     }

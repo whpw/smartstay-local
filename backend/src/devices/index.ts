@@ -7,7 +7,7 @@ import type {
   SaunaConfig,
 } from '@/devices/controller'
 
-import { config, type DeviceConfig } from '@/config'
+import { appConfig, type DeviceConfig } from '@/config'
 import {
   HeatingThermoBoxController,
   JacuzziThermoBoxController,
@@ -27,7 +27,7 @@ export async function initDevices() {
   //
   logger.info('Initializing devices...')
 
-  for (const device of config.devices) {
+  for (const device of appConfig.devices) {
     let controller: DevController<DeviceConfig, DeviceViewData> | undefined
 
     if (device.disabled) {

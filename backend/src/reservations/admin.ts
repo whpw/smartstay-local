@@ -1,4 +1,4 @@
-import { config } from '@/config'
+import { appConfig } from '@/config'
 import type { HotresReservationDTO } from '@/models/HotresDTOs'
 import { addDays, formatISO, subDays } from 'date-fns'
 
@@ -13,7 +13,7 @@ export const adminRes = () =>
     auth: '',
     rooms: [
       {
-        room_id: config.roomId,
+        room_id: appConfig.hotresRoomId,
         arrival_date: formatISO(subDays(new Date(), 1), {
           representation: 'date',
         }),

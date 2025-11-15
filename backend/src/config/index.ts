@@ -1,25 +1,21 @@
-import ky from 'ky'
-
 import { db } from '@/db'
 import { logger } from '@/utils/logger'
+import ky from 'ky'
+import z from 'zod'
+
+export const $DeviceType = z.enum([
+  'sauna',
+  'jacuzzi',
+  'heating',
+  'light-switch',
+])
+export type DeviceType = z.infer<typeof $DeviceType>
 
 export type DeviceConfig = {
   id: string
-  type: 'sauna' | 'jacuzzi' | 'heating' | 'light-switch'
+  type: DeviceType
   name: string
   disabled: boolean
-}
-
-export type Config = {
-  icalUrl: string
-  checkinHour: number
-  checkoutHour: number
-  roomId: string
-  loginUrl: string
-  hotresAuthCode: string
-  hotresApiKey: string
-  hotresAddonsUrl: string
-  devices: Array<DeviceConfig>
 }
 
 export type AppConfig = {
@@ -27,17 +23,27 @@ export type AppConfig = {
   apiKey: string
   weatherUrl: string
   sunsetUrl: string
+  lat: number
+  lng: number
+  tz: string
+  icalUrl: string
+  checkinHour: number
+  checkoutHour: number
+  loginUrl: string
+  hotresRoomId: string
+  hotresAuthCode: string
+  hotresApiKey: string
+  hotresAddonsUrl: string
+  devices: Array<DeviceConfig>
   wifi: {
     name: string
     ssid: string
     pwd: string
     ip: string
   }
-  config: Config
 }
 
 // Exporting initialized config
-export let config!: Config
 export let appConfig!: AppConfig
 
 // Exporting config initialization function
@@ -46,9 +52,6 @@ export async function initConfig() {
 
   const CONFIG_API_URL = process.env.CONFIG_API_URL as string
   const CONFIG_API_KEY = process.env.CONFIG_API_KEY as string
-
-  logger.debug('Config API URL:', CONFIG_API_URL)
-  logger.debug('Config API Key:', CONFIG_API_KEY)
 
   // Get devices config
   const loadedConfig = await ky
@@ -60,10 +63,8 @@ export async function initConfig() {
     .json()
     .then((appConfig) => {
       logger.info('Remote config initialized successfully')
-      console.log('Remote config:', appConfig)
 
       // Storing config
-      db().set('config', appConfig.config)
       db().set('appConfig', appConfig)
 
       // Return received config
@@ -75,7 +76,7 @@ export async function initConfig() {
       // Using cached version of the config
       const configFromDb = db().get<AppConfig | undefined>('appConfig')
 
-      logger.info('Using cached config', db().all())
+      logger.info('Using cached config', configFromDb)
 
       if (!configFromDb) {
         throw new Error('Local config not found')
@@ -84,9 +85,19 @@ export async function initConfig() {
       return configFromDb
     })
 
+  // Setting default timezone
+  if (!loadedConfig.tz) {
+    loadedConfig.tz = 'Europe/Warsaw'
+  }
+
+  // Setting default lat and lng
+  if (isNaN(loadedConfig.lat) || isNaN(loadedConfig.lng)) {
+    loadedConfig.lat = 52.15
+    loadedConfig.lng = 21
+  }
+
   // Assigning config to the exported variable
   appConfig = loadedConfig
-  config = loadedConfig.config
 
   return appConfig
 }

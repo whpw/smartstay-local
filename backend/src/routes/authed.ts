@@ -1,4 +1,4 @@
-import { config, type DeviceConfig } from '@/config'
+import { appConfig, type DeviceConfig } from '@/config'
 import { getDeviceController } from '@/devices'
 import type { DevController } from '@/devices/controller'
 import type { DeviceViewData } from '@/models'
@@ -112,7 +112,7 @@ const api = app
 
   // Devices
   .get('/devices', async (c) => {
-    const devices = config.devices.filter((device) => !device.disabled)
+    const devices = appConfig.devices.filter((device) => !device.disabled)
     return c.json(devices, 200)
   })
 

@@ -1,7 +1,7 @@
 import type { FailedHotresRequestDTO } from '@/models/HotresDTOs'
 import ky from 'ky'
 
-import { config } from '@/config'
+import { appConfig } from '@/config'
 
 const api = ky.extend({
   prefixUrl: 'https://panel.hotres.pl',
@@ -10,8 +10,8 @@ const api = ky.extend({
       function (request) {
         // Creating new URL with credentials
         const urlWithCredentials = new URL(request.url)
-        urlWithCredentials.searchParams.set('auth', config.hotresAuthCode)
-        urlWithCredentials.searchParams.set('apikey', config.hotresApiKey)
+        urlWithCredentials.searchParams.set('auth', appConfig.hotresAuthCode)
+        urlWithCredentials.searchParams.set('apikey', appConfig.hotresApiKey)
 
         // Returning new request with credentials
         return new Request(urlWithCredentials.toString(), request)

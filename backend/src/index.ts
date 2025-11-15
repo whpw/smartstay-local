@@ -6,7 +6,7 @@ import path, { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { initConfig } from './config'
 import { updateLocalIP } from './config/updateLocalIP'
-import { ecoMode } from './cron/ecoMode'
+import { initEcoMode } from './cron/ecoMode'
 import { devices, initDevices } from './devices'
 import { initQueue } from './queue'
 import { api as authApi } from './routes/auth'
@@ -27,6 +27,12 @@ await initConfig()
 // Updating local IP
 await updateLocalIP()
 
+// Init sunset
+const disposeSunset = initSunset()
+
+// Init weather
+const disposeWeather = initWeather()
+
 // Initializing devices
 await initDevices()
 
@@ -34,13 +40,7 @@ await initDevices()
 initQueue()
 
 // Init eco mode
-ecoMode()
-
-// Init sunset
-const disposeSunset = initSunset()
-
-// Init weather
-const disposeWeather = initWeather()
+const disposeEcoMode = initEcoMode()
 
 const app = new Hono()
 
@@ -96,6 +96,11 @@ process.on('SIGINT', () => {
     // Disposing sunset timer
     if (disposeSunset) {
       disposeSunset()
+    }
+
+    // Disposing eco mode timer
+    if (disposeEcoMode) {
+      disposeEcoMode()
     }
 
     process.exit(0)

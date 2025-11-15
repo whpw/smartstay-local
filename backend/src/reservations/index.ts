@@ -1,16 +1,16 @@
-import { isWithinInterval, setHours } from 'date-fns'
-import Mustache from 'mustache'
-
+import { $DeviceType, appConfig, type DeviceType } from '@/config'
 import type { HotresReservationDTO } from '@/models/HotresDTOs'
-
-import { config } from '@/config'
 import {
+  $AddonMode,
   $ResDetails,
   type AddonDTO,
+  type AddonMode,
   type ResDetails,
 } from '@/models/ResDetails'
 import { DAO } from '@/utils/DAO'
 import { logger } from '@/utils/logger'
+import { isWithinInterval, setHours } from 'date-fns'
+import Mustache from 'mustache'
 import { adminRes } from './admin'
 import { devRes } from './dev'
 
@@ -81,7 +81,7 @@ export async function getResDetails(
   const now = new Date()
 
   // Getting room
-  const room = res.rooms.find((room) => room.room_id === config.roomId)
+  const room = res.rooms.find((room) => room.room_id === appConfig.hotresRoomId)
 
   if (!room) {
     throw {
@@ -89,8 +89,8 @@ export async function getResDetails(
     }
   }
 
-  const arrDate = setHours(room.arrival_date, config.checkinHour)
-  const depDate = setHours(room.departure_date, config.checkoutHour)
+  const arrDate = setHours(room.arrival_date, appConfig.checkinHour)
+  const depDate = setHours(room.departure_date, appConfig.checkoutHour)
 
   const isNow = isWithinInterval(now, {
     start: arrDate,
@@ -113,16 +113,28 @@ export async function getResDetails(
 
   // Filtering jacuzzi and sauna addons
   const addons = allAddons.reduce((acc, addon) => {
+    // Getting device type and addon mode
     const title = addon.title.toLowerCase()
-    const [, type, mode] = title.match(/\[kod: (\w+)-((\w|-)+)\]/) || []
-    if (type && mode) {
-      const existing = acc.find((a) => a.type === type && a.mode === mode)
+    // Getting device type and addon mode from title
+    const [, deviceType, addonMode] =
+      title.match(/\[kod: (\w+)-((\w|-)+)\]/) || []
+
+    // Checking if device type and addon mode are valid
+    if (
+      deviceType &&
+      addonMode &&
+      $DeviceType.safeParse(deviceType).success &&
+      $AddonMode.safeParse(addonMode).success
+    ) {
+      const existing = acc.find(
+        (a) => a.type === deviceType && a.mode === addonMode
+      )
       if (existing) {
         existing.quantity += parseInt(addon.quantity)
       } else {
         acc.push({
-          type,
-          mode: mode as AddonDTO['mode'],
+          type: deviceType as DeviceType,
+          mode: addonMode as AddonMode,
           quantity: parseInt(addon.quantity),
         })
       }
@@ -141,7 +153,7 @@ export async function getResDetails(
     firstName: res.first_name,
     lastName: res.last_name,
     addons,
-    addonsUrl: Mustache.render(config.hotresAddonsUrl, {
+    addonsUrl: Mustache.render(appConfig.hotresAddonsUrl, {
       resId: res.id,
       resAuth: res.auth,
     }),

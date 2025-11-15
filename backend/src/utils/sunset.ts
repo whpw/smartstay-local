@@ -1,29 +1,16 @@
-import { observable, runInAction, toJS } from 'mobx'
-
 import { appConfig } from '@/config'
 import { db } from '@/db'
 import { logger } from '@/utils/logger'
 import { TZDate } from '@date-fns/tz'
 import { CronJob } from 'cron'
-import { parse } from 'date-fns'
+import { formatDate, parse } from 'date-fns'
 import ky from 'ky'
+import { observable, runInAction, toJS } from 'mobx'
 
 const timeFormat = 'h:mm:ss aa'
 
-const TZ = process.env.TZ || 'Europe/Warsaw'
-
-// try getting sunset from db
-const sunsetFromDb = db().get<{
-  start: string
-  end: string
-}>('sunset')
-
-export const sunset = observable({
-  start: sunsetFromDb
-    ? sunsetFromDb.start
-    : new TZDate('1970-01-01T17:00:00', TZ),
-  end: sunsetFromDb ? sunsetFromDb.end : new TZDate('1970-01-01T22:00:00', TZ),
-})
+// Observable sunset object
+export let sunset!: { start: TZDate; end: TZDate }
 
 function checkSunset() {
   logger.debug('Checking sunset...')
@@ -34,7 +21,14 @@ function checkSunset() {
   }
 
   ky.get<{ results: { sunrise: string; sunset: string }; tzid: string }>(
-    appConfig.sunsetUrl
+    appConfig.sunsetUrl,
+    {
+      searchParams: {
+        lat: appConfig.lat,
+        lng: appConfig.lng,
+        date: formatDate(TZDate.tz(appConfig.tz), 'yyyy-MM-dd'),
+      },
+    }
   )
     .json()
     .then((json) => {
@@ -52,16 +46,16 @@ function checkSunset() {
 
       // Setting sunset
       runInAction(() => {
-        sunset.start = new TZDate(sunsetStart, TZ)
-        sunset.end = new TZDate(sunsetEnd, TZ)
+        sunset.start = new TZDate(sunsetStart, appConfig.tz)
+        sunset.end = new TZDate(sunsetEnd, appConfig.tz)
       })
 
       logger.info('Updated sunset times:', toJS(sunset))
 
       // Setting sunset in db
       db().set('sunset', {
-        start: sunsetStart,
-        end: sunsetEnd,
+        start: sunsetStart.toISOString(),
+        end: sunsetEnd.toISOString(),
       })
     })
     .catch((err) => {
@@ -70,9 +64,29 @@ function checkSunset() {
 }
 
 export function initSunset() {
+  // try getting sunset from db
+  const sunsetFromDb = db().get<{
+    start: string
+    end: string
+  }>('sunset')
+
+  // Setting initial sunset
+  sunset = observable({
+    start: sunsetFromDb
+      ? new TZDate(sunsetFromDb.start, appConfig.tz)
+      : new TZDate('1970-01-01T17:00:00', appConfig.tz),
+    end: sunsetFromDb
+      ? new TZDate(sunsetFromDb.end, appConfig.tz)
+      : new TZDate('1970-01-02T07:00:00', appConfig.tz),
+  })
+
+  // Logging initial sunset
+  logger.info('Loaded initial sunset:', toJS(sunset))
+
+  // Init interval
   const interval = CronJob.from({
     cronTime: '0 0 0 * * *',
-    timeZone: process.env.TZ,
+    timeZone: appConfig.tz,
     onTick: checkSunset,
     start: true,
     runOnInit: true,
