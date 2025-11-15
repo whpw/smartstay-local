@@ -64,7 +64,9 @@ export async function ecoMode() {
 
   // Getting device controller
   Object.values(devices).forEach((device) => {
-    device.toggleEcoMode(gap)
+    device.toggleEcoMode(gap).catch((e) => {
+      device.logger.error('Error toggling eco mode:', e)
+    })
   })
 }
 

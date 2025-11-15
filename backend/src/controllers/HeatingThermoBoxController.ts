@@ -437,6 +437,8 @@ export class HeatingThermoBoxController extends DevController<
         nightTemp,
       } as HeatingPersistentState
 
+      this.logger.info('Toggling eco mode:', state)
+
       await this.updateState(newState)
     }
   }
