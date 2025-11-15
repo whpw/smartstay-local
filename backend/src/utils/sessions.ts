@@ -1,5 +1,5 @@
-import type { DeviceType } from '@/config'
 import { appConfig } from '@/config'
+import type { DeviceType } from '@/config/types'
 import { db, toKey } from '@/db'
 import type { AddonMode, ResDetails } from '@/models/ResDetails'
 import { getResDetails } from '@/reservations'

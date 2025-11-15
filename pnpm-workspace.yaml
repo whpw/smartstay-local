@@ -2,6 +2,9 @@ packages:
   - backend
   - frontend
 
+injectWorkspacePackages: true
+
 onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
+  - unrs-resolver

@@ -1,4 +1,5 @@
-import { appConfig, type DeviceConfig } from '@/config'
+import { appConfig } from '@/config'
+import type { DeviceConfig } from '@/config/types'
 import { getDeviceController } from '@/devices'
 import type { DevController } from '@/devices/controller'
 import type { DeviceViewData } from '@/models'

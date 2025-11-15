@@ -1,4 +1,4 @@
-import { $DeviceType } from '@/config'
+import { $DeviceType } from '@/config/types'
 import z from 'zod'
 
 export const $AddonMode = z.enum([

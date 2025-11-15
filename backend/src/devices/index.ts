@@ -7,7 +7,8 @@ import type {
   SaunaConfig,
 } from '@/devices/controller'
 
-import { appConfig, type DeviceConfig } from '@/config'
+import { appConfig } from '@/config'
+import type { DeviceConfig } from '@/config/types'
 import {
   HeatingThermoBoxController,
   JacuzziThermoBoxController,

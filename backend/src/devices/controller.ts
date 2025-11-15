@@ -1,4 +1,4 @@
-import type { DeviceConfig } from '@/config'
+import type { DeviceConfig } from '@/config/types'
 import type { ResDetails } from '@/models/ResDetails'
 import type { Action, DeviceViewData } from '@/models/ViewData'
 import type { QueueMessage } from '@/queue'

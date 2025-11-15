@@ -1,4 +1,5 @@
-import { $DeviceType, appConfig, type DeviceType } from '@/config'
+import { appConfig } from '@/config'
+import { $DeviceType, type DeviceType } from '@/config/types'
 import type { HotresReservationDTO } from '@/models/HotresDTOs'
 import {
   $AddonMode,
