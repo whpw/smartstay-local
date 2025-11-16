@@ -390,7 +390,7 @@ export class HeatingThermoBoxController extends DevController<
 
   public override async toggleEcoMode(gap: number) {
     // Logging
-    this.logger.info('Checking eco mode gap:' + gap)
+    this.logger.info('Checking eco mode gap: ' + gap)
 
     // This makes sense if gap is > 0
     if (gap > 0 && (this.state === 'eco' || this.state === 'active')) {
