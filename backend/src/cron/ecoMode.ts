@@ -23,8 +23,20 @@ export async function ecoMode() {
   // Parsing ical
   const calendar = ical.parseICS(icalData)
 
-  // Getting entries
+  // Seen events
+  const seen = new Set()
+
+  // Getting and sanitizing entries
   const entries = Object.values(calendar)
+    .filter((event) => !!event.start && !!event.end)
+    .filter((event) => {
+      const key = event.start!.toISOString() + event.end!.toISOString()
+      if (seen.has(key)) {
+        return false
+      }
+      seen.add(key)
+      return true
+    })
 
   // Sorting events by start date
   const [event] = entries
