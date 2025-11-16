@@ -12,6 +12,7 @@ import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
 
 import { appConfig } from '@/config'
+import { weather } from '@/cron/weather'
 import { db, toKey } from '@/db'
 import { DevController, type HeatingConfig } from '@/devices/controller'
 import {
@@ -22,7 +23,6 @@ import {
   type HeatingViewData,
 } from '@/models'
 import { enqueueMessage } from '@/queue'
-import { weather } from '@/utils/weather'
 import { TZDate } from '@date-fns/tz'
 import ky, { type KyInstance } from 'ky'
 

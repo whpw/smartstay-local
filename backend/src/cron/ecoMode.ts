@@ -72,7 +72,7 @@ export async function ecoMode() {
 
 export function initEcoMode() {
   // Set interval for next runs
-  const interval = CronJob.from({
+  const cronJob = CronJob.from({
     // Every hour
     cronTime: '0 0 * * * *',
     onTick: ecoMode,
@@ -80,5 +80,10 @@ export function initEcoMode() {
     runOnInit: true,
   })
 
-  return () => interval.stop()
+  // Logging next run
+  logger.info(
+    'Eco mode cron scheduled to run at: ' + cronJob.nextDate().toISO()
+  )
+
+  return () => cronJob.stop()
 }

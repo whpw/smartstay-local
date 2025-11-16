@@ -3,6 +3,7 @@ import { action, computed, observable, runInAction, toJS, when } from 'mobx'
 import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
 
+import { weather } from '@/cron/weather'
 import { db, toKey } from '@/db'
 import { DevController, type JacuzziConfig } from '@/devices/controller'
 import {
@@ -14,7 +15,6 @@ import {
 } from '@/models'
 import { enqueueMessage } from '@/queue'
 import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
-import { weather } from '@/utils/weather'
 import ky, { type KyInstance } from 'ky'
 
 const MINUTE = 60 * 1000

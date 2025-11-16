@@ -7,14 +7,14 @@ import { fileURLToPath } from 'node:url'
 import { initConfig } from './config'
 import { updateLocalIP } from './config/updateLocalIP'
 import { initEcoMode } from './cron/ecoMode'
+import { initSunset } from './cron/sunset'
+import { initWeather } from './cron/weather'
 import { devices, initDevices } from './devices'
 import { initQueue } from './queue'
 import { api as authApi } from './routes/auth'
 import { api as authedApi } from './routes/authed'
 import { api as infoApi } from './routes/info'
 import { logger } from './utils/logger'
-import { initSunset } from './utils/sunset'
-import { initWeather } from './utils/weather'
 
 // Loading env
 dotenv.config({
@@ -24,14 +24,12 @@ dotenv.config({
 // Initializing config
 await initConfig()
 
-// Updating local IP
-await updateLocalIP()
-
-// Init sunset
-const disposeSunset = initSunset()
-
-// Init weather
-const disposeWeather = initWeather()
+// Init sunset, weather & local IP
+const [disposeSunset, disposeWeather] = await Promise.all([
+  initSunset(),
+  initWeather(),
+  updateLocalIP(),
+])
 
 // Initializing devices
 await initDevices()

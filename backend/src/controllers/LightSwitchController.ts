@@ -12,7 +12,7 @@ import {
 } from '@/models'
 
 import { appConfig } from '@/config'
-import { sunset } from '@/utils/sunset'
+import { sunset } from '@/cron/sunset'
 import { CronJob, CronTime } from 'cron'
 import { addMinutes, addSeconds, isAfter, isBefore, max, parse } from 'date-fns'
 import ky, { type KyInstance } from 'ky'
