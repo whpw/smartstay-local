@@ -13,6 +13,7 @@ import {
 
 import { appConfig } from '@/config'
 import { sunset } from '@/cron/sunset'
+import { TZDate } from '@date-fns/tz'
 import { CronJob, CronTime } from 'cron'
 import { addMinutes, addSeconds, isAfter, isBefore, max, parse } from 'date-fns'
 import ky, { type KyInstance } from 'ky'
@@ -102,10 +103,14 @@ export class LightSwitchController extends DevController<
         timeZone: appConfig.tz,
         onTick: () => {
           // Adding 5 seconds to avoid cron job execution error
-          const now = addSeconds(new Date(), 5)
+          const now = addSeconds(TZDate.tz(appConfig.tz), 5)
 
           // Parsing end time
-          const endTime = parse(sunsetMode.turnOffAt, 'HH:mm', new Date())
+          const endTime = parse(
+            sunsetMode.turnOffAt,
+            'HH:mm',
+            TZDate.tz(appConfig.tz)
+          )
 
           // If now is after end time, skip
           if (isAfter(now, endTime)) {

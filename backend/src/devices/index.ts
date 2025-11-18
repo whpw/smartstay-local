@@ -63,15 +63,16 @@ export async function initDevices() {
       controller = new LightSwitchController(config as LightSwitchConfig)
     }
     if (controller) {
-      // Adding controller to the map
-      devices[device.id] = controller
       controller
         .init()
         .then(() => {
+          // Adding controller to the map
+          devices[device.id] = controller
+          // Logging success
           logger.info('Device [', device.id, '] initialized successfully')
         })
         .catch((err) => {
-          logger.error('Error initializing device', device.id, err)
+          logger.error('Error initializing device', device, err)
         })
     }
   }
