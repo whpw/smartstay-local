@@ -27,19 +27,20 @@ function scheduleMessageProcessing(msg: QueueMessageWrapper) {
   const timeout = Math.max(msg.expiresAt - Date.now(), 0)
   setTimeout(() => {
     try {
-      console.log('Processing message:', msg)
+      // Logging
+      logger.info('Processing message:', msg)
 
       // Get message
       const message = msg.message
       const deviceController = getDeviceController(message.deviceId)
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!deviceController) {
-        console.error(`Controller for device ${message.deviceId} not found`)
+        logger.error(`Controller for device ${message.deviceId} not found`)
         return
       }
       deviceController.processQueueMessage(message)
     } catch (error) {
-      console.error('Error processing queue message:\n', msg, '\n', error)
+      logger.error('Error processing queue message:\n', msg, '\n', error)
     }
 
     // Remove message from the queue
@@ -60,7 +61,11 @@ export const initQueue = () => {
 }
 
 export const enqueueMessage = (msg: QueueMessage, ttl: number) => {
-  console.log('Enqueueing message:', msg)
+  // Logging
+  logger.info('Enqueueing message:', {
+    ...msg,
+    expiresAt: new Date(Date.now() + ttl),
+  })
 
   // Load queue messages
   const queueMessages = getQueueMessages()
@@ -85,7 +90,8 @@ export const enqueueMessage = (msg: QueueMessage, ttl: number) => {
 }
 
 export const dequeueMessage = (id: string) => {
-  console.log('Dequeueing message:', id)
+  // Logging
+  logger.info('Dequeueing message:', id)
 
   // Load queue messages
   const queueMessages = getQueueMessages()
