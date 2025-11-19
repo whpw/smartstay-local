@@ -5,7 +5,11 @@ import type { QueueMessage } from '../queue'
 
 import { weather } from '@/cron/weather'
 import { db, toKey } from '@/db'
-import { DevController, type JacuzziConfig } from '@/devices/controller'
+import {
+  DevController,
+  type GapInHours,
+  type JacuzziConfig,
+} from '@/devices/controller'
 import {
   JacuzziActionType,
   type Action,
@@ -15,6 +19,7 @@ import {
 } from '@/models'
 import { enqueueMessage } from '@/queue'
 import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
+import { hoursToMilliseconds } from 'date-fns'
 import ky, { type KyInstance } from 'ky'
 
 const MINUTE = 60 * 1000
@@ -384,7 +389,7 @@ export class JacuzziThermoBoxController extends DevController<
     }, 8000)
   }
 
-  public override async toggleEcoMode(gap: number) {
+  public override async toggleEcoMode(gap: GapInHours) {
     // This makes sense if gap is > 0
     if (gap > 0 && this.state !== 'initializing') {
       // Getting config
@@ -414,7 +419,7 @@ export class JacuzziThermoBoxController extends DevController<
             deviceId: this.config.id,
             action: 'stop-eco',
           },
-          gap - ecoModeTreshold
+          hoursToMilliseconds(gap - ecoModeTreshold)
         )
 
         // Setting state

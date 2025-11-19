@@ -7,7 +7,11 @@ import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
 
 import { db, toKey } from '@/db'
-import { DevController, type JacuzziTerneoConfig } from '@/devices/controller'
+import {
+  DevController,
+  type GapInHours,
+  type JacuzziTerneoConfig,
+} from '@/devices/controller'
 import {
   JacuzziActionType,
   type Action,
@@ -229,7 +233,7 @@ export class JacuzziTerneoController extends DevController<
     await this.updateDevice(true)
   }
 
-  public override async toggleEcoMode(gap: number) {
+  public override async toggleEcoMode(gap: GapInHours) {
     // This makes sense if gap is > 0
     if (gap > 0 && this.state !== 'initializing') {
       // Getting config

@@ -4,6 +4,8 @@ import type { Action, DeviceViewData } from '@/models/ViewData'
 import type { QueueMessage } from '@/queue'
 import { createLogger } from '@/utils/logger'
 
+export type GapInHours = number
+
 export abstract class DevController<
   T extends DeviceConfig,
   V extends DeviceViewData
@@ -33,7 +35,7 @@ export abstract class DevController<
     res: ResDetails
   ): Promise<V | { error: string }>
 
-  public async toggleEcoMode(_gap: number) {
+  public async toggleEcoMode(_gap: GapInHours) {
     // Doing nothing
   }
 

@@ -3,7 +3,11 @@ import { action, computed, observable, runInAction, toJS } from 'mobx'
 import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
 
-import { DevController, type LightSwitchConfig } from '@/devices/controller'
+import {
+  DevController,
+  type GapInHours,
+  type LightSwitchConfig,
+} from '@/devices/controller'
 import {
   SwitchBoxActionType,
   type Action,
@@ -325,7 +329,7 @@ export class LightSwitchController extends DevController<
     }, 8000)
   }
 
-  public override async toggleEcoMode(tillNextResInHrs: number) {
+  public override async toggleEcoMode(tillNextResInHrs: GapInHours) {
     this.isEcoMode = tillNextResInHrs > 12
   }
 }

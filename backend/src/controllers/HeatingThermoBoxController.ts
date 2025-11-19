@@ -14,7 +14,11 @@ import type { QueueMessage } from '../queue'
 import { appConfig } from '@/config'
 import { weather } from '@/cron/weather'
 import { db, toKey } from '@/db'
-import { DevController, type HeatingConfig } from '@/devices/controller'
+import {
+  DevController,
+  type GapInHours,
+  type HeatingConfig,
+} from '@/devices/controller'
 import {
   JacuzziActionType,
   type Action,
@@ -24,6 +28,7 @@ import {
 } from '@/models'
 import { enqueueMessage } from '@/queue'
 import { TZDate } from '@date-fns/tz'
+import { hoursToMilliseconds } from 'date-fns'
 import ky, { type KyInstance } from 'ky'
 
 export class HeatingThermoBoxController extends DevController<
@@ -388,7 +393,7 @@ export class HeatingThermoBoxController extends DevController<
     }, 8000)
   }
 
-  public override async toggleEcoMode(gap: number) {
+  public override async toggleEcoMode(gap: GapInHours) {
     // Logging
     this.logger.info('Checking eco mode gap: ' + gap)
 
@@ -422,7 +427,7 @@ export class HeatingThermoBoxController extends DevController<
             deviceId: this.config.id,
             action: 'stop-eco',
           },
-          gap - ecoModeTreshold
+          hoursToMilliseconds(gap - ecoModeTreshold)
         )
 
         // Setting config
