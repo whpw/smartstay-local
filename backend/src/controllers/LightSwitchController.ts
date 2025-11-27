@@ -19,7 +19,15 @@ import { appConfig } from '@/config'
 import { sunset } from '@/cron/sunset'
 import { TZDate } from '@date-fns/tz'
 import { CronJob, CronTime } from 'cron'
-import { addMinutes, addSeconds, isAfter, isBefore, max, parse } from 'date-fns'
+import {
+  addMinutes,
+  addSeconds,
+  isAfter,
+  isBefore,
+  max,
+  parse,
+  set,
+} from 'date-fns'
 import ky, { type KyInstance } from 'ky'
 
 function getScheduledTime(cron?: CronJob) {
@@ -127,10 +135,18 @@ export class LightSwitchController extends DevController<
             sunsetMode
           )
 
+          // Just in case - ensure we're working with the correct date
+          const todayStart = set(TZDate.tz(appConfig.tz), {
+            hours: sunset.start.getHours(),
+            minutes: sunset.start.getMinutes(),
+            seconds: sunset.start.getSeconds(),
+            milliseconds: sunset.start.getMilliseconds(),
+          })
+
           // Getting start time
           const startTime = max([
             now,
-            addMinutes(sunset.start, sunsetMode.turnOnShift),
+            addMinutes(todayStart, sunsetMode.turnOnShift),
           ])
 
           this.logger.info('Setting day schedule...', {
