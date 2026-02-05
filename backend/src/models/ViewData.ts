@@ -68,6 +68,7 @@ export const JacuzziActionType = {
  */
 
 export type SaunaSession = {
+  targetTemp: number
   startTime: number
   endTime: number
 }
@@ -80,12 +81,19 @@ export type SaunaPersistentState = {
 export type SaunaViewData = DeviceViewData & {
   state: DeviceState
   session: SaunaSession | null
-  currentTemp: string
+  currentTemp: number
+  targetTemp: number
+  defaultTemp: number
+  minTemp: number
+  maxTemp: number
   sessionDuration: number
+  pollingError: boolean
+  thermostat: 'saunabox' | 'manual'
 }
 
 export const SaunaActionType = {
   START: 'START',
+  STOP: 'STOP',
   SET_TARGET_TEMP: 'SET_TARGET_TEMP',
 }
 

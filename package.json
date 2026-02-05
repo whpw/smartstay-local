@@ -10,13 +10,13 @@
   },
   "author": "Piotr Walczyszyn <piotr.walczyszyn@gmail.com>",
   "devDependencies": {
-    "@tanstack/eslint-config": "^0.3.2",
-    "pnpm": "^10.22.0",
-    "tsx": "^4.20.6",
+    "@tanstack/eslint-config": "^0.3.4",
+    "pnpm": "^10.28.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@types/node": "^24.10.1"
+    "@types/node": "^25.2.1"
   },
   "workspaces": [
     "backend",

@@ -9,26 +9,26 @@
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
-    "@hono/node-server": "^1.19.6",
-    "@hono/zod-validator": "^0.7.4",
+    "@hono/node-server": "^1.19.9",
+    "@hono/zod-validator": "^0.7.6",
     "address": "^2.0.3",
-    "cron": "^4.3.4",
+    "cron": "^4.4.0",
     "date-fns": "^4.1.0",
-    "debug-logfmt": "^1.4.6",
+    "debug-logfmt": "^1.4.7",
     "dotenv": "^17.2.3",
-    "flat-cache": "^6.1.18",
-    "hono": "^4.10.5",
+    "flat-cache": "^6.1.20",
+    "hono": "^4.11.7",
     "ical": "^0.8.0",
-    "ky": "^1.14.0",
+    "ky": "^1.14.3",
     "mobx": "^6.15.0",
     "mustache": "^4.2.0",
-    "superjson": "^2.2.5",
-    "totp-generator": "^2.0.0",
-    "zod": "^4.1.12"
+    "superjson": "^2.2.6",
+    "totp-generator": "^2.0.1",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/ical": "^0.8.3",
     "@types/mustache": "^4.2.6",
-    "esbuild": "^0.27.0"
+    "esbuild": "^0.27.2"
   }
 }

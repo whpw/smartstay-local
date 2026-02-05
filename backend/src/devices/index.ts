@@ -15,6 +15,7 @@ import {
 } from '@/controllers'
 import { JacuzziTerneoController } from '@/controllers/JacuzziTerneoController'
 import { LightSwitchController } from '@/controllers/LightSwitchController'
+import { SaunaBoxController } from '@/controllers/SaunaBoxController'
 import { SaunaController } from '@/controllers/SaunaController'
 import type { DeviceViewData } from '@/models'
 import { logger } from '@/utils/logger'
@@ -35,7 +36,7 @@ export async function initDevices() {
       logger.warn(
         'Device [',
         device.id,
-        '] is disabled, skipping initialization'
+        '] is disabled, skipping initialization',
       )
       continue
     }
@@ -58,7 +59,11 @@ export async function initDevices() {
     ) {
       controller = new HeatingThermoBoxController(config as HeatingConfig)
     } else if (device.type === 'sauna') {
-      controller = new SaunaController(config as SaunaConfig)
+      if ((config as SaunaConfig).thermostat === 'saunabox') {
+        controller = new SaunaBoxController(config as SaunaConfig)
+      } else {
+        controller = new SaunaController(config as SaunaConfig)
+      }
     } else if (device.type === 'light-switch') {
       controller = new LightSwitchController(config as LightSwitchConfig)
     }
@@ -79,7 +84,7 @@ export async function initDevices() {
 }
 
 export function getDeviceController(
-  id: string
+  id: string,
 ): DevController<DeviceConfig, DeviceViewData> {
   const device = devices[id]
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

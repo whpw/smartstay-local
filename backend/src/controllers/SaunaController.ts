@@ -27,7 +27,7 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
   }
 
   @observable
-  public accessor currentTemp = ''
+  public accessor currentTemp = 0
 
   @computed
   public get state(): DeviceState {
@@ -43,6 +43,12 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
       session,
       currentTemp: this.currentTemp,
       sessionDuration: this.config.sessionDuration,
+      thermostat: this.config.thermostat,
+      targetTemp: 0,
+      defaultTemp: this.config.defaultTemp,
+      minTemp: this.config.minTemp,
+      maxTemp: this.config.maxTemp,
+      pollingError: false,
     }
   }
 
@@ -94,13 +100,14 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
     // Calculate delay in ms
     const delay = Math.max(
       Math.min(this.config.sessionDuration * MINUTE, maxDelay),
-      0
+      0,
     )
 
     // Creating session object
     const session = {
       startTime: Date.now(),
       endTime: Date.now() + delay,
+      targetTemp: 0,
     }
 
     // Creating state object
@@ -121,7 +128,7 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
         deviceId: this.config.id,
         action: 'stop-session',
       },
-      delay
+      delay,
     )
 
     // Setting state
@@ -147,7 +154,7 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
   private loadCurrentState() {
     // Load current state
     const state: SaunaPersistentState = db().get<SaunaPersistentState>(
-      toKey('device-state', this.config.id)
+      toKey('device-state', this.config.id),
     ) || {
       state: 'idle',
       session: null,

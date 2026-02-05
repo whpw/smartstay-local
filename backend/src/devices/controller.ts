@@ -8,7 +8,7 @@ export type GapInHours = number
 
 export abstract class DevController<
   T extends DeviceConfig,
-  V extends DeviceViewData
+  V extends DeviceViewData,
 > {
   protected config: T
 
@@ -32,7 +32,7 @@ export abstract class DevController<
 
   abstract invokeAction(
     action: Action,
-    res: ResDetails
+    res: ResDetails,
   ): Promise<V | { error: string }>
 
   public async toggleEcoMode(_gap: GapInHours) {
@@ -122,4 +122,9 @@ export type LightSwitchConfig = {
 export type SaunaConfig = {
   // Duration in minutes
   sessionDuration: number
+  thermostat: 'saunabox' | 'manual'
+  minTemp: number
+  maxTemp: number
+  defaultTemp: number
+  ip: string
 } & DeviceConfig

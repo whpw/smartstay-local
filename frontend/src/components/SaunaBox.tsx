@@ -1,24 +1,11 @@
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Box,
-  Stack,
-  Typography,
-} from '@mui/material'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import SaunaStartButton from './SaunaStartButton'
-import { UpsellModal } from './UpsellModal'
-
-import saunaIcon from '@/assets/sauna.png'
 import { authedClient } from '@/dao'
-import { isSessionRunning } from '@/utils/isSessionRunning'
 import type { SaunaViewData } from '@backend/models'
 import { useMutation } from '@tanstack/react-query'
-import { BoxContainer } from './BoxContainer'
+import { SaunaBoxAuto } from './SaunaBoxAuto'
+import { SaunaBoxManual } from './SaunaBoxManual'
 
 export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
   // Data state
@@ -67,65 +54,23 @@ export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
     }
   }, [deviceId])
 
-  // Calculating duration that is left
-  const duration = useCallback(() => {
-    return Math.max((viewData?.session?.endTime ?? 0) - Date.now(), 0)
-  }, [viewData])
-
-  // Checking if session is running
-  const isRunning = isSessionRunning(viewData?.session?.endTime)
-
-  const onConfirmedStartClick = () => {
-    startSession()
-  }
-
   if (!viewData) return <div>Loading...</div>
 
-  return (
-    <BoxContainer
-      title={
-        <Stack direction="row" alignItems="center" gap={1}>
-          <Box component="img" src={saunaIcon} sx={{ width: 24 }} />
-          <>{viewData.name}</>
-        </Stack>
-      }
-      ctaButton={
-        <SaunaStartButton
-          isRunning={isRunning}
-          duration={duration()}
-          viewData={viewData}
-          onConfirmedStartClick={onConfirmedStartClick}
-        />
-      }
-    >
-      {isRunning && (
-        <Box sx={{ mt: 2 }}>
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography className="font-semibold">
-                {t('devices.sauna.instructions.title')}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <ol className="list-decimal">
-                {t('devices.sauna.instructions.details', {
-                  defaultValue: '',
-                })
-                  .split('\n')
-                  .map((line, index) => (
-                    <li key={index} className="first:mt-0 mt-4">
-                      {line}
-                    </li>
-                  ))}
-              </ol>
-            </AccordionDetails>
-          </Accordion>
-        </Box>
-      )}
-      <UpsellModal
-        open={upsellingModalOpen}
-        handleClose={() => setUpsellingModalOpen(false)}
+  if (viewData.thermostat === 'saunabox') {
+    return (
+      <SaunaBoxAuto
+        viewData={viewData}
+        setViewData={setViewData}
+        deviceId={deviceId}
       />
-    </BoxContainer>
-  )
+    )
+  } else {
+    return (
+      <SaunaBoxManual
+        viewData={viewData}
+        setViewData={setViewData}
+        deviceId={deviceId}
+      />
+    )
+  }
 }

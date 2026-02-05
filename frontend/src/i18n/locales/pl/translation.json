@@ -48,7 +48,12 @@
     },
     "sauna": {
       "start": "Uruchom",
+      "stop": "Wyłącz",
       "ends-in": "Koniec za: {{time}}",
+      "target-temp": "➟ {{temp}} °C",
+      "current-temp": "Obecnie {{temp}} °C",
+      "initializing": "Łączenie...",
+      "slider.title": "Temperatura",
       "modal": {
         "title": "Czy uruchomić saunę?",
         "until": "Do godziny: {{time}}",

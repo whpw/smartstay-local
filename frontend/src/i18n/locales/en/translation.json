@@ -48,7 +48,12 @@
     },
     "sauna": {
       "start": "Start",
+      "stop": "Stop",
       "ends-in": "Ends in: {{time}}",
+      "target-temp": "➟ {{temp}} °C",
+      "current-temp": "Current water temp {{temp}} °C",
+      "initializing": "Initializing...",
+      "slider.title": "Temperature",
       "modal": {
         "title": "Do you want to start the sauna?",
         "until": "Until: {{time}}",

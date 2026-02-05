@@ -1,6 +1,7 @@
 import type { SaunaViewData } from '@backend/models'
 import { TZDate } from '@date-fns/tz'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import { Box } from '@mui/material'
 import Accordion from '@mui/material/Accordion'
 import AccordionDetails from '@mui/material/AccordionDetails'
 import AccordionSummary from '@mui/material/AccordionSummary'
@@ -22,11 +23,13 @@ export default function SaunaStartButton({
   duration,
   viewData,
   onConfirmedStartClick,
+  showDetailsAccordion = true,
 }: {
   isRunning: boolean
   duration: number
   viewData: SaunaViewData
   onConfirmedStartClick: () => void
+  showDetailsAccordion?: boolean
 }) {
   const [open, setOpen] = useState(false)
   // Time when new session will end
@@ -64,14 +67,18 @@ export default function SaunaStartButton({
               time: newSessionEnd,
             })}
           </DialogContentText>
-          <Accordion sx={{ mt: 2 }}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography>{t('devices.sauna.modal.more-info')}</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Typography>{t('devices.sauna.modal.details')}</Typography>
-            </AccordionDetails>
-          </Accordion>
+          {showDetailsAccordion ? (
+            <Accordion sx={{ mt: 2 }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography>{t('devices.sauna.modal.more-info')}</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography>{t('devices.sauna.modal.details')}</Typography>
+              </AccordionDetails>
+            </Accordion>
+          ) : (
+            <Box sx={{ minWidth: 300 }}></Box>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>
