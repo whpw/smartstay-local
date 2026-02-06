@@ -30,7 +30,8 @@ app.use(
       key: '_auth',
       secret: 'cookie-secret',
     },
-  })
+    alg: 'HS256',
+  }),
 )
 
 // Context middleware
@@ -64,7 +65,7 @@ const api = app
             ])
             .optional(),
         }),
-      })
+      }),
     ),
     async (c) => {
       const { deviceId, action } = await c.req.json()
@@ -98,17 +99,17 @@ const api = app
             {
               error: error.message,
             },
-            400
+            400,
           )
         }
         return c.json(
           {
             error: 'UNKNOWN_ERROR',
           },
-          400
+          400,
         )
       }
-    }
+    },
   )
 
   // Devices
@@ -133,7 +134,7 @@ const api = app
         },
         {
           fireImmediately: true,
-        }
+        },
       )
 
       let aborted = false
