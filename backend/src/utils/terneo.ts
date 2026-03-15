@@ -35,13 +35,19 @@ export async function terneoFetch(device: TerneoDevice, payload: object) {
   })
 
   return exec(
-    `curl -X POST -H 'Content-Type: application/json' -d '${data}' http://${device.hostname}/api.cgi`
+    `curl -X POST -H 'Content-Type: application/json' -d '${data}' http://${device.hostname}/api.cgi`,
   )
     .then(({ stdout, stderr }) => {
       // if (stderr) {
       //   throw new Error(stderr)
       // }
-      return JSON.parse(stdout)
+      try {
+        return JSON.parse(stdout)
+      } catch (error) {
+        console.error('Error parsing Terneo device response:', stdout, stderr)
+        console.error('Failed request payload:', payload)
+        throw error
+      }
     })
     .catch((error) => {
       console.error('Error calling Terneo device:', error)
