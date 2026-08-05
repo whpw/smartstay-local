@@ -107,6 +107,7 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
       ctaButton={
         <JacuzziStartButton
           duration={duration()}
+          isRunning={isRunning}
           viewData={viewData}
           onConfirmedStartClick={onConfirmedStartClick}
         />

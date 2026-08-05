@@ -23,10 +23,12 @@ const MINUTE = 60_000
 export default function JacuzziStartButton({
   viewData,
   duration,
+  isRunning,
   onConfirmedStartClick,
 }: {
   viewData: JacuzziViewData
   duration: number
+  isRunning: boolean
   onConfirmedStartClick: () => void
 }) {
   // Translation
@@ -58,10 +60,12 @@ export default function JacuzziStartButton({
       <Button
         type="button"
         onClick={onStartClick}
-        disabled={viewData.state !== 'idle' || viewData.pollingError}
+        disabled={
+          isRunning || viewData.state === 'eco' || viewData.pollingError
+        }
         variant="contained"
       >
-        {viewData.state === 'active'
+        {isRunning
           ? t('devices.jacuzzi.ends-in', {
               time: lightFormat(new TZDate(duration, 'UTC'), 'HH:mm'),
             })

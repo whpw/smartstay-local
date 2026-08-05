@@ -1,4 +1,4 @@
-import { action, computed, observable, runInAction, toJS, when } from 'mobx'
+import { action, computed, observable, runInAction, toJS } from 'mobx'
 
 import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
@@ -17,8 +17,14 @@ import {
   type JacuzziPersistentState,
   type JacuzziViewData,
 } from '@/models'
-import { enqueueMessage } from '@/queue'
+import {
+  enqueueStopEco,
+  enqueueStopSession,
+  isStopMessageCurrent,
+  reconcileLoadedSession,
+} from '@/utils/reconcileSession'
 import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
+import { waitUntilReady } from '@/utils/waitUntilReady'
 import { hoursToMilliseconds } from 'date-fns'
 import ky, { type KyInstance } from 'ky'
 
@@ -42,6 +48,10 @@ export class JacuzziThermoBoxController extends DevController<
   private deviceApi!: KyInstance
 
   private statePollingInterval: NodeJS.Timeout | null = null
+
+  private discoveryAbort?: AbortController
+
+  private discoveryPromise: Promise<void> | null = null
 
   @observable
   private accessor pollingError = false
@@ -114,6 +124,7 @@ export class JacuzziThermoBoxController extends DevController<
   }
 
   public dispose() {
+    this.discoveryAbort?.abort()
     if (this.statePollingInterval) {
       clearInterval(this.statePollingInterval)
     }
@@ -124,15 +135,19 @@ export class JacuzziThermoBoxController extends DevController<
     if (msg.deviceId === this.id) {
       switch (msg.action) {
         case 'stop-session':
-          // Waiting for active state
-          await when(() => this.state !== 'initializing')
-          // Stop session
+          await waitUntilReady(() => this.state !== 'initializing')
+          if (
+            !isStopMessageCurrent(
+              msg.sessionEndTime,
+              this.persistentState.session?.endTime,
+            )
+          ) {
+            break
+          }
           await this.stopSession()
           break
         case 'stop-eco':
-          // Waiting for active state
-          await when(() => this.state !== 'initializing')
-          // Stop session
+          await waitUntilReady(() => this.state !== 'initializing')
           await this.stopSession()
           break
       }
@@ -196,14 +211,7 @@ export class JacuzziThermoBoxController extends DevController<
       session,
     }
 
-    // Enqueue message to stop session
-    enqueueMessage(
-      {
-        deviceId: this.config.id,
-        action: 'stop-session',
-      },
-      delay
-    )
+    enqueueStopSession(this.config.id, delay, session.endTime)
 
     return this.updateState(state, delay)
   }
@@ -212,14 +220,20 @@ export class JacuzziThermoBoxController extends DevController<
   public async setSessionTemp(temp: number) {
     const { session } = this.persistentState
     if (session && temp >= this.config.minTemp && temp <= this.config.maxTemp) {
-      // Setting session
-      db().set(toKey('device-state', this.config.id), {
-        state: 'active',
-        session: toJS(session),
-      })
+      const remainingMs = Math.max(session.endTime - Date.now(), 0)
 
       // Setting target temp
       session.targetTemp = temp
+
+      // Setting session (preserve remaining TTL)
+      db().set(
+        toKey('device-state', this.config.id),
+        {
+          state: 'active',
+          session: toJS(session),
+        },
+        remainingMs,
+      )
 
       // Updating device
       await this.updateDevice()
@@ -240,13 +254,26 @@ export class JacuzziThermoBoxController extends DevController<
   private loadCurrentState() {
     // Load current state
     const state = db().get<JacuzziPersistentState>(
-      toKey('device-state', this.config.id)
+      toKey('device-state', this.config.id),
     ) || {
       state: 'idle',
       session: null,
     }
 
-    // Setting state
+    const result = reconcileLoadedSession({
+      deviceId: this.config.id,
+      state: state.state,
+      session: state.session,
+    })
+
+    if (result.status === 'expired') {
+      return this.stopSession()
+    }
+
+    if (result.status === 'active') {
+      return this.updateState(state, result.remainingMs)
+    }
+
     return this.updateState(state)
   }
 
@@ -316,26 +343,40 @@ export class JacuzziThermoBoxController extends DevController<
   }
 
   private async initDeviceApi() {
-    const apiUrl = `http://bbx-${this.config.sn}.local/info`
+    if (this.discoveryPromise) {
+      return this.discoveryPromise
+    }
 
-    this.logger.info('Initializing API at:', apiUrl)
+    const abort = new AbortController()
+    this.discoveryAbort = abort
 
-    // Getting info
-    const { device } = await ky
-      .get<{ device: { ip: string } }>(apiUrl, {
-        retry: {
-          retryOnTimeout: true,
-          limit: Number.POSITIVE_INFINITY,
-        },
+    this.discoveryPromise = (async () => {
+      const apiUrl = `http://bbx-${this.config.sn}.local/info`
+
+      this.logger.info('Initializing API at:', apiUrl)
+
+      const { device } = await ky
+        .get<{ device: { ip: string } }>(apiUrl, {
+          signal: abort.signal,
+          retry: {
+            retryOnTimeout: true,
+            limit: Number.POSITIVE_INFINITY,
+          },
+        })
+        .json()
+
+      this.logger.info('Found API at:', device.ip)
+
+      this.deviceApi = ky.create({
+        prefixUrl: `http://${device.ip}`,
       })
-      .json()
-
-    this.logger.info('Found API at:', device.ip)
-
-    // Setting device api
-    this.deviceApi = ky.create({
-      prefixUrl: `http://${device.ip}`,
+    })().finally(() => {
+      if (this.discoveryAbort === abort) {
+        this.discoveryPromise = null
+      }
     })
+
+    return this.discoveryPromise
   }
 
   private async initStatePolling() {
@@ -381,7 +422,7 @@ export class JacuzziThermoBoxController extends DevController<
           })
 
           // Reinitializing device api
-          this.initDeviceApi()
+          void this.initDeviceApi()
         })
         .finally(() => {
           isFetching = false
@@ -414,12 +455,9 @@ export class JacuzziThermoBoxController extends DevController<
         })
 
         // Schedule eco mode end
-        enqueueMessage(
-          {
-            deviceId: this.config.id,
-            action: 'stop-eco',
-          },
-          hoursToMilliseconds(gap - ecoModeTreshold)
+        enqueueStopEco(
+          this.config.id,
+          hoursToMilliseconds(gap - ecoModeTreshold),
         )
 
         // Setting state

@@ -9,8 +9,9 @@ import { updateLocalIP } from './config/updateLocalIP'
 import { initEcoMode } from './cron/ecoMode'
 import { initSunset } from './cron/sunset'
 import { initWeather } from './cron/weather'
+import { disposeDb } from './db'
 import { devices, initDevices } from './devices'
-import { initQueue } from './queue'
+import { disposeQueue, initQueue } from './queue'
 import { api as authApi } from './routes/auth'
 import { api as authedApi } from './routes/authed'
 import { api as infoApi } from './routes/info'
@@ -77,39 +78,37 @@ const server = serve(
   }
 )
 
-// graceful shutdown
-process.on('SIGINT', () => {
-  server.close(() => {
+function shutdown(exitCode = 0) {
+  server.close((err) => {
+    if (err) {
+      console.error(err)
+      process.exit(1)
+    }
+
     logger.info('Server closed...')
 
     Object.values(devices).forEach((device) => {
       device.dispose()
     })
 
-    // Disposing weather timer
     if (disposeWeather) {
       disposeWeather()
     }
 
-    // Disposing sunset timer
     if (disposeSunset) {
       disposeSunset()
     }
 
-    // Disposing eco mode timer
     if (disposeEcoMode) {
       disposeEcoMode()
     }
 
-    process.exit(0)
+    disposeQueue()
+    disposeDb()
+
+    process.exit(exitCode)
   })
-})
-process.on('SIGTERM', () => {
-  server.close((err) => {
-    if (err) {
-      console.error(err)
-      process.exit(1)
-    }
-    process.exit(0)
-  })
-})
+}
+
+process.on('SIGINT', () => shutdown(0))
+process.on('SIGTERM', () => shutdown(0))
