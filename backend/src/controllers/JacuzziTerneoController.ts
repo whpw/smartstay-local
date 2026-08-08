@@ -89,10 +89,13 @@ export class JacuzziTerneoController extends DevController<
 
   public async init() {
     // Initialize UDP listener
+    this.logger.info('Connecting to API via UDP discovery, sn=', this.config.sn)
     this.initUdpListener()
 
     // Wait for terneo address
     await when(() => !!this.terneoAddress)
+
+    this.logger.info('Connected to API at:', this.terneoAddress)
 
     // Load current session
     await this.loadCurrentState()
@@ -109,7 +112,7 @@ export class JacuzziTerneoController extends DevController<
       // Dispose of the controller
       this.udpListener?.close()
     } catch (error) {
-      console.error('Error disposing of controller:', error)
+      this.logger.error('Error disposing of controller:', error)
     }
     if (this.statePollingInterval) {
       clearInterval(this.statePollingInterval)
@@ -419,7 +422,7 @@ export class JacuzziTerneoController extends DevController<
           this.currentTemp = parseFloat(terneoData.display || '0')
         })
       } else {
-        console.log('UDP - Skipping device', terneoData)
+        this.logger.debug('UDP - Skipping device', terneoData)
       }
     })
 
@@ -446,9 +449,15 @@ export class JacuzziTerneoController extends DevController<
         cmd: 4,
       })
         .then((data) => {
-          console.log('Polled from Terneo...')
-          console.log('Polled target temp:', parseFloat(data['t.5']) / 16)
-          console.log('Polled current temp:', parseFloat(data['t.1']) / 16)
+          this.logger.debug('Polled from Terneo...')
+          this.logger.debug(
+            'Polled target temp:',
+            parseFloat(data['t.5']) / 16,
+          )
+          this.logger.debug(
+            'Polled current temp:',
+            parseFloat(data['t.1']) / 16,
+          )
           runInAction(() => {
             // Setting current temp, rounding it to closest 0.5
             this.currentTemp =

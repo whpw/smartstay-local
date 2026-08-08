@@ -349,11 +349,16 @@ export class JacuzziThermoBoxController extends DevController<
 
     const abort = new AbortController()
     this.discoveryAbort = abort
+    const isReconnect = !!this.deviceApi
 
     this.discoveryPromise = (async () => {
       const apiUrl = `http://bbx-${this.config.sn}.local/info`
 
-      this.logger.info('Initializing API at:', apiUrl)
+      if (isReconnect) {
+        this.logger.warn('Reconnecting to API at:', apiUrl)
+      } else {
+        this.logger.info('Connecting to API at:', apiUrl)
+      }
 
       const { device } = await ky
         .get<{ device: { ip: string } }>(apiUrl, {
@@ -362,10 +367,23 @@ export class JacuzziThermoBoxController extends DevController<
             retryOnTimeout: true,
             limit: Number.POSITIVE_INFINITY,
           },
+          hooks: {
+            beforeRetry: [
+              ({ error, retryCount }) => {
+                this.logger.warn(
+                  'Failed to connect to API, retrying:',
+                  apiUrl,
+                  'attempt=',
+                  retryCount,
+                  error,
+                )
+              },
+            ],
+          },
         })
         .json()
 
-      this.logger.info('Found API at:', device.ip)
+      this.logger.info('Connected to API at:', device.ip)
 
       this.deviceApi = ky.create({
         prefixUrl: `http://${device.ip}`,

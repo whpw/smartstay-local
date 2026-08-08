@@ -57,8 +57,10 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
   }
 
   public async init() {
+    this.logger.info('Initializing manual sauna')
     // Load current session
     await this.loadCurrentState()
+    this.logger.info('Manual sauna ready')
   }
 
   public dispose() {

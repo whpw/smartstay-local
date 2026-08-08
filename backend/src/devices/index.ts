@@ -75,6 +75,15 @@ export async function initDevices() {
       // hardware discovery (which may retry indefinitely) is still running.
       devices[device.id] = deviceController
 
+      logger.info(
+        'Starting init for device [',
+        device.id,
+        '] type=',
+        device.type,
+        'name=',
+        device.name,
+      )
+
       initTasks.push(
         deviceController
           .init()
@@ -84,6 +93,13 @@ export async function initDevices() {
           .catch((err) => {
             logger.error('Error initializing device', device, err)
           }),
+      )
+    } else {
+      logger.warn(
+        'No controller for device [',
+        device.id,
+        '] type=',
+        device.type,
       )
     }
   }

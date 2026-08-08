@@ -301,6 +301,7 @@ export class SaunaBoxController extends DevController<
 
     const abort = new AbortController()
     this.discoveryAbort = abort
+    const isReconnect = !!this.deviceApi
 
     this.discoveryPromise = (async () => {
       const url = `http://${this.config.ip}`
@@ -309,7 +310,11 @@ export class SaunaBoxController extends DevController<
         prefixUrl: url,
       })
 
-      this.logger.info('Initializing API at:', url)
+      if (isReconnect) {
+        this.logger.warn('Reconnecting to API at:', url)
+      } else {
+        this.logger.info('Connecting to API at:', url)
+      }
 
       const { device } = await api
         .get<{ device: { id: string } }>('api/device/state', {
@@ -318,10 +323,23 @@ export class SaunaBoxController extends DevController<
             retryOnTimeout: true,
             limit: Number.POSITIVE_INFINITY,
           },
+          hooks: {
+            beforeRetry: [
+              ({ error, retryCount }) => {
+                this.logger.warn(
+                  'Failed to connect to API, retrying:',
+                  url,
+                  'attempt=',
+                  retryCount,
+                  error,
+                )
+              },
+            ],
+          },
         })
         .json()
 
-      this.logger.info('Found sauna API:', device.id)
+      this.logger.info('Connected to API at:', url, 'id=', device.id)
 
       this.deviceApi = api
     })().finally(() => {
