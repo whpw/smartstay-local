@@ -16,11 +16,15 @@ import { api as authApi } from './routes/auth'
 import { api as authedApi } from './routes/authed'
 import { api as infoApi } from './routes/info'
 import { logger } from './utils/logger'
+import { startRemoteLogger, stopRemoteLogger } from './utils/remote-logger'
 
 // Loading env
 dotenv.config({
   path: resolve('../../appdata/.env'),
 })
+
+// Start durable remote log shipper as early as possible
+startRemoteLogger()
 
 // Initializing config
 await initConfig()
@@ -106,7 +110,9 @@ function shutdown(exitCode = 0) {
     disposeQueue()
     disposeDb()
 
-    process.exit(exitCode)
+    void stopRemoteLogger().finally(() => {
+      process.exit(exitCode)
+    })
   })
 }
 
