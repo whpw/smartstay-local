@@ -22,7 +22,8 @@ export type RemoteLogEntry = {
   message: string
 }
 
-const LOGS_DIR = resolve('../../appdata/logs')
+const APPDATA_DIR = resolve(process.env.APPDATA_DIR || '../../appdata')
+const LOGS_DIR = resolve(APPDATA_DIR, 'logs')
 const PENDING_PATH = resolve(LOGS_DIR, 'pending.jsonl')
 const CURSOR_PATH = resolve(LOGS_DIR, 'pending.cursor')
 const MAX_MESSAGE_LENGTH = 2048
