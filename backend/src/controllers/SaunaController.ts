@@ -12,7 +12,11 @@ import type { QueueMessage } from '@/queue'
 
 import { db, toKey } from '@/db'
 import { DevController, type SaunaConfig } from '@/devices/controller'
-import { enqueueMessage } from '@/queue'
+import {
+  enqueueStopSession,
+  isStopMessageCurrent,
+  reconcileLoadedSession,
+} from '@/utils/reconcileSession'
 import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
 
 const MINUTE = 60 * 1000
@@ -53,8 +57,10 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
   }
 
   public async init() {
+    this.logger.info('Initializing manual sauna')
     // Load current session
     await this.loadCurrentState()
+    this.logger.info('Manual sauna ready')
   }
 
   public dispose() {
@@ -64,6 +70,14 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
   public async processQueueMessage(msg: QueueMessage) {
     // Checking if message is for this device
     if (msg.deviceId === this.id && msg.action === 'stop-session') {
+      if (
+        !isStopMessageCurrent(
+          msg.sessionEndTime,
+          this.persistentState.session?.endTime,
+        )
+      ) {
+        return
+      }
       // Stop session
       await this.stopSession()
     }
@@ -120,19 +134,9 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
     this.persistentState = observable(state)
 
     // Setting state
-    db().set(toKey('device-state', this.config.id), state)
+    db().set(toKey('device-state', this.config.id), state, delay)
 
-    // Enqueue message to stop session
-    enqueueMessage(
-      {
-        deviceId: this.config.id,
-        action: 'stop-session',
-      },
-      delay,
-    )
-
-    // Setting state
-    this.persistentState = observable(state)
+    enqueueStopSession(this.config.id, delay, session.endTime)
   }
 
   @action.bound
@@ -159,7 +163,22 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
       state: 'idle',
       session: null,
     }
-    // Setting state
+
+    const result = reconcileLoadedSession({
+      deviceId: this.config.id,
+      state: state.state,
+      session: state.session,
+    })
+
+    if (result.status === 'expired') {
+      this.stopSession()
+      return
+    }
+
+    if (result.status === 'active') {
+      db().set(toKey('device-state', this.config.id), state, result.remainingMs)
+    }
+
     this.persistentState = observable(state)
   }
 }

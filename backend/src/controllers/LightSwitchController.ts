@@ -17,18 +17,25 @@ import {
 
 import { appConfig } from '@/config'
 import { sunset } from '@/cron/sunset'
+import { db, toKey } from '@/db'
+import { cancelPendingMessages, hasPendingMessage } from '@/queue'
+import { enqueueStopSession, isStopMessageCurrent } from '@/utils/reconcileSession'
+import { waitUntilReady } from '@/utils/waitUntilReady'
 import { TZDate } from '@date-fns/tz'
 import { CronJob, CronTime } from 'cron'
 import {
   addMinutes,
   addSeconds,
   isAfter,
-  isBefore,
   max,
   parse,
   set,
 } from 'date-fns'
 import ky, { type KyInstance } from 'ky'
+
+type LightPersistentState = {
+  manualOffAt: number | null
+}
 
 function getScheduledTime(cron?: CronJob) {
   return (
@@ -40,8 +47,6 @@ export class LightSwitchController extends DevController<
   LightSwitchConfig,
   SwitchBoxViewData
 > {
-  //
-
   @observable
   public accessor state: DeviceState = 'initializing'
 
@@ -57,9 +62,11 @@ export class LightSwitchController extends DevController<
 
   private turnOffSchedule?: CronJob
 
-  private manualTurnOffSchedule?: CronJob
-
   private statePollingInterval: NodeJS.Timeout | null = null
+
+  private discoveryAbort?: AbortController
+
+  private discoveryPromise: Promise<void> | null = null
 
   @observable
   private accessor pollingError = false
@@ -76,17 +83,14 @@ export class LightSwitchController extends DevController<
   }
 
   public async init() {
-    // Initialize UDP listener
     await this.initDeviceApi()
-
-    // Initialize state polling
+    await this.reconcileManualSession()
     await this.initStatePolling()
-
-    // Initialize schedule
     await this.initSchedule()
   }
 
   public dispose() {
+    this.discoveryAbort?.abort()
     if (this.statePollingInterval) {
       clearInterval(this.statePollingInterval)
     }
@@ -99,9 +103,6 @@ export class LightSwitchController extends DevController<
     if (this.turnOffSchedule) {
       this.turnOffSchedule.stop()
     }
-    if (this.manualTurnOffSchedule) {
-      this.manualTurnOffSchedule.stop()
-    }
   }
 
   private initSchedule() {
@@ -109,22 +110,18 @@ export class LightSwitchController extends DevController<
     if (sunsetMode) {
       this.logger.info('Initializing sunset mode...')
 
-      // Scheduling day schedule
       this.dayScheduleInterval = CronJob.from({
         cronTime: '0 0 0 * * *',
         timeZone: appConfig.tz,
         onTick: () => {
-          // Adding 5 seconds to avoid cron job execution error
           const now = addSeconds(TZDate.tz(appConfig.tz), 5)
 
-          // Parsing end time
           const endTime = parse(
             sunsetMode.turnOffAt,
             'HH:mm',
-            TZDate.tz(appConfig.tz)
+            TZDate.tz(appConfig.tz),
           )
 
-          // If now is after end time, skip
           if (isAfter(now, endTime)) {
             return
           }
@@ -132,10 +129,9 @@ export class LightSwitchController extends DevController<
           this.logger.info(
             'Calculating start time from sunset:',
             toJS(sunset),
-            sunsetMode
+            sunsetMode,
           )
 
-          // Just in case - ensure we're working with the correct date
           const todayStart = set(TZDate.tz(appConfig.tz), {
             hours: sunset.start.getHours(),
             minutes: sunset.start.getMinutes(),
@@ -143,7 +139,6 @@ export class LightSwitchController extends DevController<
             milliseconds: sunset.start.getMilliseconds(),
           })
 
-          // Getting start time
           const startTime = max([
             now,
             addMinutes(todayStart, sunsetMode.turnOnShift),
@@ -154,11 +149,12 @@ export class LightSwitchController extends DevController<
             endTime,
           })
 
-          // Scheduling on schedule
+          this.turnOnSchedule?.stop()
+          this.turnOffSchedule?.stop()
+
           this.turnOnSchedule = CronJob.from({
             cronTime: startTime,
             onTick: () => {
-              // If in eco mode, skip
               if (this.isEcoMode) {
                 return
               }
@@ -167,11 +163,9 @@ export class LightSwitchController extends DevController<
             start: true,
           })
 
-          // Scheduling off schedule
           this.turnOffSchedule = CronJob.from({
             cronTime: endTime,
             onTick: () => {
-              // Always turn off
               this.setDeviceState('idle')
             },
             start: true,
@@ -183,55 +177,85 @@ export class LightSwitchController extends DevController<
     }
   }
 
-  public async processQueueMessage(_msg: QueueMessage) {}
+  public async processQueueMessage(msg: QueueMessage) {
+    if (msg.deviceId === this.id && msg.action === 'stop-session') {
+      await waitUntilReady(() => this.state !== 'initializing')
+      const persisted = db().get<LightPersistentState>(this.persistentKey)
+      if (
+        !isStopMessageCurrent(msg.sessionEndTime, persisted?.manualOffAt)
+      ) {
+        return
+      }
+      this.clearManualOffAt()
+      await this.setDeviceState('idle')
+    }
+  }
 
   @action.bound
   public async invokeAction(actionToInvoke: Action, _res: ResDetails) {
     switch (actionToInvoke.type) {
       case SwitchBoxActionType.START:
         {
-          // Setting state
           await this.setDeviceState('active')
 
-          // Setting manual turn off schedule
           const offTime = addMinutes(new Date(), this.config.sessionDuration)
+          const delay = Math.max(offTime.getTime() - Date.now(), 0)
 
-          // Getting sunset on/off schedule
-          const sunsetOnTime =
-            getScheduledTime(this.turnOnSchedule) || new Date()
-          const sunsetOffTime =
-            getScheduledTime(this.turnOffSchedule) || new Date()
+          this.persistManualOffAt(offTime.getTime(), delay)
+          enqueueStopSession(this.config.id, delay, offTime.getTime())
 
-          // Just in case stop previous schedule
-          if (this.manualTurnOffSchedule) {
-            this.manualTurnOffSchedule.stop()
-          }
-
-          // Handling edge cases
-          if (isBefore(offTime, sunsetOnTime)) {
-            // If off time is before sunset on time, schedule manual turn off
-            this.manualTurnOffSchedule = CronJob.from({
-              cronTime: offTime,
-              onTick: () => {
-                this.setDeviceState('idle')
-              },
-              start: true,
-            })
-          } else if (isAfter(offTime, sunsetOffTime)) {
-            // If off time is after sunset off time, update turn off schedule
+          // If manual off is after the sunset turn-off, extend the sunset window
+          const sunsetOffTime = getScheduledTime(this.turnOffSchedule)
+          if (sunsetOffTime && isAfter(offTime, sunsetOffTime)) {
             this.turnOffSchedule?.setTime(new CronTime(offTime))
           }
         }
         break
       case SwitchBoxActionType.STOP:
         {
-          // Setting state
+          cancelPendingMessages(this.config.id, 'stop-session')
+          this.clearManualOffAt()
           await this.setDeviceState('idle')
         }
         break
     }
 
     return this.viewData
+  }
+
+  private get persistentKey() {
+    return toKey('device-state', this.config.id)
+  }
+
+  private persistManualOffAt(manualOffAt: number, ttlMs: number) {
+    const state: LightPersistentState = { manualOffAt }
+    db().set(this.persistentKey, state, ttlMs)
+  }
+
+  private clearManualOffAt() {
+    db().set(this.persistentKey, { manualOffAt: null } satisfies LightPersistentState)
+  }
+
+  private async reconcileManualSession() {
+    const persisted = db().get<LightPersistentState>(this.persistentKey) || {
+      manualOffAt: null,
+    }
+
+    if (!persisted.manualOffAt) {
+      return
+    }
+
+    const remainingMs = persisted.manualOffAt - Date.now()
+
+    if (remainingMs <= 0) {
+      this.clearManualOffAt()
+      await this.setDeviceState('idle')
+      return
+    }
+
+    if (!hasPendingMessage(this.config.id, 'stop-session')) {
+      enqueueStopSession(this.config.id, remainingMs, persisted.manualOffAt)
+    }
   }
 
   private setDeviceState(state: DeviceState) {
@@ -255,62 +279,90 @@ export class LightSwitchController extends DevController<
       .catch((e) => {
         this.logger.error('Error setting state:', e)
         runInAction(() => {
-          // Setting polling error
           this.pollingError = true
         })
       })
   }
 
   private async initDeviceApi() {
-    // Getting api url
-    const apiUrl = `http://bbx-${this.config.sn}.local/info`
-
-    this.logger.info('Initializing API at:', apiUrl)
-
-    // Getting info
-    const { device } = await ky
-      .get<{ device: { ip: string } }>(apiUrl, {
-        retry: {
-          retryOnTimeout: true,
-          limit: Number.POSITIVE_INFINITY,
-          backoffLimit: 15_000,
-        },
-      })
-      .json()
-
-    this.logger.info('Found API at:', device.ip)
-
-    // Setting device api
-    this.deviceApi = ky.create({
-      prefixUrl: `http://${device.ip}`,
-    })
-
-    // Getting relay id
-    const {
-      relays: [relay],
-    } = await this.deviceApi
-      .get<{ relays: Array<{ relay: number; state: 0 | 1 }> }>('state')
-      .json()
-
-    // Throwing error if no relays found
-    if (!relay) {
-      throw new Error('No relays found')
+    if (this.discoveryPromise) {
+      return this.discoveryPromise
     }
 
-    // Setting relay id
-    this.relayId = relay.relay
+    const abort = new AbortController()
+    this.discoveryAbort = abort
+    const isReconnect = !!this.deviceApi
+
+    this.discoveryPromise = (async () => {
+      const apiUrl = `http://bbx-${this.config.sn}.local/info`
+
+      if (isReconnect) {
+        this.logger.warn('Reconnecting to API at:', apiUrl)
+      } else {
+        this.logger.info('Connecting to API at:', apiUrl)
+      }
+
+      const { device } = await ky
+        .get<{ device: { ip: string } }>(apiUrl, {
+          signal: abort.signal,
+          retry: {
+            retryOnTimeout: true,
+            limit: Number.POSITIVE_INFINITY,
+            backoffLimit: 15_000,
+          },
+          hooks: {
+            beforeRetry: [
+              ({ error, retryCount }) => {
+                this.logger.warn(
+                  'Failed to connect to API, retrying:',
+                  apiUrl,
+                  'attempt=',
+                  retryCount,
+                  error,
+                )
+              },
+            ],
+          },
+        })
+        .json()
+
+      this.logger.info('Connected to API at:', device.ip)
+
+      this.deviceApi = ky.create({
+        prefixUrl: `http://${device.ip}`,
+      })
+
+      const {
+        relays: [relay],
+      } = await this.deviceApi
+        .get<{ relays: Array<{ relay: number; state: 0 | 1 }> }>('state', {
+          signal: abort.signal,
+        })
+        .json()
+
+      if (!relay) {
+        throw new Error('No relays found')
+      }
+
+      this.relayId = relay.relay
+      runInAction(() => {
+        this.state = relay.state === 1 ? 'active' : 'idle'
+      })
+    })().finally(() => {
+      if (this.discoveryAbort === abort) {
+        this.discoveryPromise = null
+      }
+    })
+
+    return this.discoveryPromise
   }
 
   private async initStatePolling() {
-    // Creating deferred promise
     let isFetching = false
 
-    // Creating interval
     this.statePollingInterval = setInterval(() => {
-      // Skip if device connection is not set or def is not resolved
       if (!this.deviceApi || isFetching) return
 
-      // Set fetching
       isFetching = true
 
       this.deviceApi
@@ -332,12 +384,10 @@ export class LightSwitchController extends DevController<
         .catch((e) => {
           this.logger.error('Error polling state:', e)
           runInAction(() => {
-            // Setting polling error
             this.pollingError = true
           })
 
-          // Reinitializing device api
-          this.initDeviceApi()
+          void this.initDeviceApi()
         })
         .finally(() => {
           isFetching = false

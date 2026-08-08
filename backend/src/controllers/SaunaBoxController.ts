@@ -1,4 +1,4 @@
-import { action, computed, observable, runInAction, toJS, when } from 'mobx'
+import { action, computed, observable, runInAction, toJS } from 'mobx'
 
 import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
@@ -13,8 +13,14 @@ import {
   type SaunaPersistentState,
   type SaunaViewData,
 } from '@/models'
-import { enqueueMessage } from '@/queue'
+import { cancelPendingMessages } from '@/queue'
+import {
+  enqueueStopSession,
+  isStopMessageCurrent,
+  reconcileLoadedSession,
+} from '@/utils/reconcileSession'
 import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
+import { waitUntilReady } from '@/utils/waitUntilReady'
 import ky, { type KyInstance } from 'ky'
 
 const MINUTE = 60 * 1000
@@ -37,6 +43,10 @@ export class SaunaBoxController extends DevController<
   private deviceApi!: KyInstance
 
   private statePollingInterval: NodeJS.Timeout | null = null
+
+  private discoveryAbort?: AbortController
+
+  private discoveryPromise: Promise<void> | null = null
 
   @observable
   private accessor pollingError = false
@@ -98,6 +108,7 @@ export class SaunaBoxController extends DevController<
   }
 
   public dispose() {
+    this.discoveryAbort?.abort()
     if (this.statePollingInterval) {
       clearInterval(this.statePollingInterval)
     }
@@ -108,9 +119,15 @@ export class SaunaBoxController extends DevController<
     if (msg.deviceId === this.id) {
       switch (msg.action) {
         case 'stop-session':
-          // Waiting for active state
-          await when(() => this.state !== 'initializing')
-          // Stop session
+          await waitUntilReady(() => this.state !== 'initializing')
+          if (
+            !isStopMessageCurrent(
+              msg.sessionEndTime,
+              this.persistentState.session?.endTime,
+            )
+          ) {
+            break
+          }
           await this.stopSession()
           break
       }
@@ -121,6 +138,12 @@ export class SaunaBoxController extends DevController<
     switch (actionToInvoke.type) {
       case SaunaActionType.START:
         {
+          if (this.state === 'initializing' || this.pollingError) {
+            return {
+              error: 'NOT_READY',
+            }
+          }
+
           // Checking if session can be started
           if (!(await canStartSession(res, this.config.type))) {
             return {
@@ -137,7 +160,7 @@ export class SaunaBoxController extends DevController<
         break
       case SaunaActionType.STOP:
         {
-          // Starting session
+          cancelPendingMessages(this.config.id, 'stop-session')
           await this.stopSession()
         }
         break
@@ -180,14 +203,7 @@ export class SaunaBoxController extends DevController<
       session,
     }
 
-    // Enqueue message to stop session
-    enqueueMessage(
-      {
-        deviceId: this.config.id,
-        action: 'stop-session',
-      },
-      delay,
-    )
+    enqueueStopSession(this.config.id, delay, session.endTime)
 
     return this.updateState(state, delay)
   }
@@ -196,14 +212,20 @@ export class SaunaBoxController extends DevController<
   public async setSessionTemp(temp: number) {
     const { session } = this.persistentState
     if (session && temp >= this.config.minTemp && temp <= this.config.maxTemp) {
-      // Setting session
-      db().set(toKey('device-state', this.config.id), {
-        state: 'active',
-        session: toJS(session),
-      })
+      const remainingMs = Math.max(session.endTime - Date.now(), 0)
 
       // Setting target temp
       session.targetTemp = temp
+
+      // Setting session (preserve remaining TTL)
+      db().set(
+        toKey('device-state', this.config.id),
+        {
+          state: 'active',
+          session: toJS(session),
+        },
+        remainingMs,
+      )
 
       // Updating device
       await this.updateDevice()
@@ -230,7 +252,20 @@ export class SaunaBoxController extends DevController<
       session: null,
     }
 
-    // Setting state
+    const result = reconcileLoadedSession({
+      deviceId: this.config.id,
+      state: state.state,
+      session: state.session,
+    })
+
+    if (result.status === 'expired') {
+      return this.stopSession()
+    }
+
+    if (result.status === 'active') {
+      return this.updateState(state, result.remainingMs)
+    }
+
     return this.updateState(state)
   }
 
@@ -260,28 +295,60 @@ export class SaunaBoxController extends DevController<
   }
 
   private async initDeviceApi() {
-    const url = `http://${this.config.ip}`
+    if (this.discoveryPromise) {
+      return this.discoveryPromise
+    }
 
-    const api = ky.create({
-      prefixUrl: url,
+    const abort = new AbortController()
+    this.discoveryAbort = abort
+    const isReconnect = !!this.deviceApi
+
+    this.discoveryPromise = (async () => {
+      const url = `http://${this.config.ip}`
+
+      const api = ky.create({
+        prefixUrl: url,
+      })
+
+      if (isReconnect) {
+        this.logger.warn('Reconnecting to API at:', url)
+      } else {
+        this.logger.info('Connecting to API at:', url)
+      }
+
+      const { device } = await api
+        .get<{ device: { id: string } }>('api/device/state', {
+          signal: abort.signal,
+          retry: {
+            retryOnTimeout: true,
+            limit: Number.POSITIVE_INFINITY,
+          },
+          hooks: {
+            beforeRetry: [
+              ({ error, retryCount }) => {
+                this.logger.warn(
+                  'Failed to connect to API, retrying:',
+                  url,
+                  'attempt=',
+                  retryCount,
+                  error,
+                )
+              },
+            ],
+          },
+        })
+        .json()
+
+      this.logger.info('Connected to API at:', url, 'id=', device.id)
+
+      this.deviceApi = api
+    })().finally(() => {
+      if (this.discoveryAbort === abort) {
+        this.discoveryPromise = null
+      }
     })
 
-    this.logger.info('Initializing API at:', url)
-
-    // Getting info
-    const { device } = await api
-      .get<{ device: { id: string } }>('api/device/state', {
-        retry: {
-          retryOnTimeout: true,
-          limit: Number.POSITIVE_INFINITY,
-        },
-      })
-      .json()
-
-    this.logger.info('Found sauna API:', device.id)
-
-    // Setting device api
-    this.deviceApi = api
+    return this.discoveryPromise
   }
 
   private async initStatePolling() {
@@ -330,7 +397,7 @@ export class SaunaBoxController extends DevController<
           })
 
           // Reinitializing device api
-          this.initDeviceApi()
+          void this.initDeviceApi()
         })
         .finally(() => {
           isFetching = false

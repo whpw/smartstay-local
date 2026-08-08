@@ -50,7 +50,11 @@ export default function SaunaStartButton({
       <Button
         type="button"
         onClick={onStartClick}
-        disabled={isRunning}
+        disabled={
+          isRunning ||
+          viewData.state === 'initializing' ||
+          viewData.pollingError
+        }
         variant="contained"
       >
         {isRunning

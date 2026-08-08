@@ -26,8 +26,9 @@ export const devices: Record<
 > = {}
 
 export async function initDevices() {
-  //
   logger.info('Initializing devices...')
+
+  const initTasks: Array<Promise<void>> = []
 
   for (const device of appConfig.devices) {
     let controller: DevController<DeviceConfig, DeviceViewData> | undefined
@@ -67,20 +68,45 @@ export async function initDevices() {
     } else if (device.type === 'light-switch') {
       controller = new LightSwitchController(config as LightSwitchConfig)
     }
+
     if (controller) {
-      controller
-        .init()
-        .then(() => {
-          // Adding controller to the map
-          devices[device.id] = controller
-          // Logging success
-          logger.info('Device [', device.id, '] initialized successfully')
-        })
-        .catch((err) => {
-          logger.error('Error initializing device', device, err)
-        })
+      const deviceController = controller
+      // Register immediately so the queue can resolve the controller while
+      // hardware discovery (which may retry indefinitely) is still running.
+      devices[device.id] = deviceController
+
+      logger.info(
+        'Starting init for device [',
+        device.id,
+        '] type=',
+        device.type,
+        'name=',
+        device.name,
+      )
+
+      initTasks.push(
+        deviceController
+          .init()
+          .then(() => {
+            logger.info('Device [', device.id, '] initialized successfully')
+          })
+          .catch((err) => {
+            logger.error('Error initializing device', device, err)
+          }),
+      )
+    } else {
+      logger.warn(
+        'No controller for device [',
+        device.id,
+        '] type=',
+        device.type,
+      )
     }
   }
+
+  // Do not block server boot on hardware discovery (can retry forever).
+  // Queue handlers already wait for state !== 'initializing' where needed.
+  void Promise.allSettled(initTasks)
 }
 
 export function getDeviceController(

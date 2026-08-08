@@ -26,7 +26,8 @@ import {
   type HeatingPersistentState,
   type HeatingViewData,
 } from '@/models'
-import { enqueueMessage } from '@/queue'
+import { enqueueStopEco } from '@/utils/reconcileSession'
+import { waitUntilReady } from '@/utils/waitUntilReady'
 import { TZDate } from '@date-fns/tz'
 import { hoursToMilliseconds } from 'date-fns'
 import ky, { type KyInstance } from 'ky'
@@ -57,6 +58,10 @@ export class HeatingThermoBoxController extends DevController<
   private statePollingInterval: NodeJS.Timeout | null = null
 
   private weatherDisposer: IReactionDisposer | null = null
+
+  private discoveryAbort?: AbortController
+
+  private discoveryPromise: Promise<void> | null = null
 
   @observable
   private accessor pollingError = false
@@ -164,6 +169,7 @@ export class HeatingThermoBoxController extends DevController<
   }
 
   public dispose() {
+    this.discoveryAbort?.abort()
     if (this.statePollingInterval) {
       clearInterval(this.statePollingInterval)
     }
@@ -185,7 +191,22 @@ export class HeatingThermoBoxController extends DevController<
     }, 60_000)
   }
 
-  public async processQueueMessage(_msg: QueueMessage) {}
+  public async processQueueMessage(msg: QueueMessage) {
+    if (msg.deviceId === this.id && msg.action === 'stop-eco') {
+      await waitUntilReady(() => this.state !== 'initializing')
+      if (this.state !== 'eco') {
+        return
+      }
+
+      const newState = {
+        state: 'active',
+        dayTemp: this.config.dayTemp,
+        nightTemp: this.config.nightTemp,
+      } as HeatingPersistentState
+
+      await this.updateState(newState)
+    }
+  }
 
   public async invokeAction(actionToInvoke: Action, res: ResDetails) {
     switch (actionToInvoke.type) {
@@ -318,28 +339,59 @@ export class HeatingThermoBoxController extends DevController<
   }
 
   private async initDeviceApi() {
-    // Getting api url
-    const apiUrl = `http://bbx-${this.config.sn}.local/info`
+    if (this.discoveryPromise) {
+      return this.discoveryPromise
+    }
 
-    this.logger.info('Initializing API at:', apiUrl)
+    const abort = new AbortController()
+    this.discoveryAbort = abort
+    const isReconnect = !!this.deviceApi
 
-    // Getting info
-    const { device } = await ky
-      .get<{ device: { ip: string } }>(apiUrl, {
-        retry: {
-          retryOnTimeout: true,
-          limit: Number.POSITIVE_INFINITY,
-          backoffLimit: 15_000,
-        },
+    this.discoveryPromise = (async () => {
+      const apiUrl = `http://bbx-${this.config.sn}.local/info`
+
+      if (isReconnect) {
+        this.logger.warn('Reconnecting to API at:', apiUrl)
+      } else {
+        this.logger.info('Connecting to API at:', apiUrl)
+      }
+
+      const { device } = await ky
+        .get<{ device: { ip: string } }>(apiUrl, {
+          signal: abort.signal,
+          retry: {
+            retryOnTimeout: true,
+            limit: Number.POSITIVE_INFINITY,
+            backoffLimit: 15_000,
+          },
+          hooks: {
+            beforeRetry: [
+              ({ error, retryCount }) => {
+                this.logger.warn(
+                  'Failed to connect to API, retrying:',
+                  apiUrl,
+                  'attempt=',
+                  retryCount,
+                  error,
+                )
+              },
+            ],
+          },
+        })
+        .json()
+
+      this.logger.info('Connected to API at:', device.ip)
+
+      this.deviceApi = ky.create({
+        prefixUrl: `http://${device.ip}`,
       })
-      .json()
-
-    this.logger.info('Found API at:', device.ip)
-
-    // Setting device api
-    this.deviceApi = ky.create({
-      prefixUrl: `http://${device.ip}`,
+    })().finally(() => {
+      if (this.discoveryAbort === abort) {
+        this.discoveryPromise = null
+      }
     })
+
+    return this.discoveryPromise
   }
 
   private async initStatePolling() {
@@ -385,7 +437,7 @@ export class HeatingThermoBoxController extends DevController<
           })
 
           // Reinitializing device api
-          this.initDeviceApi()
+          void this.initDeviceApi()
         })
         .finally(() => {
           isFetching = false
@@ -422,12 +474,9 @@ export class HeatingThermoBoxController extends DevController<
         })
 
         // Schedule eco mode end
-        enqueueMessage(
-          {
-            deviceId: this.config.id,
-            action: 'stop-eco',
-          },
-          hoursToMilliseconds(gap - ecoModeTreshold)
+        enqueueStopEco(
+          this.config.id,
+          hoursToMilliseconds(gap - ecoModeTreshold),
         )
 
         // Setting config

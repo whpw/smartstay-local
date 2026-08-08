@@ -19,10 +19,15 @@ import {
   type JacuzziPersistentState,
   type JacuzziViewData,
 } from '@/models'
-import { enqueueMessage } from '@/queue'
 import { Deferred } from '@/utils/Deferred'
+import {
+  enqueueStopSession,
+  isStopMessageCurrent,
+  reconcileLoadedSession,
+} from '@/utils/reconcileSession'
 import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
 import { terneoFetch } from '@/utils/terneo'
+import { waitUntilReady } from '@/utils/waitUntilReady'
 
 export type TerneoUdpData = {
   sn: string
@@ -84,10 +89,13 @@ export class JacuzziTerneoController extends DevController<
 
   public async init() {
     // Initialize UDP listener
+    this.logger.info('Connecting to API via UDP discovery, sn=', this.config.sn)
     this.initUdpListener()
 
     // Wait for terneo address
     await when(() => !!this.terneoAddress)
+
+    this.logger.info('Connected to API at:', this.terneoAddress)
 
     // Load current session
     await this.loadCurrentState()
@@ -104,7 +112,7 @@ export class JacuzziTerneoController extends DevController<
       // Dispose of the controller
       this.udpListener?.close()
     } catch (error) {
-      console.error('Error disposing of controller:', error)
+      this.logger.error('Error disposing of controller:', error)
     }
     if (this.statePollingInterval) {
       clearInterval(this.statePollingInterval)
@@ -114,9 +122,15 @@ export class JacuzziTerneoController extends DevController<
   public async processQueueMessage(msg: QueueMessage) {
     // Checking if message is for this device
     if (msg.deviceId === this.id && msg.action === 'stop-session') {
-      // Waiting for active state
-      await when(() => this.state !== 'initializing')
-      // Stop session
+      await waitUntilReady(() => this.state !== 'initializing')
+      if (
+        !isStopMessageCurrent(
+          msg.sessionEndTime,
+          this.persistentState.session?.endTime,
+        )
+      ) {
+        return
+      }
       await this.stopSession()
     }
   }
@@ -178,17 +192,9 @@ export class JacuzziTerneoController extends DevController<
       session,
     }
 
-    // Enqueue message to stop session
-    enqueueMessage(
-      {
-        deviceId: this.config.id,
-        action: 'stop-session',
-      },
-      delay
-    )
+    enqueueStopSession(this.config.id, delay, session.endTime)
 
-    // Enqueue message to stop session
-    db().set(toKey('device-state', this.config.id), state)
+    db().set(toKey('device-state', this.config.id), state, delay)
 
     // Setting state
     this.persistentState = observable(state)
@@ -201,14 +207,20 @@ export class JacuzziTerneoController extends DevController<
   public async setSessionTemp(temp: number) {
     const { session } = this.persistentState
     if (session && temp >= this.config.minTemp && temp <= this.config.maxTemp) {
-      // Setting session
-      db().set(toKey('device-state', this.config.id), {
-        state: 'active',
-        session: toJS(session),
-      })
+      const remainingMs = Math.max(session.endTime - Date.now(), 0)
 
       // Setting target temp
       session.targetTemp = temp
+
+      // Setting session (preserve remaining TTL)
+      db().set(
+        toKey('device-state', this.config.id),
+        {
+          state: 'active',
+          session: toJS(session),
+        },
+        remainingMs,
+      )
 
       // Updating device
       await this.updateDevice(true)
@@ -298,16 +310,30 @@ export class JacuzziTerneoController extends DevController<
   }
 
   @action.bound
-  private loadCurrentState() {
+  private async loadCurrentState() {
     // Load current state
     const state = db().get<JacuzziPersistentState>(
-      toKey('device-state', this.config.id)
+      toKey('device-state', this.config.id),
     ) || {
       state: 'idle',
       session: null,
     }
 
-    // Setting state
+    const result = reconcileLoadedSession({
+      deviceId: this.config.id,
+      state: state.state,
+      session: state.session,
+    })
+
+    if (result.status === 'expired') {
+      await this.stopSession()
+      return
+    }
+
+    if (result.status === 'active') {
+      db().set(toKey('device-state', this.config.id), state, result.remainingMs)
+    }
+
     this.persistentState = observable(state)
   }
 
@@ -396,7 +422,7 @@ export class JacuzziTerneoController extends DevController<
           this.currentTemp = parseFloat(terneoData.display || '0')
         })
       } else {
-        console.log('UDP - Skipping device', terneoData)
+        this.logger.debug('UDP - Skipping device', terneoData)
       }
     })
 
@@ -423,9 +449,15 @@ export class JacuzziTerneoController extends DevController<
         cmd: 4,
       })
         .then((data) => {
-          console.log('Polled from Terneo...')
-          console.log('Polled target temp:', parseFloat(data['t.5']) / 16)
-          console.log('Polled current temp:', parseFloat(data['t.1']) / 16)
+          this.logger.debug('Polled from Terneo...')
+          this.logger.debug(
+            'Polled target temp:',
+            parseFloat(data['t.5']) / 16,
+          )
+          this.logger.debug(
+            'Polled current temp:',
+            parseFloat(data['t.1']) / 16,
+          )
           runInAction(() => {
             // Setting current temp, rounding it to closest 0.5
             this.currentTemp =

@@ -16,4 +16,13 @@ export const db = (): FlatCache => {
   return _db
 }
 
+export const disposeDb = () => {
+  if (!_db) {
+    return
+  }
+  _db.save()
+  _db.stopAutoPersist()
+  _db = null
+}
+
 export const toKey = (...args: Array<string | number>) => args.join('/')
