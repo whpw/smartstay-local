@@ -392,7 +392,7 @@ export class LightSwitchController extends DevController<
         .finally(() => {
           isFetching = false
         })
-    }, 8000)
+    }, 15_000)
   }
 
   public override async toggleEcoMode(tillNextResInHrs: GapInHours) {

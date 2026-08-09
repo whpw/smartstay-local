@@ -459,7 +459,7 @@ export class JacuzziThermoBoxController extends DevController<
         .finally(() => {
           isFetching = false
         })
-    }, 8000)
+    }, 15_000)
   }
 
   private checkFailToRiseAnomaly() {
