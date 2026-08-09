@@ -18,6 +18,7 @@ import {
   type JacuzziViewData,
 } from '@/models'
 import { JacuzziFailToRiseMonitor } from '@/utils/jacuzzi-fail-to-rise-monitor'
+import { JacuzziUnreachableMonitor } from '@/utils/jacuzzi-unreachable-monitor'
 import {
   enqueueStopEco,
   enqueueStopSession,
@@ -59,6 +60,8 @@ export class JacuzziThermoBoxController extends DevController<
   private accessor pollingError = false
 
   private readonly failToRiseMonitor = new JacuzziFailToRiseMonitor()
+
+  private readonly unreachableMonitor = new JacuzziUnreachableMonitor()
 
   @computed
   public get state(): DeviceState {
@@ -381,6 +384,7 @@ export class JacuzziThermoBoxController extends DevController<
                   retryCount,
                   error,
                 )
+                this.checkUnreachableAnomaly()
               },
             ],
           },
@@ -392,6 +396,7 @@ export class JacuzziThermoBoxController extends DevController<
       this.deviceApi = ky.create({
         prefixUrl: `http://${device.ip}`,
       })
+      this.unreachableMonitor.markSuccess()
     })().finally(() => {
       if (this.discoveryAbort === abort) {
         this.discoveryPromise = null
@@ -436,6 +441,7 @@ export class JacuzziThermoBoxController extends DevController<
             this.pollingError = false
           })
 
+          this.unreachableMonitor.markSuccess()
           this.checkFailToRiseAnomaly()
         })
         .catch((e) => {
@@ -444,6 +450,8 @@ export class JacuzziThermoBoxController extends DevController<
             // Setting polling error
             this.pollingError = true
           })
+
+          this.checkUnreachableAnomaly()
 
           // Reinitializing device api
           void this.initDeviceApi()
@@ -483,6 +491,33 @@ export class JacuzziThermoBoxController extends DevController<
         baselineTemp: alert.baselineTemp,
         riseC: alert.riseC,
         windowMinutes: alert.windowMinutes,
+      },
+    })
+  }
+
+  private checkUnreachableAnomaly() {
+    const alert = this.unreachableMonitor.markFailure()
+    if (!alert) {
+      return
+    }
+
+    const title = `${this.config.name}: unreachable`
+    const body =
+      `ThermoBox has been unreachable or failing to respond for ` +
+      `${alert.durationMinutes} min (polling/discovery failures).`
+
+    this.logger.warn(title, body)
+
+    void pushRemoteAlert({
+      ts: alert.ts,
+      type: alert.type,
+      deviceId: this.config.id,
+      deviceName: this.config.name,
+      title,
+      body,
+      data: {
+        durationMs: alert.durationMs,
+        durationMinutes: alert.durationMinutes,
       },
     })
   }
