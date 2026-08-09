@@ -442,7 +442,7 @@ export class HeatingThermoBoxController extends DevController<
         .finally(() => {
           isFetching = false
         })
-    }, 8000)
+    }, 15_000)
   }
 
   public override async toggleEcoMode(gap: GapInHours) {
