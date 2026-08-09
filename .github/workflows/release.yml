@@ -1,0 +1,103 @@
+name: Release room app
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 1.2.3). Defaults to package.json when empty.'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  R2_BUCKET: smartstay-app-releases
+  PANEL_RELEASE_URL: ${{ vars.PANEL_RELEASE_URL || 'https://new-panel.smartstay.app/api/releases/internal' }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.version }}" ]]; then
+            VERSION="${{ inputs.version }}"
+          elif [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="$(node -p "require('./package.json').version")"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          # Keep package.json in sync for APP_VERSION reporting
+          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version=process.argv[1]; fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n')" "$VERSION"
+          if [[ -f backend/package.json ]]; then
+            node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('backend/package.json','utf8')); p.version=process.argv[1]; fs.writeFileSync('backend/package.json', JSON.stringify(p,null,2)+'\n')" "$VERSION"
+          fi
+          if [[ -f frontend/package.json ]]; then
+            node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('frontend/package.json','utf8')); p.version=process.argv[1]; fs.writeFileSync('frontend/package.json', JSON.stringify(p,null,2)+'\n')" "$VERSION"
+          fi
+
+      - name: Pack release
+        id: pack
+        run: |
+          chmod +x scripts/pack-release.sh
+          OUT="$PWD/dist-release/smartstay-local-${{ steps.ver.outputs.version }}.tar.gz"
+          scripts/pack-release.sh "${{ steps.ver.outputs.version }}" "$OUT"
+          SHA="$(sha256sum "$OUT" | awk '{print $1}')"
+          echo "archive=$OUT" >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+          echo "r2_key=releases/${{ steps.ver.outputs.version }}/smartstay-local.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        run: |
+          pip install --quiet awscli
+          ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          aws s3 cp "${{ steps.pack.outputs.archive }}" \
+            "s3://${R2_BUCKET}/${{ steps.pack.outputs.r2_key }}" \
+            --endpoint-url "$ENDPOINT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: smartstay-local ${{ steps.ver.outputs.version }}
+          generate_release_notes: true
+          files: ${{ steps.pack.outputs.archive }}
+          fail_on_unmatched_files: true
+
+      - name: Register release with panel
+        env:
+          PANEL_RELEASE_TOKEN: ${{ secrets.PANEL_RELEASE_TOKEN }}
+        run: |
+          curl -fsS -X POST "$PANEL_RELEASE_URL" \
+            -H "Authorization: Bearer ${PANEL_RELEASE_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg version "${{ steps.ver.outputs.version }}" \
+              --arg r2Key "${{ steps.pack.outputs.r2_key }}" \
+              --arg sha256 "${{ steps.pack.outputs.sha256 }}" \
+              '{version:$version, r2Key:$r2Key, sha256:$sha256, published:true}')"
