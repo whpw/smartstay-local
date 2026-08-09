@@ -8,6 +8,7 @@ import { initConfig } from './config'
 import { updateLocalIP } from './config/updateLocalIP'
 import { initEcoMode } from './cron/ecoMode'
 import { initSunset } from './cron/sunset'
+import { initUpdateCheck } from './cron/updateCheck'
 import { initWeather } from './cron/weather'
 import { disposeDb } from './db'
 import { devices, initDevices } from './devices'
@@ -17,6 +18,7 @@ import { api as authedApi } from './routes/authed'
 import { api as infoApi } from './routes/info'
 import { logger } from './utils/logger'
 import { startRemoteLogger, stopRemoteLogger } from './utils/remote-logger'
+import { APP_VERSION } from './version'
 
 // Loading env
 dotenv.config({
@@ -25,6 +27,8 @@ dotenv.config({
 
 // Start durable remote log shipper as early as possible
 startRemoteLogger()
+
+logger.info(`Starting smartstay-local ${APP_VERSION}`)
 
 // Initializing config
 await initConfig()
@@ -44,6 +48,9 @@ initQueue()
 
 // Init eco mode
 const disposeEcoMode = initEcoMode()
+
+// Room app OTA heartbeat (every 5 minutes)
+const disposeUpdateCheck = initUpdateCheck()
 
 const app = new Hono()
 
@@ -105,6 +112,10 @@ function shutdown(exitCode = 0) {
 
     if (disposeEcoMode) {
       disposeEcoMode()
+    }
+
+    if (disposeUpdateCheck) {
+      disposeUpdateCheck()
     }
 
     disposeQueue()

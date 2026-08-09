@@ -1,4 +1,5 @@
 import { db } from '@/db'
+import { APP_VERSION } from '@/version'
 import { Hono } from 'hono'
 
 const api = new Hono().get('/info', async (c) => {
@@ -6,6 +7,7 @@ const api = new Hono().get('/info', async (c) => {
   return c.json(
     {
       objectName: config.objectName,
+      version: APP_VERSION,
     },
     200
   )
