@@ -17,12 +17,14 @@ import {
   type JacuzziPersistentState,
   type JacuzziViewData,
 } from '@/models'
+import { JacuzziFailToRiseMonitor } from '@/utils/jacuzzi-fail-to-rise-monitor'
 import {
   enqueueStopEco,
   enqueueStopSession,
   isStopMessageCurrent,
   reconcileLoadedSession,
 } from '@/utils/reconcileSession'
+import { pushRemoteAlert } from '@/utils/remote-alerts'
 import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
 import { waitUntilReady } from '@/utils/waitUntilReady'
 import { hoursToMilliseconds } from 'date-fns'
@@ -55,6 +57,8 @@ export class JacuzziThermoBoxController extends DevController<
 
   @observable
   private accessor pollingError = false
+
+  private readonly failToRiseMonitor = new JacuzziFailToRiseMonitor()
 
   @computed
   public get state(): DeviceState {
@@ -431,6 +435,8 @@ export class JacuzziThermoBoxController extends DevController<
             // Setting polling error
             this.pollingError = false
           })
+
+          this.checkFailToRiseAnomaly()
         })
         .catch((e) => {
           this.logger.error('Error polling state:', e)
@@ -446,6 +452,39 @@ export class JacuzziThermoBoxController extends DevController<
           isFetching = false
         })
     }, 8000)
+  }
+
+  private checkFailToRiseAnomaly() {
+    const alert = this.failToRiseMonitor.observe(
+      this.currentTemp,
+      this.config.minTemp,
+    )
+    if (!alert) {
+      return
+    }
+
+    const title = `${this.config.name}: not heating`
+    const body =
+      `Temperature ${alert.currentTemp}°C is below minimum ${alert.minTemp}°C ` +
+      `and rose only ${alert.riseC.toFixed(1)}°C in the last ${alert.windowMinutes} min.`
+
+    this.logger.warn(title, body)
+
+    void pushRemoteAlert({
+      ts: alert.ts,
+      type: alert.type,
+      deviceId: this.config.id,
+      deviceName: this.config.name,
+      title,
+      body,
+      data: {
+        currentTemp: alert.currentTemp,
+        minTemp: alert.minTemp,
+        baselineTemp: alert.baselineTemp,
+        riseC: alert.riseC,
+        windowMinutes: alert.windowMinutes,
+      },
+    })
   }
 
   public override async toggleEcoMode(gap: GapInHours) {
