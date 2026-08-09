@@ -3,6 +3,7 @@ import { action, computed, observable, runInAction, toJS } from 'mobx'
 import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
 
+import { appConfig } from '@/config'
 import { weather } from '@/cron/weather'
 import { db, toKey } from '@/db'
 import {
@@ -462,18 +463,49 @@ export class JacuzziThermoBoxController extends DevController<
     }, 15_000)
   }
 
+  /** Hysteresis currently applied to the thermostat for this device state. */
+  private currentHysteresis(): number {
+    const { state } = this.persistentState
+    if (state === 'eco') {
+      return this.config.ecoHysteresis
+    }
+    if (state === 'active') {
+      return this.config.activeHysteresis
+    }
+    return this.config.idleHysteresis
+  }
+
+  private alertRoomLabel(): string {
+    return appConfig.roomName?.trim() || appConfig.objectName?.trim() || ''
+  }
+
+  private formatAlertTitle(event: string): string {
+    const room = this.alertRoomLabel()
+    const device = this.config.name
+    return room ? `${room} · ${device}: ${event}` : `${device}: ${event}`
+  }
+
   private checkFailToRiseAnomaly() {
+    // Eco intentionally holds well below minTemp — not a heating failure.
+    if (this.persistentState.state === 'eco') {
+      this.failToRiseMonitor.reset()
+      return
+    }
+
+    const hysteresis = this.currentHysteresis()
     const alert = this.failToRiseMonitor.observe(
       this.currentTemp,
       this.config.minTemp,
+      hysteresis,
     )
     if (!alert) {
       return
     }
 
-    const title = `${this.config.name}: not heating`
+    const title = this.formatAlertTitle('not heating')
     const body =
-      `Temperature ${alert.currentTemp}°C is below minimum ${alert.minTemp}°C ` +
+      `Temperature ${alert.currentTemp}°C is below floor ${alert.floorTemp}°C ` +
+      `(min ${alert.minTemp}°C − ${alert.hysteresis}°C hysteresis) ` +
       `and rose only ${alert.riseC.toFixed(1)}°C in the last ${alert.windowMinutes} min.`
 
     this.logger.warn(title, body)
@@ -488,9 +520,13 @@ export class JacuzziThermoBoxController extends DevController<
       data: {
         currentTemp: alert.currentTemp,
         minTemp: alert.minTemp,
+        floorTemp: alert.floorTemp,
+        hysteresis: alert.hysteresis,
         baselineTemp: alert.baselineTemp,
         riseC: alert.riseC,
         windowMinutes: alert.windowMinutes,
+        roomName: appConfig.roomName ?? null,
+        objectName: appConfig.objectName,
       },
     })
   }
@@ -501,7 +537,7 @@ export class JacuzziThermoBoxController extends DevController<
       return
     }
 
-    const title = `${this.config.name}: unreachable`
+    const title = this.formatAlertTitle('unreachable')
     const body =
       `ThermoBox has been unreachable or failing to respond for ` +
       `${alert.durationMinutes} min (polling/discovery failures).`
@@ -518,6 +554,8 @@ export class JacuzziThermoBoxController extends DevController<
       data: {
         durationMs: alert.durationMs,
         durationMinutes: alert.durationMinutes,
+        roomName: appConfig.roomName ?? null,
+        objectName: appConfig.objectName,
       },
     })
   }

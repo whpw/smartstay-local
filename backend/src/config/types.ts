@@ -17,6 +17,8 @@ export type DeviceConfig = {
 
 export type AppConfig = {
   objectName: string
+  /** Human-readable room name from the panel config payload. */
+  roomName?: string
   apiKey: string
   weatherUrl: string
   sunsetUrl: string

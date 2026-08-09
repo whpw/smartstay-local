@@ -14,14 +14,21 @@ export type JacuzziFailToRiseAlert = {
   ts: number
   currentTemp: number
   minTemp: number
+  /** Effective floor after hysteresis: minTemp - hysteresis */
+  floorTemp: number
+  hysteresis: number
   baselineTemp: number
   riseC: number
   windowMinutes: number
 }
 
 /**
- * Detects: current temp is below minTemp and has not risen by at least 1°C
- * over the trailing 30-minute window.
+ * Detects: current temp is below (minTemp - hysteresis) and has not risen
+ * by at least 1°C over the trailing 30-minute window.
+ *
+ * Hysteresis is applied because the thermostat only heats once temperature
+ * drops that far below the set point; sitting within the band below minTemp
+ * is expected, not an anomaly.
  */
 export class JacuzziFailToRiseMonitor {
   private samples: TempSample[] = []
@@ -31,12 +38,18 @@ export class JacuzziFailToRiseMonitor {
   observe(
     temp: number,
     minTemp: number,
+    hysteresis = 0,
     now = Date.now(),
   ): JacuzziFailToRiseAlert | null {
     this.samples.push({ ts: now, temp })
     this.prune(now)
 
-    if (temp >= minTemp) {
+    const safeHysteresis = Number.isFinite(hysteresis)
+      ? Math.max(0, hysteresis)
+      : 0
+    const floorTemp = minTemp - safeHysteresis
+
+    if (temp >= floorTemp) {
       this.alerting = false
       return null
     }
@@ -64,6 +77,8 @@ export class JacuzziFailToRiseMonitor {
       ts: now,
       currentTemp: temp,
       minTemp,
+      floorTemp,
+      hysteresis: safeHysteresis,
       baselineTemp,
       riseC,
       windowMinutes: FAIL_TO_RISE_WINDOW_MS / 60_000,
@@ -99,7 +114,7 @@ export class JacuzziFailToRiseMonitor {
     }
   }
 
-  /** Test helper */
+  /** Clears sample history and alert state (eco mode / tests). */
   reset() {
     this.samples = []
     this.lastAlertAt = 0
