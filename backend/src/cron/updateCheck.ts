@@ -70,7 +70,11 @@ function resolveAppdataDir(installRoot: string) {
   if (process.env.APPDATA_DIR) {
     return resolve(process.env.APPDATA_DIR)
   }
-  return join(installRoot, 'appdata')
+  // Production layout keeps durable state beside the install tree, not inside it:
+  //   /home/smartstay/smartstay-local  (code)
+  //   /home/smartstay/appdata          (.env, cache, logs, ota-apply.log)
+  // Matches backend relative paths (../../appdata from cwd=backend).
+  return resolve(installRoot, '..', 'appdata')
 }
 
 function heartbeatUrlFromConfigApiUrl(configApiUrl: string) {

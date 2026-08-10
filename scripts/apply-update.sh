@@ -14,6 +14,9 @@ SERVICE_NAME="${3:-smartstay}"
 VERSION="${4:-unknown}"
 PNPM_TIMEOUT_SEC="${PNPM_TIMEOUT_SEC:-600}"
 APP_PORT="${APP_PORT:-8080}"
+# Durable state lives beside the install tree (not under it), matching backend
+# ../../appdata from cwd=backend → /home/smartstay/appdata.
+APPDATA_DIR="${APPDATA_DIR:-$(cd "$(dirname "$INSTALL_ROOT")" && pwd)/appdata}"
 
 LOG_TAG="smartstay-ota"
 log() {
@@ -154,9 +157,10 @@ if [[ ! -f "$SRC/package.json" ]]; then
   exit 1
 fi
 
-log "Syncing files into $INSTALL_ROOT"
-# Preserve appdata and local env; replace app code.
-# Keep existing node_modules so install can be prefer-offline / incremental.
+log "Syncing files into $INSTALL_ROOT (appdata=$APPDATA_DIR)"
+# Appdata is outside INSTALL_ROOT in production; exclude is a safety net if a
+# stray appdata/ ever appears under the install tree. Keep node_modules for
+# prefer-offline / incremental installs.
 rsync -a \
   --delete \
   --exclude 'appdata/' \
@@ -198,7 +202,7 @@ else
   exit 1
 fi
 
-rm -f "$INSTALL_ROOT/appdata/pending-update.json" 2>/dev/null || true
+rm -f "$APPDATA_DIR/pending-update.json" 2>/dev/null || true
 
 start_service
 
