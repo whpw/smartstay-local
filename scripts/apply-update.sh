@@ -7,6 +7,7 @@ ARCHIVE="${1:?archive path required}"
 INSTALL_ROOT="${2:?install root required}"
 SERVICE_NAME="${3:-smartstay}"
 VERSION="${4:-unknown}"
+PNPM_TIMEOUT_SEC="${PNPM_TIMEOUT_SEC:-600}"
 
 LOG_TAG="smartstay-ota"
 log() {
@@ -18,13 +19,58 @@ log() {
   logger -t "$LOG_TAG" "$*" 2>/dev/null || true
 }
 
+run_logged() {
+  # Stream command output into the OTA log (and journal via stdout/stderr).
+  if [[ -n "${OTA_LOG_FILE:-}" ]]; then
+    "$@" >>"$OTA_LOG_FILE" 2>&1
+  else
+    "$@"
+  fi
+}
+
 if [[ ! -f "$ARCHIVE" ]]; then
   log "Archive not found: $ARCHIVE"
   exit 1
 fi
 
-# Give the Node process a moment to finish the heartbeat after spawning us.
-sleep 3
+# Let the parent Node process finish its "applying" heartbeat, then stop the
+# service so node_modules / dist files are not locked during install.
+sleep 2
+
+stop_service() {
+  if ! command -v systemctl >/dev/null 2>&1; then
+    return 0
+  fi
+  log "Stopping $SERVICE_NAME before applying files"
+  if systemctl stop "$SERVICE_NAME" 2>/dev/null; then
+    log "Stopped $SERVICE_NAME (system)"
+  elif systemctl --user stop "$SERVICE_NAME" 2>/dev/null; then
+    log "Stopped $SERVICE_NAME (user)"
+  else
+    log "Could not systemctl stop $SERVICE_NAME (continuing)"
+  fi
+  # Give Node a moment to release file locks.
+  sleep 2
+}
+
+start_service() {
+  if ! command -v systemctl >/dev/null 2>&1; then
+    log "systemctl not available; attempting start.sh"
+    nohup bash "$INSTALL_ROOT/start.sh" >/tmp/smartstay-restart.log 2>&1 &
+    return 0
+  fi
+  log "Starting $SERVICE_NAME"
+  if systemctl start "$SERVICE_NAME" 2>/dev/null; then
+    log "Started $SERVICE_NAME (system)"
+  elif systemctl --user start "$SERVICE_NAME" 2>/dev/null; then
+    log "Started $SERVICE_NAME (user)"
+  else
+    log "systemctl start failed; attempting start.sh"
+    nohup bash "$INSTALL_ROOT/start.sh" >/tmp/smartstay-restart.log 2>&1 &
+  fi
+}
+
+stop_service
 
 WORKDIR="$(mktemp -d /tmp/smartstay-apply-XXXXXX)"
 cleanup() {
@@ -51,6 +97,7 @@ fi
 
 log "Syncing files into $INSTALL_ROOT"
 # Preserve appdata and local env; replace app code.
+# Keep existing node_modules so install can be prefer-offline / incremental.
 rsync -a \
   --delete \
   --exclude 'appdata/' \
@@ -67,12 +114,26 @@ export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 # shellcheck disable=SC1091
 [[ -s "$NVM_DIR/nvm.sh" ]] && . "$NVM_DIR/nvm.sh"
 
+# Non-interactive; room devices often have weak/captive networks.
+export CI=true
+export npm_config_yes=true
+
 if command -v pnpm >/dev/null 2>&1; then
-  log "Running pnpm install --prod"
-  pnpm install --prod --frozen-lockfile || pnpm install --prod
+  log "Running pnpm install --prod (timeout ${PNPM_TIMEOUT_SEC}s)"
+  if command -v timeout >/dev/null 2>&1; then
+    run_logged timeout "$PNPM_TIMEOUT_SEC" pnpm install --prod --frozen-lockfile --prefer-offline \
+      || run_logged timeout "$PNPM_TIMEOUT_SEC" pnpm install --prod --prefer-offline
+  else
+    run_logged pnpm install --prod --frozen-lockfile --prefer-offline \
+      || run_logged pnpm install --prod --prefer-offline
+  fi
 elif command -v npm >/dev/null 2>&1; then
   log "pnpm not found; running npm install --omit=dev"
-  npm install --omit=dev
+  if command -v timeout >/dev/null 2>&1; then
+    run_logged timeout "$PNPM_TIMEOUT_SEC" npm install --omit=dev --no-fund --no-audit
+  else
+    run_logged npm install --omit=dev --no-fund --no-audit
+  fi
 else
   log "Neither pnpm nor npm available"
   exit 1
@@ -80,19 +141,6 @@ fi
 
 rm -f "$INSTALL_ROOT/appdata/pending-update.json" 2>/dev/null || true
 
-log "Restarting systemd service: $SERVICE_NAME"
-if command -v systemctl >/dev/null 2>&1; then
-  # Prefer user-level restart if the unit is not system-wide.
-  if systemctl restart "$SERVICE_NAME" 2>/dev/null; then
-    log "Restarted $SERVICE_NAME (system)"
-  elif systemctl --user restart "$SERVICE_NAME" 2>/dev/null; then
-    log "Restarted $SERVICE_NAME (user)"
-  else
-    log "systemctl restart failed; attempting start.sh directly"
-    nohup bash "$INSTALL_ROOT/start.sh" >/tmp/smartstay-restart.log 2>&1 &
-  fi
-else
-  log "systemctl not available; start.sh will be used by the supervisor"
-fi
+start_service
 
 log "Update to $VERSION applied"
