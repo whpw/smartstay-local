@@ -2,22 +2,20 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-function resolveInstallRoot(): string {
+export function resolveInstallRoot(): string {
   if (process.env.INSTALL_ROOT) {
     return resolve(process.env.INSTALL_ROOT)
   }
 
   const here = dirname(fileURLToPath(import.meta.url))
   const candidates = [
+    // When running from source (backend/src/version.ts), root is ../../..
+    resolve(here, '../../..'),
     resolve(here, '../..'), // backend/dist → root
-    resolve(here, '../..'), // backend/src → still wrong for src; handled below
     resolve(here, '..'), // backend/src → backend (fallback)
     resolve(process.cwd(), '..'),
     process.cwd(),
   ]
-
-  // When running from source (backend/src/version.ts), root is ../../..
-  candidates.unshift(resolve(here, '../../..'))
 
   for (const candidate of candidates) {
     try {
@@ -38,7 +36,8 @@ function resolveInstallRoot(): string {
   return resolve(process.cwd(), '..')
 }
 
-function readPackageVersion(): string {
+/** Re-read package.json version from disk (not cached). */
+export function readDiskVersion(): string {
   try {
     const pkgPath = join(resolveInstallRoot(), 'package.json')
     if (!existsSync(pkgPath)) {
@@ -56,6 +55,6 @@ function readPackageVersion(): string {
   return '0.0.0'
 }
 
-/** Semver reported to the panel on heartbeats. */
+/** Semver reported to the panel on heartbeats (captured at process start). */
 export const APP_VERSION =
-  process.env.APP_VERSION?.trim() || readPackageVersion()
+  process.env.APP_VERSION?.trim() || readDiskVersion()

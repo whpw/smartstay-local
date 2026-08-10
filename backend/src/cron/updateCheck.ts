@@ -1,14 +1,19 @@
-import { APP_VERSION } from '@/version'
+import { APP_VERSION, readDiskVersion, resolveInstallRoot } from '@/version'
 import { logger } from '@/utils/logger'
 import { ip } from 'address'
 import { CronJob } from 'cron'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, readFileSync } from 'node:fs'
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import ky from 'ky'
 
 type HeartbeatResponse = {
@@ -26,45 +31,14 @@ type UpdateStatus =
   | 'failed'
   | 'success'
 
-let updating = false
-
-/**
- * Install root is the monorepo root (package.json with workspaces), not
- * `backend/`. pnpm start runs with cwd=backend, so process.cwd() alone is wrong.
- */
-function resolveInstallRoot(): string {
-  if (process.env.INSTALL_ROOT) {
-    return resolve(process.env.INSTALL_ROOT)
-  }
-
-  const here = dirname(fileURLToPath(import.meta.url))
-  const candidates = [
-    // Bundled prod entry: backend/dist/index.js → ../..
-    resolve(here, '../..'),
-    // Dev source: backend/src/cron/updateCheck.ts → ../../..
-    resolve(here, '../../..'),
-    resolve(process.cwd(), '..'),
-    process.cwd(),
-  ]
-
-  for (const candidate of candidates) {
-    try {
-      const pkg = JSON.parse(
-        readFileSync(join(candidate, 'package.json'), 'utf8'),
-      ) as { name?: string; workspaces?: unknown }
-      if (
-        pkg.name === 'client-smartstay-app-hono' ||
-        Array.isArray(pkg.workspaces)
-      ) {
-        return candidate
-      }
-    } catch {
-      // try next
-    }
-  }
-
-  return resolve(process.cwd(), '..')
+type OtaResultFile = {
+  ok: boolean
+  version?: string
+  error?: string
+  finishedAt?: number
 }
+
+let updating = false
 
 function resolveAppdataDir(installRoot: string) {
   if (process.env.APPDATA_DIR) {
@@ -142,7 +116,7 @@ async function downloadArtifact(
   await writeFile(destPath, buffer)
 }
 
-function resolveApplyScriptPath(installRoot: string) {
+function resolveInstalledApplyScript(installRoot: string) {
   const fromEnv = process.env.APPLY_UPDATE_SCRIPT
   if (fromEnv) {
     return fromEnv
@@ -150,18 +124,73 @@ function resolveApplyScriptPath(installRoot: string) {
   return join(installRoot, 'scripts/apply-update.sh')
 }
 
+/**
+ * Prefer the apply-update.sh bundled inside the downloaded release so script
+ * fixes take effect on the same upgrade (avoids chicken-and-egg where the old
+ * installed script cannot stop/restart the service).
+ */
+function extractApplyScriptFromArchive(
+  archivePath: string,
+  destPath: string,
+): boolean {
+  const listed = spawnSync('tar', ['-tzf', archivePath], {
+    encoding: 'utf8',
+    maxBuffer: 16 * 1024 * 1024,
+  })
+  if (listed.status !== 0) {
+    logger.warn(
+      `Could not list update archive for apply script: ${listed.stderr || listed.error}`,
+    )
+    return false
+  }
+
+  const entry = listed.stdout
+    .split('\n')
+    .map((line) => line.trim())
+    .find((line) => line === 'scripts/apply-update.sh' || line.endsWith('/scripts/apply-update.sh'))
+
+  if (!entry) {
+    logger.warn('Update archive has no scripts/apply-update.sh')
+    return false
+  }
+
+  mkdirSync(dirname(destPath), { recursive: true })
+  const extracted = spawnSync('tar', ['-xOzf', archivePath, entry], {
+    maxBuffer: 4 * 1024 * 1024,
+  })
+  if (extracted.status !== 0 || !extracted.stdout?.length) {
+    logger.warn(
+      `Could not extract apply-update.sh from archive: ${extracted.stderr?.toString() || extracted.error}`,
+    )
+    return false
+  }
+
+  writeFileSync(destPath, extracted.stdout)
+  chmodSync(destPath, 0o755)
+  return true
+}
+
 function spawnApplyUpdate(
   archivePath: string,
   version: string,
   installRoot: string,
 ) {
-  const script = resolveApplyScriptPath(installRoot)
-  if (!existsSync(script)) {
-    throw new Error(`apply-update.sh not found at ${script}`)
-  }
-
+  const appdataDir = resolveAppdataDir(installRoot)
+  const logFile = join(appdataDir, 'ota-apply.log')
   const serviceName = process.env.SYSTEMD_SERVICE || 'smartstay'
-  const logFile = join(resolveAppdataDir(installRoot), 'ota-apply.log')
+
+  let script = resolveInstalledApplyScript(installRoot)
+  const bootstrapped = join(appdataDir, `apply-update-${version}.sh`)
+  if (extractApplyScriptFromArchive(archivePath, bootstrapped)) {
+    script = bootstrapped
+    logger.info(`Using apply-update.sh from release archive (${script})`)
+  } else if (!existsSync(script)) {
+    throw new Error(`apply-update.sh not found at ${script}`)
+  } else {
+    logger.warn(
+      `Falling back to installed apply-update.sh at ${script}`,
+    )
+  }
 
   const child = spawn(
     'bash',
@@ -173,6 +202,7 @@ function spawnApplyUpdate(
         ...process.env,
         HOME: process.env.HOME,
         OTA_LOG_FILE: logFile,
+        APPDATA_DIR: appdataDir,
       },
     },
   )
@@ -185,6 +215,65 @@ function spawnApplyUpdate(
   logger.info(
     `Spawned apply-update.sh (pid ${child.pid}) for version ${version}; log=${logFile}`,
   )
+}
+
+async function reportOtaResultIfAny(installRoot: string) {
+  const appdataDir = resolveAppdataDir(installRoot)
+  const candidates = [
+    join(appdataDir, 'ota-result.json'),
+    join(installRoot, 'appdata', 'ota-result.json'),
+  ]
+
+  for (const resultPath of candidates) {
+    if (!existsSync(resultPath)) {
+      continue
+    }
+
+    try {
+      const result = JSON.parse(
+        readFileSync(resultPath, 'utf8'),
+      ) as OtaResultFile
+      await postHeartbeat({
+        version: APP_VERSION,
+        updateStatus: result.ok ? 'success' : 'failed',
+        updateError: result.ok
+          ? null
+          : (result.error || 'OTA apply failed').slice(0, 1024),
+      })
+      logger.info(
+        `Reported OTA result to panel (ok=${result.ok}, file=${resultPath})`,
+      )
+    } catch (error) {
+      logger.warn('Failed to report ota-result.json:', error)
+    }
+
+    await rm(resultPath, { force: true }).catch(() => undefined)
+  }
+}
+
+/**
+ * If files on disk were updated but this process never restarted (classic OTA
+ * failure mode), exit so systemd brings us back on the new version.
+ */
+function exitIfDiskVersionAhead() {
+  if (process.env.NODE_ENV !== 'production') {
+    return
+  }
+  if (process.env.APP_VERSION?.trim()) {
+    // Explicit override — do not self-heal.
+    return
+  }
+
+  const diskVersion = readDiskVersion()
+  if (!diskVersion || diskVersion === '0.0.0' || diskVersion === APP_VERSION) {
+    return
+  }
+
+  logger.warn(
+    `Disk package.json version=${diskVersion} differs from running APP_VERSION=${APP_VERSION}; exiting so systemd can restart onto the new build`,
+  )
+  // Non-zero so Restart=on-failure (and Restart=always) will respawn us.
+  process.exit(1)
 }
 
 async function applyPendingUpdate(response: HeartbeatResponse) {
@@ -268,6 +357,11 @@ async function applyPendingUpdate(response: HeartbeatResponse) {
 export async function updateCheck() {
   logger.debug('Running update heartbeat…')
   try {
+    exitIfDiskVersionAhead()
+
+    const installRoot = resolveInstallRoot()
+    await reportOtaResultIfAny(installRoot)
+
     const networkAddr = ip()
     const response = await postHeartbeat({
       version: APP_VERSION,
