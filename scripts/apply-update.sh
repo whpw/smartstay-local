@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # Apply a downloaded smartstay-local release tarball and restart the service.
 # Usage: apply-update.sh <archive.tar.gz> <install_root> <systemd_service> <version>
+#
+# The service unit is a *system* unit (User=smartstay). OTA runs as smartstay, so
+# passwordless sudo for systemctl is required for clean stop/start, e.g.:
+#   smartstay ALL=(root) NOPASSWD: /bin/systemctl stop smartstay, /bin/systemctl start smartstay, /bin/systemctl restart smartstay, /bin/systemctl is-active smartstay
+# See scripts/smartstay-systemctl.sudoers.
 set -euo pipefail
 
 ARCHIVE="${1:?archive path required}"
@@ -8,6 +13,7 @@ INSTALL_ROOT="${2:?install root required}"
 SERVICE_NAME="${3:-smartstay}"
 VERSION="${4:-unknown}"
 PNPM_TIMEOUT_SEC="${PNPM_TIMEOUT_SEC:-600}"
+APP_PORT="${APP_PORT:-8080}"
 
 LOG_TAG="smartstay-ota"
 log() {
@@ -28,6 +34,58 @@ run_logged() {
   fi
 }
 
+# Try passwordless sudo first (system unit), then systemctl, then --user.
+# Captures stderr so auth / unit errors show up in ota-apply.log + journal.
+try_systemctl() {
+  local verb="$1"
+  local output=""
+  local ec=0
+
+  if command -v sudo >/dev/null 2>&1; then
+    set +e
+    output="$(sudo -n systemctl "$verb" "$SERVICE_NAME" 2>&1)"
+    ec=$?
+    set -e
+    if [[ $ec -eq 0 ]]; then
+      log "systemctl $verb succeeded (sudo -n)"
+      return 0
+    fi
+    log "sudo -n systemctl $verb failed (exit $ec): ${output:-<no output>}"
+  fi
+
+  set +e
+  output="$(systemctl "$verb" "$SERVICE_NAME" 2>&1)"
+  ec=$?
+  set -e
+  if [[ $ec -eq 0 ]]; then
+    log "systemctl $verb succeeded (system)"
+    return 0
+  fi
+  log "systemctl $verb failed (exit $ec): ${output:-<no output>}"
+
+  set +e
+  output="$(systemctl --user "$verb" "$SERVICE_NAME" 2>&1)"
+  ec=$?
+  set -e
+  if [[ $ec -eq 0 ]]; then
+    log "systemctl $verb succeeded (user)"
+    return 0
+  fi
+  log "systemctl --user $verb failed (exit $ec): ${output:-<no output>}"
+  return 1
+}
+
+free_app_port() {
+  if ! command -v fuser >/dev/null 2>&1; then
+    return 0
+  fi
+  if fuser "${APP_PORT}/tcp" >/dev/null 2>&1; then
+    log "Freeing port ${APP_PORT} before continuing"
+    fuser -k "${APP_PORT}/tcp" >/dev/null 2>&1 || true
+    sleep 2
+  fi
+}
+
 if [[ ! -f "$ARCHIVE" ]]; then
   log "Archive not found: $ARCHIVE"
   exit 1
@@ -39,35 +97,36 @@ sleep 2
 
 stop_service() {
   if ! command -v systemctl >/dev/null 2>&1; then
+    log "systemctl not available; freeing port ${APP_PORT}"
+    free_app_port
     return 0
   fi
   log "Stopping $SERVICE_NAME before applying files"
-  if systemctl stop "$SERVICE_NAME" 2>/dev/null; then
-    log "Stopped $SERVICE_NAME (system)"
-  elif systemctl --user stop "$SERVICE_NAME" 2>/dev/null; then
-    log "Stopped $SERVICE_NAME (user)"
-  else
-    log "Could not systemctl stop $SERVICE_NAME (continuing)"
+  if ! try_systemctl stop; then
+    log "WARN: cannot systemctl stop $SERVICE_NAME — install passwordless sudo for OTA:"
+    log "  sudo cp $INSTALL_ROOT/scripts/smartstay-systemctl.sudoers /etc/sudoers.d/smartstay-systemctl && sudo chmod 440 /etc/sudoers.d/smartstay-systemctl"
+    log "Freeing port ${APP_PORT} as fallback (may race if Restart= is enabled on the unit)"
   fi
-  # Give Node a moment to release file locks.
-  sleep 2
+  # Clear listeners left by older npm/pnpm wrapper layouts (KillMode=process).
+  free_app_port
+  sleep 1
 }
 
 start_service() {
-  if ! command -v systemctl >/dev/null 2>&1; then
-    log "systemctl not available; attempting start.sh"
-    nohup bash "$INSTALL_ROOT/start.sh" >/tmp/smartstay-restart.log 2>&1 &
-    return 0
-  fi
-  log "Starting $SERVICE_NAME"
-  if systemctl start "$SERVICE_NAME" 2>/dev/null; then
-    log "Started $SERVICE_NAME (system)"
-  elif systemctl --user start "$SERVICE_NAME" 2>/dev/null; then
-    log "Started $SERVICE_NAME (user)"
+  free_app_port
+
+  if command -v systemctl >/dev/null 2>&1; then
+    log "Starting $SERVICE_NAME"
+    if try_systemctl start; then
+      return 0
+    fi
+    log "systemctl start failed; attempting start.sh (process will be outside systemd until next manual restart)"
   else
-    log "systemctl start failed; attempting start.sh"
-    nohup bash "$INSTALL_ROOT/start.sh" >/tmp/smartstay-restart.log 2>&1 &
+    log "systemctl not available; attempting start.sh"
   fi
+
+  nohup bash "$INSTALL_ROOT/start.sh" >/tmp/smartstay-restart.log 2>&1 &
+  log "Spawned start.sh via nohup (pid $!); log=/tmp/smartstay-restart.log"
 }
 
 stop_service
