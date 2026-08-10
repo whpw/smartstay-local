@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "NODE_ENV=development DEBUG=* tsx watch src/index.ts",
     "start": "NODE_ENV=production DEBUG=*,-*:debug node dist/index.js",
-    "build": "esbuild src/index.ts --bundle --platform=node --sourcemap --packages=external --format=esm --target=es2022 --outdir=./dist"
+    "build": "esbuild src/index.ts --bundle --platform=node --sourcemap --format=esm --target=es2022 --banner:js=\"import { createRequire as __ssCreateRequire } from 'node:module'; const require = __ssCreateRequire(import.meta.url);\" --outdir=./dist"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",

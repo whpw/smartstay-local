@@ -1,11 +1,11 @@
 # Allow the smartstay user to stop/start the system unit during OTA.
 # Install once on the host (requires root):
-#   sudo cp /home/smartstay/smartstay-local/scripts/smartstay-systemctl.sudoers \
+#   sudo cp /home/smartstay/smartstay-local/current/scripts/smartstay-systemctl.sudoers \
 #     /etc/sudoers.d/smartstay-systemctl
 #   sudo chmod 440 /etc/sudoers.d/smartstay-systemctl
 #
-# Without this, apply-update.sh cannot systemctl start/stop the system unit and
-# falls back to nohup start.sh (process runs outside systemd).
+# Without this, apply-update.sh cannot systemctl start/stop the system unit.
+# Prefer scripts/install-host.sh which installs this drop-in.
 
 # Match whichever path sudo resolves (merged /bin→/usr/bin on many hosts).
 Cmnd_Alias SMARTSTAY_SYSTEMCTL = /bin/systemctl stop smartstay, /bin/systemctl start smartstay, /bin/systemctl restart smartstay, /bin/systemctl is-active smartstay, /usr/bin/systemctl stop smartstay, /usr/bin/systemctl start smartstay, /usr/bin/systemctl restart smartstay, /usr/bin/systemctl is-active smartstay

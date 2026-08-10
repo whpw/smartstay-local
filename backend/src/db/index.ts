@@ -1,12 +1,14 @@
 import { FlatCache } from 'flat-cache'
+import { join } from 'node:path'
 import superjson from 'superjson'
+import { resolveAppdataDir } from '../paths'
 
 export let _db: FlatCache | null = null
 
 export const db = (): FlatCache => {
   if (!_db) {
     _db = new FlatCache({
-      cacheDir: '../../appdata/cache',
+      cacheDir: join(resolveAppdataDir(), 'cache'),
       persistInterval: 1000,
       serialize: superjson.stringify,
       deserialize: superjson.parse,
