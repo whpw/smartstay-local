@@ -1,4 +1,5 @@
 import { APP_VERSION, readDiskVersion, resolveInstallRoot } from '@/version'
+import { resolveAppdataDir, resolveSmartstayHome } from '@/paths'
 import { logger } from '@/utils/logger'
 import { ip } from 'address'
 import { CronJob } from 'cron'
@@ -13,7 +14,7 @@ import {
 } from 'node:fs'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join } from 'node:path'
 import ky from 'ky'
 
 type HeartbeatResponse = {
@@ -39,17 +40,6 @@ type OtaResultFile = {
 }
 
 let updating = false
-
-function resolveAppdataDir(installRoot: string) {
-  if (process.env.APPDATA_DIR) {
-    return resolve(process.env.APPDATA_DIR)
-  }
-  // Production layout keeps durable state beside the install tree, not inside it:
-  //   /home/smartstay/smartstay-local  (code)
-  //   /home/smartstay/appdata          (.env, cache, logs, ota-apply.log)
-  // Matches backend relative paths (../../appdata from cwd=backend).
-  return resolve(installRoot, '..', 'appdata')
-}
 
 function heartbeatUrlFromConfigApiUrl(configApiUrl: string) {
   if (configApiUrl.endsWith('/config')) {
@@ -116,12 +106,22 @@ async function downloadArtifact(
   await writeFile(destPath, buffer)
 }
 
-function resolveInstalledApplyScript(installRoot: string) {
+function resolveInstalledApplyScript(installRoot: string, smartstayHome: string) {
   const fromEnv = process.env.APPLY_UPDATE_SCRIPT
   if (fromEnv) {
     return fromEnv
   }
-  return join(installRoot, 'scripts/apply-update.sh')
+  const candidates = [
+    join(installRoot, 'scripts/apply-update.sh'),
+    join(smartstayHome, 'current/scripts/apply-update.sh'),
+    join(smartstayHome, 'scripts/apply-update.sh'),
+  ]
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate
+    }
+  }
+  return candidates[0]
 }
 
 /**
@@ -147,7 +147,11 @@ function extractApplyScriptFromArchive(
   const entry = listed.stdout
     .split('\n')
     .map((line) => line.trim())
-    .find((line) => line === 'scripts/apply-update.sh' || line.endsWith('/scripts/apply-update.sh'))
+    .find(
+      (line) =>
+        line === 'scripts/apply-update.sh' ||
+        line.endsWith('/scripts/apply-update.sh'),
+    )
 
   if (!entry) {
     logger.warn('Update archive has no scripts/apply-update.sh')
@@ -173,13 +177,14 @@ function extractApplyScriptFromArchive(
 function spawnApplyUpdate(
   archivePath: string,
   version: string,
+  smartstayHome: string,
   installRoot: string,
 ) {
   const appdataDir = resolveAppdataDir(installRoot)
   const logFile = join(appdataDir, 'ota-apply.log')
   const serviceName = process.env.SYSTEMD_SERVICE || 'smartstay'
 
-  let script = resolveInstalledApplyScript(installRoot)
+  let script = resolveInstalledApplyScript(installRoot, smartstayHome)
   const bootstrapped = join(appdataDir, `apply-update-${version}.sh`)
   if (extractApplyScriptFromArchive(archivePath, bootstrapped)) {
     script = bootstrapped
@@ -187,14 +192,12 @@ function spawnApplyUpdate(
   } else if (!existsSync(script)) {
     throw new Error(`apply-update.sh not found at ${script}`)
   } else {
-    logger.warn(
-      `Falling back to installed apply-update.sh at ${script}`,
-    )
+    logger.warn(`Falling back to installed apply-update.sh at ${script}`)
   }
 
   const child = spawn(
     'bash',
-    [script, archivePath, installRoot, serviceName, version],
+    [script, archivePath, smartstayHome, serviceName, version],
     {
       detached: true,
       stdio: ['ignore', 'ignore', 'ignore'],
@@ -203,6 +206,7 @@ function spawnApplyUpdate(
         HOME: process.env.HOME,
         OTA_LOG_FILE: logFile,
         APPDATA_DIR: appdataDir,
+        SMARTSTAY_HOME: smartstayHome,
       },
     },
   )
@@ -213,7 +217,7 @@ function spawnApplyUpdate(
 
   child.unref()
   logger.info(
-    `Spawned apply-update.sh (pid ${child.pid}) for version ${version}; log=${logFile}`,
+    `Spawned apply-update.sh (pid ${child.pid}) for version ${version}; home=${smartstayHome}; log=${logFile}`,
   )
 }
 
@@ -296,6 +300,7 @@ async function applyPendingUpdate(response: HeartbeatResponse) {
 
   updating = true
   const installRoot = resolveInstallRoot()
+  const smartstayHome = resolveSmartstayHome(installRoot)
   const appdataDir = resolveAppdataDir(installRoot)
   const tmpDir = await mkdtemp(join(tmpdir(), 'smartstay-ota-'))
   const archivePath = join(
@@ -305,7 +310,7 @@ async function applyPendingUpdate(response: HeartbeatResponse) {
 
   try {
     logger.info(
-      `Downloading update ${response.desiredVersion} (installRoot=${installRoot})…`,
+      `Downloading update ${response.desiredVersion} (installRoot=${installRoot}, smartstayHome=${smartstayHome})…`,
     )
     await postHeartbeat({
       version: APP_VERSION,
@@ -333,6 +338,7 @@ async function applyPendingUpdate(response: HeartbeatResponse) {
           version: response.desiredVersion,
           archivePath,
           installRoot,
+          smartstayHome,
           startedAt: Date.now(),
         },
         null,
@@ -340,7 +346,12 @@ async function applyPendingUpdate(response: HeartbeatResponse) {
       ),
     )
 
-    spawnApplyUpdate(archivePath, response.desiredVersion, installRoot)
+    spawnApplyUpdate(
+      archivePath,
+      response.desiredVersion,
+      smartstayHome,
+      installRoot,
+    )
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     logger.error('Failed to apply update:', error)

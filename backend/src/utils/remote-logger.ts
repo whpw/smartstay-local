@@ -12,6 +12,7 @@ import {
 } from 'node:fs'
 import { resolve } from 'node:path'
 import ky from 'ky'
+import { resolveAppdataDir } from '../paths'
 
 export type RemoteLogLevel = 'info' | 'warn' | 'error'
 
@@ -22,7 +23,7 @@ export type RemoteLogEntry = {
   message: string
 }
 
-const APPDATA_DIR = resolve(process.env.APPDATA_DIR || '../../appdata')
+const APPDATA_DIR = resolveAppdataDir()
 const LOGS_DIR = resolve(APPDATA_DIR, 'logs')
 const PENDING_PATH = resolve(LOGS_DIR, 'pending.jsonl')
 const CURSOR_PATH = resolve(LOGS_DIR, 'pending.cursor')

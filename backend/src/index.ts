@@ -2,7 +2,7 @@ import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import dotenv from 'dotenv'
 import { Hono } from 'hono'
-import path, { resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { initConfig } from './config'
 import { updateLocalIP } from './config/updateLocalIP'
@@ -12,6 +12,7 @@ import { initUpdateCheck } from './cron/updateCheck'
 import { initWeather } from './cron/weather'
 import { disposeDb } from './db'
 import { devices, initDevices } from './devices'
+import { resolveAppdataDir } from './paths'
 import { disposeQueue, initQueue } from './queue'
 import { api as authApi } from './routes/auth'
 import { api as authedApi } from './routes/authed'
@@ -20,9 +21,9 @@ import { logger } from './utils/logger'
 import { startRemoteLogger, stopRemoteLogger } from './utils/remote-logger'
 import { APP_VERSION } from './version'
 
-// Loading env
+// Loading env (APPDATA_DIR required under releases/current layout)
 dotenv.config({
-  path: resolve('../../appdata/.env'),
+  path: join(resolveAppdataDir(), '.env'),
 })
 
 // Start durable remote log shipper as early as possible
@@ -61,18 +62,19 @@ app.route('/api', authApi)
 app.route('/api', authedApi)
 
 if (isProd) {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url))
-  const relativePathToScript = path.relative(process.cwd(), __dirname)
+  // Resolve from the bundle location so cwd / symlink depth does not matter.
+  const distDir = dirname(fileURLToPath(import.meta.url))
+  const frontendDist = resolve(distDir, '../../frontend/dist')
   app.use(
     '*',
     serveStatic({
-      root: `${relativePathToScript}/../../frontend/dist`,
+      root: frontendDist,
       index: 'index.html',
-      rewriteRequestPath: (path) => {
-        if (path === '/login') {
+      rewriteRequestPath: (reqPath) => {
+        if (reqPath === '/login') {
           return '/index.html'
         }
-        return path
+        return reqPath
       },
     })
   )
