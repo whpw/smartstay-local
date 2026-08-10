@@ -293,8 +293,8 @@ export async function updateCheck() {
 
 export function initUpdateCheck() {
   const cronJob = CronJob.from({
-    // Every 5 minutes
-    cronTime: '0 */5 * * * *',
+    // Every minute
+    cronTime: '0 * * * * *',
     onTick: () => {
       void updateCheck()
     },

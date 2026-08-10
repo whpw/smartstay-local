@@ -49,7 +49,7 @@ initQueue()
 // Init eco mode
 const disposeEcoMode = initEcoMode()
 
-// Room app OTA heartbeat (every 5 minutes)
+// Room app OTA heartbeat (every minute)
 const disposeUpdateCheck = initUpdateCheck()
 
 const app = new Hono()
