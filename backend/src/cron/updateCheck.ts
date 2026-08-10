@@ -4,6 +4,7 @@ import { ip } from 'address'
 import { CronJob } from 'cron'
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
+import { existsSync, readFileSync } from 'node:fs'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -26,6 +27,51 @@ type UpdateStatus =
   | 'success'
 
 let updating = false
+
+/**
+ * Install root is the monorepo root (package.json with workspaces), not
+ * `backend/`. pnpm start runs with cwd=backend, so process.cwd() alone is wrong.
+ */
+function resolveInstallRoot(): string {
+  if (process.env.INSTALL_ROOT) {
+    return resolve(process.env.INSTALL_ROOT)
+  }
+
+  const here = dirname(fileURLToPath(import.meta.url))
+  const candidates = [
+    // Bundled prod entry: backend/dist/index.js → ../..
+    resolve(here, '../..'),
+    // Dev source: backend/src/cron/updateCheck.ts → ../../..
+    resolve(here, '../../..'),
+    resolve(process.cwd(), '..'),
+    process.cwd(),
+  ]
+
+  for (const candidate of candidates) {
+    try {
+      const pkg = JSON.parse(
+        readFileSync(join(candidate, 'package.json'), 'utf8'),
+      ) as { name?: string; workspaces?: unknown }
+      if (
+        pkg.name === 'client-smartstay-app-hono' ||
+        Array.isArray(pkg.workspaces)
+      ) {
+        return candidate
+      }
+    } catch {
+      // try next
+    }
+  }
+
+  return resolve(process.cwd(), '..')
+}
+
+function resolveAppdataDir(installRoot: string) {
+  if (process.env.APPDATA_DIR) {
+    return resolve(process.env.APPDATA_DIR)
+  }
+  return join(installRoot, 'appdata')
+}
 
 function heartbeatUrlFromConfigApiUrl(configApiUrl: string) {
   if (configApiUrl.endsWith('/config')) {
@@ -92,42 +138,48 @@ async function downloadArtifact(
   await writeFile(destPath, buffer)
 }
 
-function resolveApplyScriptPath() {
+function resolveApplyScriptPath(installRoot: string) {
   const fromEnv = process.env.APPLY_UPDATE_SCRIPT
   if (fromEnv) {
     return fromEnv
   }
-  // Prefer install-root scripts/; fall back to repo-relative path in dev.
-  const candidates = [
-    resolve(process.cwd(), 'scripts/apply-update.sh'),
-    resolve(
-      dirname(fileURLToPath(import.meta.url)),
-      '../../../scripts/apply-update.sh',
-    ),
-  ]
-  return candidates[0]
+  return join(installRoot, 'scripts/apply-update.sh')
 }
 
-function spawnApplyUpdate(archivePath: string, version: string) {
-  const script = resolveApplyScriptPath()
-  const installRoot = process.env.INSTALL_ROOT || process.cwd()
+function spawnApplyUpdate(
+  archivePath: string,
+  version: string,
+  installRoot: string,
+) {
+  const script = resolveApplyScriptPath(installRoot)
+  if (!existsSync(script)) {
+    throw new Error(`apply-update.sh not found at ${script}`)
+  }
+
   const serviceName = process.env.SYSTEMD_SERVICE || 'smartstay'
+  const logFile = join(resolveAppdataDir(installRoot), 'ota-apply.log')
 
   const child = spawn(
     'bash',
     [script, archivePath, installRoot, serviceName, version],
     {
       detached: true,
-      stdio: 'ignore',
+      stdio: ['ignore', 'ignore', 'ignore'],
       env: {
         ...process.env,
         HOME: process.env.HOME,
+        OTA_LOG_FILE: logFile,
       },
     },
   )
+
+  child.on('error', (error) => {
+    logger.error('Failed to spawn apply-update.sh:', error)
+  })
+
   child.unref()
   logger.info(
-    `Spawned apply-update.sh (pid ${child.pid}) for version ${version}`,
+    `Spawned apply-update.sh (pid ${child.pid}) for version ${version}; log=${logFile}`,
   )
 }
 
@@ -150,11 +202,18 @@ async function applyPendingUpdate(response: HeartbeatResponse) {
   }
 
   updating = true
+  const installRoot = resolveInstallRoot()
+  const appdataDir = resolveAppdataDir(installRoot)
   const tmpDir = await mkdtemp(join(tmpdir(), 'smartstay-ota-'))
-  const archivePath = join(tmpDir, `smartstay-local-${response.desiredVersion}.tar.gz`)
+  const archivePath = join(
+    tmpDir,
+    `smartstay-local-${response.desiredVersion}.tar.gz`,
+  )
 
   try {
-    logger.info(`Downloading update ${response.desiredVersion}…`)
+    logger.info(
+      `Downloading update ${response.desiredVersion} (installRoot=${installRoot})…`,
+    )
     await postHeartbeat({
       version: APP_VERSION,
       updateStatus: 'downloading',
@@ -173,24 +232,22 @@ async function applyPendingUpdate(response: HeartbeatResponse) {
       updateError: null,
     })
 
-    // Persist status file for the shell script / debugging
-    await mkdir(join(process.cwd(), 'appdata'), { recursive: true }).catch(
-      () => undefined,
-    )
+    await mkdir(appdataDir, { recursive: true })
     await writeFile(
-      join(process.cwd(), 'appdata', 'pending-update.json'),
+      join(appdataDir, 'pending-update.json'),
       JSON.stringify(
         {
           version: response.desiredVersion,
           archivePath,
+          installRoot,
           startedAt: Date.now(),
         },
         null,
         2,
       ),
-    ).catch(() => undefined)
+    )
 
-    spawnApplyUpdate(archivePath, response.desiredVersion)
+    spawnApplyUpdate(archivePath, response.desiredVersion, installRoot)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     logger.error('Failed to apply update:', error)

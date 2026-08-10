@@ -11,6 +11,10 @@ VERSION="${4:-unknown}"
 LOG_TAG="smartstay-ota"
 log() {
   echo "[$LOG_TAG] $*" >&2
+  if [[ -n "${OTA_LOG_FILE:-}" ]]; then
+    mkdir -p "$(dirname "$OTA_LOG_FILE")" 2>/dev/null || true
+    echo "[$LOG_TAG] $*" >>"$OTA_LOG_FILE" 2>/dev/null || true
+  fi
   logger -t "$LOG_TAG" "$*" 2>/dev/null || true
 }
 
