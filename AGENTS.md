@@ -34,7 +34,8 @@ It copies [`backend/dev-config.example.json`](backend/dev-config.example.json) t
 `backend/appdata/dev-config.json` if that file is missing (devices use SNs `MOCKJAC` / `MOCKHEAT` /
 `MOCKLSW` and sauna `ip` `127.0.0.1:9100/saunabox`). The script also points `weatherUrl` at the
 mock (`http://127.0.0.1:9100/weather`, outdoor 5°C) so heating stays **active** (it turns off when
-average outdoor temp is at or above `externalTempLimit`).
+average outdoor temp is at or above `externalTempLimit`), and sets light-switch `sunsetMode.turnOffAt`
+to `00:00` so sunset auto-on does not fire and the UI shows **Włącz** by default.
 
 ```bash
 export PATH="$HOME/.nvm/versions/node/v24.10.0/bin:$PATH"

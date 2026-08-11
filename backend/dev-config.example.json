@@ -85,7 +85,7 @@
       "sessionDuration": 120,
       "sunsetMode": {
         "turnOnShift": 15,
-        "turnOffAt": "22:00",
+        "turnOffAt": "00:00",
         "ecoMode": true
       }
     }

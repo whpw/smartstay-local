@@ -23,17 +23,30 @@ if [[ ! -f "$DEV_CONFIG" ]]; then
   cp "$EXAMPLE_CONFIG" "$DEV_CONFIG"
 fi
 
-# Ensure mock weather URL so HeatingThermoBox stays enabled (outdoor temp < externalTempLimit).
+# Ensure mock weather URL (heating stays on) and lights default off (Włącz, not Wyłącz).
+# Sunset auto-on uses default 17:00 when sunsetUrl is empty; after that window starts the
+# schedule fires immediately. turnOffAt 00:00 closes today's window so lights stay idle.
 node <<'NODE'
 const fs = require('fs')
 const path = process.env.DEV_CONFIG
 const port = process.env.MOCK_DEVICES_PORT || '9100'
 const weatherUrl = `http://127.0.0.1:${port}/weather`
 const cfg = JSON.parse(fs.readFileSync(path, 'utf8'))
+let changed = false
 if (cfg.weatherUrl !== weatherUrl) {
   cfg.weatherUrl = weatherUrl
-  fs.writeFileSync(path, `${JSON.stringify(cfg, null, 2)}\n`)
+  changed = true
   console.log(`[dev:mock] Set weatherUrl → ${weatherUrl} (enables heating)`)
+}
+for (const device of cfg.devices || []) {
+  if (device.type === 'light-switch' && device.sunsetMode?.turnOffAt !== '00:00') {
+    device.sunsetMode = { ...device.sunsetMode, turnOffAt: '00:00' }
+    changed = true
+    console.log(`[dev:mock] Set ${device.id} sunsetMode.turnOffAt → 00:00 (lights start off)`)
+  }
+}
+if (changed) {
+  fs.writeFileSync(path, `${JSON.stringify(cfg, null, 2)}\n`)
 }
 NODE
 
