@@ -2,6 +2,10 @@ name: Release room app
 
 on:
   push:
+    branches:
+      - main
+    paths:
+      - 'package.json'
     tags:
       - 'v*'
   workflow_dispatch:
@@ -24,19 +28,45 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - name: Check version changed
+        id: gate
+        run: |
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "branch" ]]; then
+            CURR="$(node -p "require('./package.json').version")"
+            if PREV="$(git show HEAD~1:package.json 2>/dev/null | node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(0,'utf8')).version)")"; then
+              :
+            else
+              PREV=""
+            fi
+            if [[ -n "$PREV" && "$CURR" == "$PREV" ]]; then
+              echo "should_release=false" >> "$GITHUB_OUTPUT"
+              echo "Version unchanged ($CURR); skipping release."
+            else
+              echo "should_release=true" >> "$GITHUB_OUTPUT"
+              echo "Version changed: ${PREV:-none} -> $CURR"
+            fi
+          else
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Setup pnpm
+        if: steps.gate.outputs.should_release == 'true'
         uses: pnpm/action-setup@v6
         with:
           version: 10
 
       - name: Setup Node
+        if: steps.gate.outputs.should_release == 'true'
         uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
 
       - name: Resolve version
+        if: steps.gate.outputs.should_release == 'true'
         id: ver
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.version }}" ]]; then
@@ -57,6 +87,7 @@ jobs:
           fi
 
       - name: Pack release
+        if: steps.gate.outputs.should_release == 'true'
         id: pack
         run: |
           chmod +x scripts/pack-release.sh
@@ -68,6 +99,7 @@ jobs:
           echo "r2_key=releases/${{ steps.ver.outputs.version }}/smartstay-local.tar.gz" >> "$GITHUB_OUTPUT"
 
       - name: Upload to R2
+        if: steps.gate.outputs.should_release == 'true'
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
@@ -81,6 +113,7 @@ jobs:
             --endpoint-url "$ENDPOINT"
 
       - name: Create GitHub Release
+        if: steps.gate.outputs.should_release == 'true'
         uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.ver.outputs.version }}
@@ -90,6 +123,7 @@ jobs:
           fail_on_unmatched_files: true
 
       - name: Register release with panel
+        if: steps.gate.outputs.should_release == 'true'
         env:
           PANEL_RELEASE_TOKEN: ${{ secrets.PANEL_RELEASE_TOKEN }}
         run: |

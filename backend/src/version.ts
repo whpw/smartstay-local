@@ -21,10 +21,10 @@ export function resolveInstallRoot(): string {
     try {
       const pkg = JSON.parse(
         readFileSync(join(candidate, 'package.json'), 'utf8'),
-      ) as { name?: string; workspaces?: unknown }
+      ) as { name?: string }
       if (
-        pkg.name === 'client-smartstay-app-hono' ||
-        Array.isArray(pkg.workspaces)
+        pkg.name === 'smartstay-local' ||
+        pkg.name === 'client-smartstay-app-hono'
       ) {
         return candidate
       }
@@ -56,5 +56,4 @@ export function readDiskVersion(): string {
 }
 
 /** Semver reported to the panel on heartbeats (captured at process start). */
-export const APP_VERSION =
-  process.env.APP_VERSION?.trim() || readDiskVersion()
+export const APP_VERSION = process.env.APP_VERSION?.trim() || readDiskVersion()
