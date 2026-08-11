@@ -23,14 +23,14 @@ if [[ ! -f "$DEV_CONFIG" ]]; then
   cp "$EXAMPLE_CONFIG" "$DEV_CONFIG"
 fi
 
-# Ensure IMGW weather URL and lights default off (Włącz, not Wyłącz).
-# Sunset auto-on uses default 17:00 when sunsetUrl is empty; after that window starts the
-# schedule fires immediately. turnOffAt 00:00 closes today's window so lights stay idle.
+# Ensure IMGW weather + sunrise-sunset.org URLs. Restore lights turnOffAt if it was
+# closed for the earlier mock-only default (00:00).
 node <<'NODE'
 const fs = require('fs')
 const path = process.env.DEV_CONFIG
 const weatherUrl =
   'https://danepubliczne.imgw.pl/api/data/meteo/id/252210050'
+const sunsetUrl = 'https://api.sunrise-sunset.org/json'
 const cfg = JSON.parse(fs.readFileSync(path, 'utf8'))
 let changed = false
 if (cfg.weatherUrl !== weatherUrl) {
@@ -38,11 +38,16 @@ if (cfg.weatherUrl !== weatherUrl) {
   changed = true
   console.log(`[dev:mock] Set weatherUrl → ${weatherUrl}`)
 }
+if (cfg.sunsetUrl !== sunsetUrl) {
+  cfg.sunsetUrl = sunsetUrl
+  changed = true
+  console.log(`[dev:mock] Set sunsetUrl → ${sunsetUrl}`)
+}
 for (const device of cfg.devices || []) {
-  if (device.type === 'light-switch' && device.sunsetMode?.turnOffAt !== '00:00') {
-    device.sunsetMode = { ...device.sunsetMode, turnOffAt: '00:00' }
+  if (device.type === 'light-switch' && device.sunsetMode?.turnOffAt === '00:00') {
+    device.sunsetMode = { ...device.sunsetMode, turnOffAt: '22:00' }
     changed = true
-    console.log(`[dev:mock] Set ${device.id} sunsetMode.turnOffAt → 00:00 (lights start off)`)
+    console.log(`[dev:mock] Set ${device.id} sunsetMode.turnOffAt → 22:00`)
   }
 }
 if (changed) {

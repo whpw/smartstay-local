@@ -3,7 +3,7 @@
   "roomName": "Room 101",
   "apiKey": "dev-mock-api-key",
   "weatherUrl": "https://danepubliczne.imgw.pl/api/data/meteo/id/252210050",
-  "sunsetUrl": "",
+  "sunsetUrl": "https://api.sunrise-sunset.org/json",
   "lat": 52.15,
   "lng": 21,
   "tz": "Europe/Warsaw",
@@ -85,7 +85,7 @@
       "sessionDuration": 120,
       "sunsetMode": {
         "turnOnShift": 15,
-        "turnOffAt": "00:00",
+        "turnOffAt": "22:00",
         "ecoMode": true
       }
     }
