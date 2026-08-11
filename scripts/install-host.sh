@@ -29,7 +29,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 if [[ -f "$REPO_ROOT/.nvmrc" ]]; then
   NODE_VERSION="$(tr -d '[:space:]' <"$REPO_ROOT/.nvmrc")"
 else
-  NODE_VERSION="v24.10.0"
+  NODE_VERSION="v26.7.0"
 fi
 # node-install.sh wants a leading v
 [[ "$NODE_VERSION" == v* ]] || NODE_VERSION="v${NODE_VERSION}"
