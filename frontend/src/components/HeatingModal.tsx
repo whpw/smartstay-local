@@ -44,7 +44,11 @@ export const HeatingModal = ({
     <Dialog open={open} onClose={onClose} fullWidth>
       <DialogTitle>{t('devices.heating.title')}</DialogTitle>
       <DialogContent>
-        <Stack mt={2} gap={2}>
+        <Stack
+          sx={{
+            mt: 2,
+            gap: 2,
+          }}>
           <HeatingSlider
             label={t('devices.heating.dayPart', {
               range: dayRange,
@@ -92,8 +96,13 @@ const HeatingSlider = ({
   max: number
 }) => {
   return (
-    <Stack gap={1}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
+    <Stack sx={{ gap: 1 }}>
+      <Stack
+        direction="row"
+        sx={{
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
         <Typography sx={{ fontSize: 14, fontWeight: 'medium' }}>
           {label}
         </Typography>
@@ -102,8 +111,7 @@ const HeatingSlider = ({
       <Box
         sx={{
           mx: 1,
-        }}
-      >
+        }}>
         <Slider
           aria-label="Temperature Slider"
           value={value}

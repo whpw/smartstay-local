@@ -1,4 +1,4 @@
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
+import ErrorOutlinedIcon from '@mui/icons-material/ErrorOutlined'
 import { Box, Stack, Typography } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 
@@ -17,10 +17,9 @@ export const PollingErrorCover = () => {
         justifyContent: 'center',
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         color: 'white',
-      }}
-    >
-      <Stack direction="row" alignItems="center" spacing={2}>
-        <ErrorOutlineIcon />
+      }}>
+      <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+        <ErrorOutlinedIcon />
         <Typography variant="body2">{t('devices.polling-error')}</Typography>
       </Stack>
     </Box>

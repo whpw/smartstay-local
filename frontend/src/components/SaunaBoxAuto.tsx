@@ -33,16 +33,15 @@ export const SaunaBoxAuto = ({
 
   const { mutate: startSession } = useMutation({
     mutationFn: async () => {
-      return authedClient.action
-        .$post({
-          json: {
-            deviceId,
-            action: {
-              type: 'START',
-            },
+      const res = await authedClient.action.$post({
+        json: {
+          deviceId,
+          action: {
+            type: 'START',
           },
-        })
-        .then((res) => res.json())
+        },
+      })
+      return res.json()
     },
     onSuccess: (data) => {
       if ('error' in data && data.error === 'REACHED_LIMIT') {
@@ -99,7 +98,12 @@ export const SaunaBoxAuto = ({
   return (
     <BoxContainer
       title={
-        <Stack direction="row" alignItems="center" gap={1}>
+        <Stack
+          direction="row"
+          sx={{
+            alignItems: 'center',
+            gap: 1,
+          }}>
           <Box component="img" src={saunaIcon} sx={{ width: 24 }} />
           <>{viewData.name}</>
         </Stack>
@@ -109,8 +113,7 @@ export const SaunaBoxAuto = ({
           sx={{
             display: 'flex',
             gap: 2,
-          }}
-        >
+          }}>
           {isRunning && (
             <Box>
               <Button
@@ -147,8 +150,7 @@ export const SaunaBoxAuto = ({
           <Stack
             spacing={2}
             direction="row"
-            sx={{ alignItems: 'center', mb: 2, px: 2 }}
-          >
+            sx={{ alignItems: 'center', mb: 2, px: 2 }}>
             <Slider
               aria-label={t('devices.sauna.slider.title')}
               min={viewData.minTemp}

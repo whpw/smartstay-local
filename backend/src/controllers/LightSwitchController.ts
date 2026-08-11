@@ -1,4 +1,4 @@
-import { action, computed, observable, runInAction, toJS } from 'mobx'
+import { actionBound, computed, observable, runInAction, toJS } from 'mobx'
 
 import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
@@ -191,7 +191,7 @@ export class LightSwitchController extends DevController<
     }
   }
 
-  @action.bound
+  @actionBound
   public async invokeAction(actionToInvoke: Action, _res: ResDetails) {
     switch (actionToInvoke.type) {
       case SwitchBoxActionType.START:
@@ -329,7 +329,7 @@ export class LightSwitchController extends DevController<
       this.logger.info('Connected to API at:', device.ip)
 
       this.deviceApi = ky.create({
-        prefixUrl: `http://${device.ip}`,
+        prefix: `http://${device.ip}`,
       })
 
       const {

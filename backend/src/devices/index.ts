@@ -60,6 +60,7 @@ export async function initDevices() {
     ) {
       controller = new HeatingThermoBoxController(config as HeatingConfig)
     } else if (device.type === 'sauna') {
+      // saunabox → hardware controller; anything else (minimal / manual / thermobox) → timer UI
       if ((config as SaunaConfig).thermostat === 'saunabox') {
         controller = new SaunaBoxController(config as SaunaConfig)
       } else {

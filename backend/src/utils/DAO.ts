@@ -4,10 +4,10 @@ import ky from 'ky'
 import { appConfig } from '@/config'
 
 const api = ky.extend({
-  prefixUrl: 'https://panel.hotres.pl',
+  prefix: 'https://panel.hotres.pl',
   hooks: {
     beforeRequest: [
-      function (request) {
+      function ({ request }) {
         // Creating new URL with credentials
         const urlWithCredentials = new URL(request.url)
         urlWithCredentials.searchParams.set('auth', appConfig.hotresAuthCode)

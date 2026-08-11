@@ -30,16 +30,15 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
 
   const { mutate: startSession } = useMutation({
     mutationFn: async () => {
-      return authedClient.action
-        .$post({
-          json: {
-            deviceId,
-            action: {
-              type: 'START',
-            },
+      const res = await authedClient.action.$post({
+        json: {
+          deviceId,
+          action: {
+            type: 'START',
           },
-        })
-        .then((res) => res.json())
+        },
+      })
+      return res.json()
     },
     onSuccess: (data) => {
       if ('error' in data && data.error === 'REACHED_LIMIT') {
@@ -99,7 +98,12 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
   return (
     <BoxContainer
       title={
-        <Stack direction="row" alignItems="center" gap={1}>
+        <Stack
+          direction="row"
+          sx={{
+            alignItems: 'center',
+            gap: 1,
+          }}>
           <Box component="img" src={jacuzziIcon} sx={{ width: 24 }} />
           <>{viewData.name}</>
         </Stack>
@@ -128,8 +132,7 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
           <Stack
             spacing={2}
             direction="row"
-            sx={{ alignItems: 'center', mb: 2, px: 2 }}
-          >
+            sx={{ alignItems: 'center', mb: 2, px: 2 }}>
             <Slider
               aria-label={t('devices.jacuzzi.slider.title')}
               min={viewData.minTemp}

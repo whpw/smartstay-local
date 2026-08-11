@@ -32,11 +32,10 @@ export const Layout = () => {
         flexDirection: 'column',
         alignItems: 'center',
         mt: 8,
-      }}
-    >
+      }}>
       <Stack sx={{ alignItems: 'center', gap: 2, mb: 3 }}>
         <Box component="img" src={logo} alt="logo" sx={{ width: 300 }} />
-        <Typography variant="h6" fontSize={24} color="textSecondary">
+        <Typography variant="h6" color="textSecondary" sx={{ fontSize: 24 }}>
           {data?.objectName}
         </Typography>
       </Stack>
@@ -46,8 +45,7 @@ export const Layout = () => {
           flex: 1,
           flexBasis: '100%',
           width: '100%',
-        }}
-      >
+        }}>
         <Outlet />
       </Box>
     </Container>

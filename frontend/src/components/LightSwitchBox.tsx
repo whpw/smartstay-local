@@ -16,16 +16,15 @@ export const LightSwitchBox = ({ deviceId }: { deviceId: string }) => {
 
   const { mutate: startSession, isPending } = useMutation({
     mutationFn: async (onOrOf: 'on' | 'off') => {
-      return authedClient.action
-        .$post({
-          json: {
-            deviceId,
-            action: {
-              type: onOrOf === 'on' ? 'START' : 'STOP',
-            },
+      const res = await authedClient.action.$post({
+        json: {
+          deviceId,
+          action: {
+            type: onOrOf === 'on' ? 'START' : 'STOP',
           },
-        })
-        .then((res) => res.json())
+        },
+      })
+      return res.json()
     },
     onSuccess: (data) => {
       setViewData(data as SwitchBoxViewData)
@@ -53,7 +52,12 @@ export const LightSwitchBox = ({ deviceId }: { deviceId: string }) => {
   return (
     <BoxContainer
       title={
-        <Stack direction="row" alignItems="center" gap={1}>
+        <Stack
+          direction="row"
+          sx={{
+            alignItems: 'center',
+            gap: 1,
+          }}>
           <Box component="img" src={lightIcon} sx={{ width: 24 }} />
           <>{viewData.name}</>
         </Stack>

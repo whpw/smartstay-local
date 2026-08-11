@@ -1,4 +1,4 @@
-import { action, computed, observable, runInAction, toJS } from 'mobx'
+import { actionBound, computed, observable, runInAction, toJS } from 'mobx'
 
 import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
@@ -195,7 +195,7 @@ export class JacuzziThermoBoxController extends DevController<
     return this.viewData
   }
 
-  @action.bound
+  @actionBound
   public startSession(departureDate: string) {
     // Calculate max delay
     const maxDelay = new Date(departureDate).getTime() - Date.now()
@@ -224,7 +224,7 @@ export class JacuzziThermoBoxController extends DevController<
     return this.updateState(state, delay)
   }
 
-  @action.bound
+  @actionBound
   public async setSessionTemp(temp: number) {
     const { session } = this.persistentState
     if (session && temp >= this.config.minTemp && temp <= this.config.maxTemp) {
@@ -248,7 +248,7 @@ export class JacuzziThermoBoxController extends DevController<
     }
   }
 
-  @action.bound
+  @actionBound
   public stopSession() {
     // Creating idle state
     const idleState: JacuzziPersistentState = {
@@ -258,7 +258,7 @@ export class JacuzziThermoBoxController extends DevController<
     return this.updateState(idleState)
   }
 
-  @action.bound
+  @actionBound
   private loadCurrentState() {
     // Load current state
     const state = db().get<JacuzziPersistentState>(
@@ -285,7 +285,7 @@ export class JacuzziThermoBoxController extends DevController<
     return this.updateState(state)
   }
 
-  @action.bound
+  @actionBound
   private updateState(value: JacuzziPersistentState, expireIn?: number) {
     // Setting state
     this.persistentState = observable(value)
@@ -395,7 +395,7 @@ export class JacuzziThermoBoxController extends DevController<
       this.logger.info('Connected to API at:', device.ip)
 
       this.deviceApi = ky.create({
-        prefixUrl: `http://${device.ip}`,
+        prefix: `http://${device.ip}`,
       })
       this.unreachableMonitor.markSuccess()
     })().finally(() => {

@@ -122,9 +122,10 @@ export type LightSwitchConfig = {
 export type SaunaConfig = {
   // Duration in minutes
   sessionDuration: number
-  thermostat: 'saunabox' | 'manual'
-  minTemp: number
-  maxTemp: number
-  defaultTemp: number
-  ip: string
+  /** Omitted / `manual` / legacy `thermobox` = timer-only (minimal). */
+  thermostat?: 'saunabox' | 'manual' | 'thermobox'
+  minTemp?: number
+  maxTemp?: number
+  defaultTemp?: number
+  ip?: string
 } & DeviceConfig

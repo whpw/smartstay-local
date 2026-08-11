@@ -1,7 +1,7 @@
 import dgram from 'node:dgram'
 
 import { addHours, differenceInSeconds } from 'date-fns'
-import { action, computed, observable, runInAction, toJS, when } from 'mobx'
+import { actionBound, computed, observable, runInAction, toJS, when } from 'mobx'
 
 import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
@@ -168,7 +168,7 @@ export class JacuzziTerneoController extends DevController<
     return this.viewData
   }
 
-  @action.bound
+  @actionBound
   public async startSession(departureDate: string) {
     // Calculate max delay
     const maxDelay = new Date(departureDate).getTime() - Date.now()
@@ -203,7 +203,7 @@ export class JacuzziTerneoController extends DevController<
     await this.updateDevice(true)
   }
 
-  @action.bound
+  @actionBound
   public async setSessionTemp(temp: number) {
     const { session } = this.persistentState
     if (session && temp >= this.config.minTemp && temp <= this.config.maxTemp) {
@@ -227,7 +227,7 @@ export class JacuzziTerneoController extends DevController<
     }
   }
 
-  @action.bound
+  @actionBound
   public async stopSession() {
     // Creating state object
     const state: JacuzziPersistentState = {
@@ -309,7 +309,7 @@ export class JacuzziTerneoController extends DevController<
     }
   }
 
-  @action.bound
+  @actionBound
   private async loadCurrentState() {
     // Load current state
     const state = db().get<JacuzziPersistentState>(

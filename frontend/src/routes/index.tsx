@@ -15,7 +15,12 @@ export const HomeRoute = () => {
   })
 
   return (
-    <Stack alignItems="center" spacing={2} mb={2}>
+    <Stack
+      spacing={2}
+      sx={{
+        alignItems: 'center',
+        mb: 2,
+      }}>
       {data.map((device) => {
         switch (device.type) {
           case 'sauna':

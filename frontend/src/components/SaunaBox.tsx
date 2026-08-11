@@ -1,42 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
 
-import { authedClient } from '@/dao'
 import type { SaunaViewData } from '@backend/models'
-import { useMutation } from '@tanstack/react-query'
 import { SaunaBoxAuto } from './SaunaBoxAuto'
 import { SaunaBoxManual } from './SaunaBoxManual'
 
 export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
-  // Data state
   const [viewData, setViewData] = useState<SaunaViewData>()
-
-  const { t } = useTranslation()
-
-  const [upsellingModalOpen, setUpsellingModalOpen] = useState(false)
-
-  const { mutate: startSession } = useMutation({
-    mutationFn: async () => {
-      return authedClient.action
-        .$post({
-          json: {
-            deviceId,
-            action: {
-              type: 'START',
-            },
-          },
-        })
-        .then((res) => res.json())
-    },
-    onSuccess: (data) => {
-      if ('error' in data && data.error === 'REACHED_LIMIT') {
-        setUpsellingModalOpen(true)
-        return
-      }
-      // Setting da
-      setViewData(data as SaunaViewData)
-    },
-  })
 
   useEffect(() => {
     const evtSource = new EventSource(`/api/state/${deviceId}`, {
@@ -56,6 +25,7 @@ export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
 
   if (!viewData) return <div>Loading...</div>
 
+  // Only saunabox is automated; missing / manual / thermobox → timer + instructions.
   if (viewData.thermostat === 'saunabox') {
     return (
       <SaunaBoxAuto
@@ -64,13 +34,13 @@ export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
         deviceId={deviceId}
       />
     )
-  } else {
-    return (
-      <SaunaBoxManual
-        viewData={viewData}
-        setViewData={setViewData}
-        deviceId={deviceId}
-      />
-    )
   }
+
+  return (
+    <SaunaBoxManual
+      viewData={viewData}
+      setViewData={setViewData}
+      deviceId={deviceId}
+    />
+  )
 }

@@ -1,5 +1,5 @@
 import {
-  action,
+  actionBound,
   computed,
   observable,
   reaction,
@@ -237,7 +237,7 @@ export class HeatingThermoBoxController extends DevController<
     return this.viewData
   }
 
-  @action.bound
+  @actionBound
   public async setDayPartTemp(
     dayTemp: number,
     nightTemp: number,
@@ -266,7 +266,7 @@ export class HeatingThermoBoxController extends DevController<
     await this.updateState(newState, expireIn)
   }
 
-  @action.bound
+  @actionBound
   private loadCurrentState() {
     // Getting current state
     const currentState = db().get<HeatingPersistentState>(
@@ -290,7 +290,7 @@ export class HeatingThermoBoxController extends DevController<
     return hours >= nightStart && hours < dayStart
   }
 
-  @action.bound
+  @actionBound
   private updateState(value: HeatingPersistentState, expireIn?: number) {
     // Setting state
     this.persistentState = observable(value)
@@ -383,7 +383,7 @@ export class HeatingThermoBoxController extends DevController<
       this.logger.info('Connected to API at:', device.ip)
 
       this.deviceApi = ky.create({
-        prefixUrl: `http://${device.ip}`,
+        prefix: `http://${device.ip}`,
       })
     })().finally(() => {
       if (this.discoveryAbort === abort) {
@@ -417,7 +417,7 @@ export class HeatingThermoBoxController extends DevController<
           }>
         }>('state')
         .json()
-        .then(({ thermo, sensors }) => {
+        .then(({ sensors }) => {
           // Getting sensor
           const sensor = sensors.find((s) => s.type === 'temperature')
           const currentTemp = (sensor?.value ?? 0) / 100
