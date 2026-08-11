@@ -34,7 +34,7 @@ export const HeatingModal = ({
       setDayTemp(viewData.dayTemp)
       setNightTemp(viewData.nightTemp)
     }
-  }, [open])
+  }, [open, viewData.dayTemp, viewData.nightTemp])
 
   // Calculate ranges
   const dayRange = `(${viewData.dayStart}:00 - ${viewData.nightStart}:00)`
@@ -48,7 +48,8 @@ export const HeatingModal = ({
           sx={{
             mt: 2,
             gap: 2,
-          }}>
+          }}
+        >
           <HeatingSlider
             label={t('devices.heating.dayPart', {
               range: dayRange,
@@ -102,7 +103,8 @@ const HeatingSlider = ({
         sx={{
           justifyContent: 'space-between',
           alignItems: 'center',
-        }}>
+        }}
+      >
         <Typography sx={{ fontSize: 14, fontWeight: 'medium' }}>
           {label}
         </Typography>
@@ -111,7 +113,8 @@ const HeatingSlider = ({
       <Box
         sx={{
           mx: 1,
-        }}>
+        }}
+      >
         <Slider
           aria-label="Temperature Slider"
           value={value}
