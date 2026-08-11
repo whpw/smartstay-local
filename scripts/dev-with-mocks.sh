@@ -13,14 +13,30 @@ mkdir -p "$APPDATA_DIR"
 EXAMPLE_CONFIG="$ROOT/backend/dev-config.example.json"
 DEV_CONFIG="$APPDATA_DIR/dev-config.json"
 
+export APPDATA_DIR
+export MOCK_DEVICES=1
+export MOCK_DEVICES_PORT="${MOCK_DEVICES_PORT:-9100}"
+export DEV_CONFIG
+
 if [[ ! -f "$DEV_CONFIG" ]]; then
   echo "[dev:mock] Copying $EXAMPLE_CONFIG → $DEV_CONFIG"
   cp "$EXAMPLE_CONFIG" "$DEV_CONFIG"
 fi
 
-export APPDATA_DIR
-export MOCK_DEVICES=1
-export MOCK_DEVICES_PORT="${MOCK_DEVICES_PORT:-9100}"
+# Ensure mock weather URL so HeatingThermoBox stays enabled (outdoor temp < externalTempLimit).
+node <<'NODE'
+const fs = require('fs')
+const path = process.env.DEV_CONFIG
+const port = process.env.MOCK_DEVICES_PORT || '9100'
+const weatherUrl = `http://127.0.0.1:${port}/weather`
+const cfg = JSON.parse(fs.readFileSync(path, 'utf8'))
+if (cfg.weatherUrl !== weatherUrl) {
+  cfg.weatherUrl = weatherUrl
+  fs.writeFileSync(path, `${JSON.stringify(cfg, null, 2)}\n`)
+  console.log(`[dev:mock] Set weatherUrl → ${weatherUrl} (enables heating)`)
+}
+NODE
+
 export CONFIG_API_URL="data:application/json,$(node -e "console.log(encodeURIComponent(require('fs').readFileSync(process.argv[1],'utf8')))" "$DEV_CONFIG")"
 
 MOCK_PID=""

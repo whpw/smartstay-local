@@ -2,7 +2,7 @@
   "objectName": "Demo Hotel",
   "roomName": "Room 101",
   "apiKey": "dev-mock-api-key",
-  "weatherUrl": "",
+  "weatherUrl": "http://127.0.0.1:9100/weather",
   "sunsetUrl": "",
   "lat": 52.15,
   "lng": 21,

@@ -121,6 +121,16 @@ const app = new Hono()
 
 app.get('/health', (c) => c.json({ ok: true, port: PORT }))
 
+/** Outdoor weather shape expected by `cron/weather.ts` (cold so heating stays on). */
+app.get('/weather', (c) =>
+  c.json([
+    {
+      temperatura_powietrza: '5.0',
+      temperatura_powietrza_data: new Date().toISOString(),
+    },
+  ]),
+)
+
 app.get('/blebox/:sn/info', (c) => {
   const sn = c.req.param('sn')
   ensureBleBox(sn)
