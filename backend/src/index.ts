@@ -91,9 +91,16 @@ const server = serve(
   }
 )
 
+let shuttingDown = false
+
 function shutdown(exitCode = 0) {
+  if (shuttingDown) return
+  shuttingDown = true
+
   server.close((err) => {
-    if (err) {
+    // Ctrl+C often delivers SIGINT more than once (tsx watch / pnpm parallel).
+    // Ignore "already closed" so cleanup still runs once.
+    if (err && (err as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') {
       console.error(err)
       process.exit(1)
     }
