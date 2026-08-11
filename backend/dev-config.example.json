@@ -1,0 +1,93 @@
+{
+  "objectName": "Demo Hotel",
+  "roomName": "Room 101",
+  "apiKey": "dev-mock-api-key",
+  "weatherUrl": "https://danepubliczne.imgw.pl/api/data/meteo/id/252210050",
+  "sunsetUrl": "https://api.sunrise-sunset.org/json",
+  "lat": 52.15,
+  "lng": 21,
+  "tz": "Europe/Warsaw",
+  "icalUrl": "",
+  "checkinHour": 15,
+  "checkoutHour": 11,
+  "loginUrl": "",
+  "hotresRoomId": "dev-room",
+  "hotresAuthCode": "",
+  "hotresApiKey": "",
+  "hotresAddonsUrl": "",
+  "wifi": {
+    "name": "Demo Wi-Fi",
+    "ssid": "DemoHotel",
+    "pwd": "password",
+    "ip": "192.168.1.10"
+  },
+  "devices": [
+    {
+      "id": "jacuzzi-thermobox",
+      "name": "Jacuzzi",
+      "type": "jacuzzi",
+      "disabled": false,
+      "thermostat": "thermobox",
+      "sn": "MOCKJAC",
+      "totp": "",
+      "sessionDuration": 150,
+      "activeHysteresis": 1,
+      "idleHysteresis": 2,
+      "lowTempDefault": 37,
+      "lowTempIdleDefault": 32,
+      "lowTempThreshold": 15,
+      "midTempDefault": 36,
+      "midTempIdleDefault": 31,
+      "midTempThreshold": 25,
+      "highTempDefault": 35,
+      "highTempIdleDefault": 30,
+      "ecoTemp": 20,
+      "ecoHysteresis": 2,
+      "ecoModeTreshold": 12,
+      "minTemp": 30,
+      "maxTemp": 39
+    },
+    {
+      "id": "heating",
+      "name": "Heating",
+      "type": "heating",
+      "disabled": false,
+      "thermostat": "thermobox",
+      "sn": "MOCKHEAT",
+      "dayStart": 7,
+      "nightStart": 22,
+      "dayTemp": 21.5,
+      "nightTemp": 20.5,
+      "ecoTemp": 17,
+      "ecoModeTreshold": 12,
+      "minTemp": 18,
+      "maxTemp": 23,
+      "externalTempLimit": 18
+    },
+    {
+      "id": "sauna",
+      "name": "Sauna",
+      "type": "sauna",
+      "disabled": false,
+      "thermostat": "saunabox",
+      "ip": "127.0.0.1:9100/saunabox",
+      "sessionDuration": 120,
+      "defaultTemp": 85,
+      "minTemp": 50,
+      "maxTemp": 100
+    },
+    {
+      "id": "lights",
+      "name": "Lights",
+      "type": "light-switch",
+      "disabled": false,
+      "sn": "MOCKLSW",
+      "sessionDuration": 120,
+      "sunsetMode": {
+        "turnOnShift": 15,
+        "turnOffAt": "22:00",
+        "ecoMode": true
+      }
+    }
+  ]
+}

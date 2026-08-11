@@ -1,10 +1,11 @@
 {
   "name": "smartstay-local",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "private": true,
   "author": "Piotr Walczyszyn <piotr.walczyszyn@gmail.com>",
   "scripts": {
     "dev": "pnpm --parallel dev",
+    "dev:mock": "bash scripts/dev-with-mocks.sh",
     "typecheck": "pnpm -F frontend -F backend -r typecheck",
     "build": "pnpm -F frontend -F backend -r build",
     "start": "pnpm -F backend -r start",

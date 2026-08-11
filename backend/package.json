@@ -6,7 +6,8 @@
     "dev": "NODE_ENV=development DEBUG=* tsx watch src/index.ts",
     "start": "NODE_ENV=production DEBUG=*,-*:debug node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit && esbuild src/index.ts --bundle --platform=node --sourcemap --format=esm --target=es2022 --banner:js=\"import { createRequire as __ssCreateRequire } from 'node:module'; const require = __ssCreateRequire(import.meta.url);\" --outdir=./dist"
+    "build": "tsc --noEmit && esbuild src/index.ts --bundle --platform=node --sourcemap --format=esm --target=es2022 --banner:js=\"import { createRequire as __ssCreateRequire } from 'node:module'; const require = __ssCreateRequire(import.meta.url);\" --outdir=./dist",
+    "mock:devices": "tsx src/mocks/device-server.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",

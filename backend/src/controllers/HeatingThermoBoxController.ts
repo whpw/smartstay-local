@@ -27,6 +27,10 @@ import {
   type HeatingViewData,
 } from '@/models'
 import { enqueueStopEco } from '@/utils/reconcileSession'
+import {
+  bleboxApiPrefixFromInfoIp,
+  bleboxDiscoveryUrl,
+} from '@/utils/device-api'
 import { waitUntilReady } from '@/utils/waitUntilReady'
 import { TZDate } from '@date-fns/tz'
 import { hoursToMilliseconds } from 'date-fns'
@@ -348,7 +352,7 @@ export class HeatingThermoBoxController extends DevController<
     const isReconnect = !!this.deviceApi
 
     this.discoveryPromise = (async () => {
-      const apiUrl = `http://bbx-${this.config.sn}.local/info`
+      const apiUrl = bleboxDiscoveryUrl(this.config.sn)
 
       if (isReconnect) {
         this.logger.warn('Reconnecting to API at:', apiUrl)
@@ -383,7 +387,7 @@ export class HeatingThermoBoxController extends DevController<
       this.logger.info('Connected to API at:', device.ip)
 
       this.deviceApi = ky.create({
-        prefix: `http://${device.ip}`,
+        prefix: bleboxApiPrefixFromInfoIp(device.ip),
       })
     })().finally(() => {
       if (this.discoveryAbort === abort) {

@@ -26,6 +26,10 @@ import {
   isStopMessageCurrent,
   reconcileLoadedSession,
 } from '@/utils/reconcileSession'
+import {
+  bleboxApiPrefixFromInfoIp,
+  bleboxDiscoveryUrl,
+} from '@/utils/device-api'
 import { pushRemoteAlert } from '@/utils/remote-alerts'
 import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
 import { waitUntilReady } from '@/utils/waitUntilReady'
@@ -360,7 +364,7 @@ export class JacuzziThermoBoxController extends DevController<
     const isReconnect = !!this.deviceApi
 
     this.discoveryPromise = (async () => {
-      const apiUrl = `http://bbx-${this.config.sn}.local/info`
+      const apiUrl = bleboxDiscoveryUrl(this.config.sn)
 
       if (isReconnect) {
         this.logger.warn('Reconnecting to API at:', apiUrl)
@@ -395,7 +399,7 @@ export class JacuzziThermoBoxController extends DevController<
       this.logger.info('Connected to API at:', device.ip)
 
       this.deviceApi = ky.create({
-        prefix: `http://${device.ip}`,
+        prefix: bleboxApiPrefixFromInfoIp(device.ip),
       })
       this.unreachableMonitor.markSuccess()
     })().finally(() => {
