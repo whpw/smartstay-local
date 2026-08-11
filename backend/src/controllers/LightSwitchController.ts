@@ -20,6 +20,10 @@ import { sunset } from '@/cron/sunset'
 import { db, toKey } from '@/db'
 import { cancelPendingMessages, hasPendingMessage } from '@/queue'
 import { enqueueStopSession, isStopMessageCurrent } from '@/utils/reconcileSession'
+import {
+  bleboxApiPrefixFromInfoIp,
+  bleboxDiscoveryUrl,
+} from '@/utils/device-api'
 import { waitUntilReady } from '@/utils/waitUntilReady'
 import { TZDate } from '@date-fns/tz'
 import { CronJob, CronTime } from 'cron'
@@ -294,7 +298,7 @@ export class LightSwitchController extends DevController<
     const isReconnect = !!this.deviceApi
 
     this.discoveryPromise = (async () => {
-      const apiUrl = `http://bbx-${this.config.sn}.local/info`
+      const apiUrl = bleboxDiscoveryUrl(this.config.sn)
 
       if (isReconnect) {
         this.logger.warn('Reconnecting to API at:', apiUrl)
@@ -329,7 +333,7 @@ export class LightSwitchController extends DevController<
       this.logger.info('Connected to API at:', device.ip)
 
       this.deviceApi = ky.create({
-        prefixUrl: `http://${device.ip}`,
+        prefixUrl: bleboxApiPrefixFromInfoIp(device.ip),
       })
 
       const {

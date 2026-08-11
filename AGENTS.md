@@ -26,15 +26,32 @@ Standard scripts live in the root and workspace `package.json` files (`pnpm dev`
 `pnpm dev` runs both workspaces in parallel: **frontend** on `http://localhost:8080` (Vite, proxies
 `/api` → `:8081`) and **backend** on `http://localhost:8081`.
 
+#### With mocked devices (recommended for UI work)
+
+`pnpm dev:mock` starts a local HTTP mock for ThermoBox, SaunaBox, and LightSwitch on `:9100`, then
+runs `pnpm dev` with `MOCK_DEVICES=1` so BleBox controllers skip `.local` mDNS and talk to the mock.
+It copies [`backend/dev-config.example.json`](backend/dev-config.example.json) to
+`backend/appdata/dev-config.json` if that file is missing (devices use SNs `MOCKJAC` / `MOCKHEAT` /
+`MOCKLSW` and sauna `ip` `127.0.0.1:9100/saunabox`).
+
+```bash
+export PATH="$HOME/.nvm/versions/node/v24.10.0/bin:$PATH"
+pnpm dev:mock
+# → mock :9100, frontend :8080, backend :8081
+```
+
+Mock only: `pnpm -F @repo/backend mock:devices`. Override port with `MOCK_DEVICES_PORT`.
+
+#### Without mocks (config only)
+
 The non-obvious catch: **the backend refuses to boot without a remote app config.** On startup it
 `GET`s `CONFIG_API_URL` (with `Bearer CONFIG_API_KEY`) and, on failure, falls back to a cached config
 in `${APPDATA_DIR}/cache` — which is empty on a fresh VM, so boot aborts with "Local config not
 found". In production these point at the SmartStay panel API (secrets). For local dev there is no
 panel, so provide a self-contained config via a `data:` URL (Node `fetch`/`ky` accept `data:` URLs,
-so no mock server is needed). A ready-made dev config lives at
-`backend/appdata/dev-config.json` (this path is gitignored). If it is missing, recreate it with any
-valid `AppConfig` (see `backend/src/config/types.ts`); at minimum set `objectName`, numeric
-`lat`/`lng`, a `tz`, `checkinHour`/`checkoutHour`, a `hotresRoomId`, and a `devices` array.
+so no mock config server is needed). A ready-made example lives at
+`backend/dev-config.example.json`; copy it to `backend/appdata/dev-config.json` (gitignored) or use
+`pnpm dev:mock` which does that for you.
 
 Start the dev servers like this (from repo root):
 
@@ -42,6 +59,7 @@ Start the dev servers like this (from repo root):
 export PATH="$HOME/.nvm/versions/node/v24.10.0/bin:$PATH"
 export APPDATA_DIR="$PWD/backend/appdata"
 mkdir -p "$APPDATA_DIR"
+cp -n backend/dev-config.example.json backend/appdata/dev-config.json
 export CONFIG_API_URL="data:application/json,$(node -e 'console.log(encodeURIComponent(require("fs").readFileSync("backend/appdata/dev-config.json","utf8")))')"
 pnpm dev
 ```
@@ -52,9 +70,9 @@ flat-cache dir); other secrets like `CONFIG_API_KEY`, `CONFIG_API_URL`, `ADMIN_R
 existing env vars).
 
 Expected/harmless dev log noise once running: `Error updating local IP`, `Missing CONFIG_API_URL ...
-for heartbeat`, `Next reservation not found`, and repeated `LightSwitchController ... Failed to
-connect to API` retries — all because there is no real panel or device hardware. Device controllers
-retry hardware discovery forever in the background and do **not** block boot.
+for heartbeat`, `Next reservation not found`. Without `MOCK_DEVICES=1` and a running mock server,
+device controllers also log repeated `Failed to connect to API` retries — they do **not** block
+boot. With `pnpm dev:mock`, those discovery failures should stop once the mock is up.
 
 ### Logging in (guest flow)
 

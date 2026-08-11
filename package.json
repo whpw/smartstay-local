@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --parallel dev",
+    "dev:mock": "bash scripts/dev-with-mocks.sh",
     "build": "pnpm -F frontend -F backend -r build",
     "start": "pnpm -F backend -r start",
     "ncu": "ncu -w -u"
