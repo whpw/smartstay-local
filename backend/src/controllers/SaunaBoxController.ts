@@ -1,4 +1,4 @@
-import { action, computed, observable, runInAction, toJS } from 'mobx'
+import { actionBound, computed, observable, runInAction, toJS } from 'mobx'
 
 import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
@@ -68,9 +68,12 @@ export class SaunaBoxController extends DevController<
       defaultTemp: this.defaultTemp,
       sessionDuration: this.config.sessionDuration,
       pollingError: this.pollingError,
-      minTemp: this.config.minTemp,
-      maxTemp: this.config.maxTemp,
-      thermostat: this.config.thermostat,
+      minTemp: this.config.minTemp ?? 50,
+      maxTemp: this.config.maxTemp ?? 100,
+      thermostat:
+        this.config.thermostat === 'saunabox'
+          ? ('saunabox' as const)
+          : ('manual' as const),
     }
   }
 
@@ -85,7 +88,7 @@ export class SaunaBoxController extends DevController<
 
   @computed
   public get defaultTemp(): number {
-    return this.config.defaultTemp
+    return this.config.defaultTemp ?? 85
   }
 
   @computed
@@ -179,7 +182,7 @@ export class SaunaBoxController extends DevController<
     return this.viewData
   }
 
-  @action.bound
+  @actionBound
   public startSession(departureDate: string) {
     // Calculate max delay
     const maxDelay = new Date(departureDate).getTime() - Date.now()
@@ -208,10 +211,12 @@ export class SaunaBoxController extends DevController<
     return this.updateState(state, delay)
   }
 
-  @action.bound
+  @actionBound
   public async setSessionTemp(temp: number) {
     const { session } = this.persistentState
-    if (session && temp >= this.config.minTemp && temp <= this.config.maxTemp) {
+    const minTemp = this.config.minTemp ?? 50
+    const maxTemp = this.config.maxTemp ?? 100
+    if (session && temp >= minTemp && temp <= maxTemp) {
       const remainingMs = Math.max(session.endTime - Date.now(), 0)
 
       // Setting target temp
@@ -232,7 +237,7 @@ export class SaunaBoxController extends DevController<
     }
   }
 
-  @action.bound
+  @actionBound
   public stopSession() {
     // Creating idle state
     const idleState: JacuzziPersistentState = {
@@ -242,7 +247,7 @@ export class SaunaBoxController extends DevController<
     return this.updateState(idleState)
   }
 
-  @action.bound
+  @actionBound
   private loadCurrentState() {
     // Load current state
     const state = db().get<JacuzziPersistentState>(
@@ -269,7 +274,7 @@ export class SaunaBoxController extends DevController<
     return this.updateState(state)
   }
 
-  @action.bound
+  @actionBound
   private updateState(value: JacuzziPersistentState, expireIn?: number) {
     // Setting state
     this.persistentState = observable(value)
@@ -307,7 +312,7 @@ export class SaunaBoxController extends DevController<
       const url = `http://${this.config.ip}`
 
       const api = ky.create({
-        prefixUrl: url,
+        prefix: url,
       })
 
       if (isReconnect) {

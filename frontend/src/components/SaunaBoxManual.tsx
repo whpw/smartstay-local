@@ -35,16 +35,15 @@ export const SaunaBoxManual = ({
 
   const { mutate: startSession } = useMutation({
     mutationFn: async () => {
-      return authedClient.action
-        .$post({
-          json: {
-            deviceId,
-            action: {
-              type: 'START',
-            },
+      const res = await authedClient.action.$post({
+        json: {
+          deviceId,
+          action: {
+            type: 'START',
           },
-        })
-        .then((res) => res.json())
+        },
+      })
+      return res.json()
     },
     onSuccess: (data) => {
       if ('error' in data && data.error === 'REACHED_LIMIT') {
@@ -73,7 +72,12 @@ export const SaunaBoxManual = ({
   return (
     <BoxContainer
       title={
-        <Stack direction="row" alignItems="center" gap={1}>
+        <Stack
+          direction="row"
+          sx={{
+            alignItems: 'center',
+            gap: 1,
+          }}>
           <Box component="img" src={saunaIcon} sx={{ width: 24 }} />
           <>{viewData.name}</>
         </Stack>

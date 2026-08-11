@@ -27,15 +27,6 @@ export const LoginRoute = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const lastName = params.get('lastName')
-    const resNumber = params.get('resNumber')
-    if (lastName && resNumber) {
-      login({ lastName, resNumber })
-    }
-  }, [])
-
   const {
     mutate: login,
     data: authData,
@@ -70,6 +61,15 @@ export const LoginRoute = () => {
       navigate('/')
     },
   })
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const lastName = params.get('lastName')
+    const resNumber = params.get('resNumber')
+    if (lastName && resNumber) {
+      login({ lastName, resNumber })
+    }
+  }, [login])
 
   // Getting login error
   const loginError =

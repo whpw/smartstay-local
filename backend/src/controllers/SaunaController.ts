@@ -1,4 +1,4 @@
-import { action, computed, observable, toJS } from 'mobx'
+import { actionBound, computed, observable, toJS } from 'mobx'
 
 import {
   SaunaActionType,
@@ -12,6 +12,7 @@ import type { QueueMessage } from '@/queue'
 
 import { db, toKey } from '@/db'
 import { DevController, type SaunaConfig } from '@/devices/controller'
+import { cancelPendingMessages } from '@/queue'
 import {
   enqueueStopSession,
   isStopMessageCurrent,
@@ -47,11 +48,12 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
       session,
       currentTemp: this.currentTemp,
       sessionDuration: this.config.sessionDuration,
-      thermostat: this.config.thermostat,
+      // Minimal / thermobox / missing → manual timer UI (not saunabox).
+      thermostat: 'manual' as const,
       targetTemp: 0,
-      defaultTemp: this.config.defaultTemp,
-      minTemp: this.config.minTemp,
-      maxTemp: this.config.maxTemp,
+      defaultTemp: this.config.defaultTemp ?? 0,
+      minTemp: this.config.minTemp ?? 0,
+      maxTemp: this.config.maxTemp ?? 0,
       pollingError: false,
     }
   }
@@ -101,12 +103,18 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
           incrementSessionsCount(res, this.config.type)
         }
         break
+      case SaunaActionType.STOP:
+        {
+          cancelPendingMessages(this.config.id, 'stop-session')
+          await this.stopSession()
+        }
+        break
     }
 
     return this.viewData
   }
 
-  @action.bound
+  @actionBound
   public startSession(departureDate: string) {
     // Calculate max delay
     const maxDelay = new Date(departureDate).getTime() - Date.now()
@@ -139,7 +147,7 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
     enqueueStopSession(this.config.id, delay, session.endTime)
   }
 
-  @action.bound
+  @actionBound
   public stopSession() {
     // Creating state object
     const state: SaunaPersistentState = {
@@ -154,7 +162,7 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
     db().set(toKey('device-state', this.config.id), state)
   }
 
-  @action.bound
+  @actionBound
   private loadCurrentState() {
     // Load current state
     const state: SaunaPersistentState = db().get<SaunaPersistentState>(

@@ -1,26 +1,30 @@
 {
-  "name": "client-smartstay-app-hono",
+  "name": "smartstay-local",
   "version": "1.0.9",
   "private": true,
+  "author": "Piotr Walczyszyn <piotr.walczyszyn@gmail.com>",
   "scripts": {
     "dev": "pnpm --parallel dev",
     "dev:mock": "bash scripts/dev-with-mocks.sh",
+    "typecheck": "pnpm -F frontend -F backend -r typecheck",
     "build": "pnpm -F frontend -F backend -r build",
     "start": "pnpm -F backend -r start",
-    "ncu": "ncu -w -u"
-  },
-  "author": "Piotr Walczyszyn <piotr.walczyszyn@gmail.com>",
-  "devDependencies": {
-    "@tanstack/eslint-config": "^0.3.4",
-    "pnpm": "^10.28.2",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "format": "oxfmt --check .",
+    "format:fix": "oxfmt .",
+    "ncu": "ncu -w -u",
+    "prepare": "husky"
   },
   "dependencies": {
-    "@types/node": "^25.2.1"
+    "@types/node": "^26.2.0"
   },
-  "workspaces": [
-    "backend",
-    "frontend"
-  ]
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.3.0",
+    "oxfmt": "^0.63.0",
+    "oxlint": "^1.78.0",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2"
+  }
 }

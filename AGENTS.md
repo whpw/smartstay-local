@@ -4,27 +4,36 @@
 
 ### What this project is
 
-`client-smartstay-app-hono` is the on-site "room app" for SmartStay rental properties. It is a
-pnpm monorepo with two workspaces:
+`smartstay-local` is the on-site "room app" for SmartStay rental properties. It is a
+**pnpm** monorepo (`pnpm-workspace.yaml`) with two packages:
 
-- `backend/` — Hono API (Node, `tsx`/`esbuild`). Talks to physical devices (sauna, jacuzzi,
-  heating, light switches) on the local network and serves the built frontend in production.
-- `frontend/` — React 19 + Vite 7 + MUI guest UI.
+- `backend/` (`@repo/backend`) — Hono API (Node, `tsx` / `esbuild`). Talks to physical devices
+  (sauna, jacuzzi, heating, light switches) on the local network and serves the built frontend
+  in production.
+- `frontend/` (`@repo/frontend`) — React 19 + Vite 8 + MUI 9 guest UI.
 
-Standard scripts live in the root and workspace `package.json` files (`pnpm dev`, `pnpm build`,
-`pnpm start`); prefer those over re-deriving commands.
+### Package manager (required)
 
-### Node / package manager
+- **Always use `pnpm`.** Never use `npm`, `npx`, `yarn`, or `bun` for install/run/scripts.
+- Install: `pnpm install` from the repo root.
+- Run scripts via root `package.json` (`pnpm dev`, `pnpm build`, …) or filter packages
+  (`pnpm -F @repo/frontend …`, `pnpm -F @repo/backend …`). Prefer those over re-deriving commands.
+- Workspace membership is defined only in `pnpm-workspace.yaml` (not `package.json` `workspaces`).
 
-- Use Node **24.10.0** (pinned in `.nvmrc`) via nvm: `nvm use` (or prepend
-  `"$HOME/.nvm/versions/node/v24.10.0/bin"` to `PATH`). The base image's default `/exec-daemon/node`
-  is v22 and takes precedence on `PATH` unless you do this. Node 22 mostly works but 24 matches CI.
-- Dependencies are installed by the startup update script (`pnpm install`).
+### Node
+
+- Use Node **26.7.0** (pinned in `.nvmrc`) via nvm: `nvm use` (or prepend
+  `"$HOME/.nvm/versions/node/v26.7.0/bin"` to `PATH`). The base image's default `/exec-daemon/node`
+  is v22 and takes precedence on `PATH` unless you do this. Node 22 mostly works but 26 matches CI.
 
 ### Running the app (dev)
 
-`pnpm dev` runs both workspaces in parallel: **frontend** on `http://localhost:8080` (Vite, proxies
-`/api` → `:8081`) and **backend** on `http://localhost:8081`.
+`pnpm dev` runs both packages in parallel:
+
+| Service | URL |
+|---------|-----|
+| Frontend (Vite, proxies `/api` → `:8081`) | `http://localhost:8080` |
+| Backend (Hono) | `http://localhost:8081` |
 
 #### With mocked devices (recommended for UI work)
 
@@ -61,11 +70,12 @@ so no mock config server is needed). A ready-made example lives at
 Start the dev servers like this (from repo root):
 
 ```bash
-export PATH="$HOME/.nvm/versions/node/v24.10.0/bin:$PATH"
+export PATH="$HOME/.nvm/versions/node/v26.7.0/bin:$PATH"
 export APPDATA_DIR="$PWD/backend/appdata"
 mkdir -p "$APPDATA_DIR"
 cp -n backend/dev-config.example.json backend/appdata/dev-config.json
 export CONFIG_API_URL="data:application/json,$(node -e 'console.log(encodeURIComponent(require("fs").readFileSync("backend/appdata/dev-config.json","utf8")))')"
+pnpm install
 pnpm dev
 ```
 
@@ -82,16 +92,37 @@ boot. With `pnpm dev:mock`, those discovery failures should stop once the mock i
 ### Logging in (guest flow)
 
 With `NODE_ENV=development` (the `dev` script sets it), login is mocked: any reservation number works
-as long as the last name is **`test`** (see `backend/src/reservations/dev.ts`). So on the login page
+as long as the last name is **`test`** (see `backend/src/reservations/dev.ts`). On the login page
 enter last name `test` + any reservation number (e.g. `12345`) to reach the dashboard. There is also
 an admin path gated by `ADMIN_RES_NUMBER` / `ADMIN_LAST_NAME` env vars.
 
-### Lint / test / build
+### Scripts (repo root)
 
-- **Build:** `pnpm build` (frontend Vite build + backend esbuild bundle). Works out of the box.
-- **Tests:** there is no `test` script. The backend has plain `node:assert` scripts
-  (`backend/src/utils/*.test.ts`); run one with `pnpm --dir backend exec tsx src/utils/<name>.test.ts`
-  (exit 0 = pass). They are self-contained and need no running server.
-- **Lint:** there is no `lint` script and `eslint` is not a root dependency. The frontend
-  `eslint.config.js` currently fails with the installed `eslint-plugin-react-hooks` (flat-config
-  "plugins must be an object") — a pre-existing config issue, not an environment problem.
+| Command | Purpose |
+|---------|---------|
+| `pnpm install` | Install workspace deps |
+| `pnpm dev` | Frontend + backend in parallel |
+| `pnpm typecheck` | `tsc` in both packages |
+| `pnpm build` | Frontend Vite build + backend esbuild bundle |
+| `pnpm start` | Run production backend (`dist`) |
+| `pnpm lint` | oxlint (check) |
+| `pnpm lint:fix` | oxlint `--fix` |
+| `pnpm format` | oxfmt `--check` |
+| `pnpm format:fix` | oxfmt (write) |
+
+### Tests
+
+There is no root `test` script. The backend has plain `node:assert` scripts under
+`backend/src/utils/*.test.ts`; run one with:
+
+```bash
+pnpm --dir backend exec tsx src/utils/<name>.test.ts
+```
+
+(exit 0 = pass). They are self-contained and need no running server.
+
+### Lint / format / hooks
+
+- Lint/format tools live at the **repo root** (`oxlint`, `oxfmt`).
+- Pre-commit (husky → lint-staged): `oxfmt` on all staged files, `oxlint --fix` on JS/TS,
+  and `pnpm typecheck` once if any `.ts`/`.tsx` is staged.

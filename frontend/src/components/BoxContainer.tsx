@@ -24,14 +24,13 @@ export const BoxContainer = ({
         width: '100%',
         gap: 2,
         overflow: 'hidden',
-      }}
-    >
-      <Stack direction="row" justifyContent="space-between">
-        <Stack flexBasis="60%">
+      }}>
+      <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+        <Stack sx={{ flexBasis: '60%' }}>
           <Box sx={{ fontSize: 24, mb: 1 }}>{title}</Box>
           <Box>{ctaButton}</Box>
         </Stack>
-        <Stack alignItems="end">
+        <Stack sx={{ alignItems: 'end' }}>
           {targetTemp && <Box sx={{ fontSize: 28 }}>{targetTemp}</Box>}
           {currentTemp && (
             <Typography variant="caption">{currentTemp}</Typography>

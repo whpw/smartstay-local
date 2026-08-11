@@ -34,7 +34,7 @@ export const HeatingModal = ({
       setDayTemp(viewData.dayTemp)
       setNightTemp(viewData.nightTemp)
     }
-  }, [open])
+  }, [open, viewData.dayTemp, viewData.nightTemp])
 
   // Calculate ranges
   const dayRange = `(${viewData.dayStart}:00 - ${viewData.nightStart}:00)`
@@ -44,7 +44,12 @@ export const HeatingModal = ({
     <Dialog open={open} onClose={onClose} fullWidth>
       <DialogTitle>{t('devices.heating.title')}</DialogTitle>
       <DialogContent>
-        <Stack mt={2} gap={2}>
+        <Stack
+          sx={{
+            mt: 2,
+            gap: 2,
+          }}
+        >
           <HeatingSlider
             label={t('devices.heating.dayPart', {
               range: dayRange,
@@ -92,8 +97,14 @@ const HeatingSlider = ({
   max: number
 }) => {
   return (
-    <Stack gap={1}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
+    <Stack sx={{ gap: 1 }}>
+      <Stack
+        direction="row"
+        sx={{
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         <Typography sx={{ fontSize: 14, fontWeight: 'medium' }}>
           {label}
         </Typography>

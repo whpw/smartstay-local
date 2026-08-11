@@ -88,6 +88,7 @@ export type SaunaViewData = DeviceViewData & {
   maxTemp: number
   sessionDuration: number
   pollingError: boolean
+  /** `manual` covers omitted / thermobox / minimal timer-only saunas. */
   thermostat: 'saunabox' | 'manual'
 }
 

@@ -5,31 +5,33 @@
   "scripts": {
     "dev": "NODE_ENV=development DEBUG=* tsx watch src/index.ts",
     "start": "NODE_ENV=production DEBUG=*,-*:debug node dist/index.js",
-    "build": "esbuild src/index.ts --bundle --platform=node --sourcemap --format=esm --target=es2022 --banner:js=\"import { createRequire as __ssCreateRequire } from 'node:module'; const require = __ssCreateRequire(import.meta.url);\" --outdir=./dist",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit && esbuild src/index.ts --bundle --platform=node --sourcemap --format=esm --target=es2022 --banner:js=\"import { createRequire as __ssCreateRequire } from 'node:module'; const require = __ssCreateRequire(import.meta.url);\" --outdir=./dist",
     "mock:devices": "tsx src/mocks/device-server.ts"
   },
   "dependencies": {
-    "@date-fns/tz": "^1.4.1",
-    "@hono/node-server": "^1.19.9",
-    "@hono/zod-validator": "^0.7.6",
+    "@date-fns/tz": "^1.5.0",
+    "@hono/node-server": "^2.1.0",
+    "@hono/zod-validator": "^0.9.0",
     "address": "^2.0.3",
     "cron": "^4.4.0",
-    "date-fns": "^4.1.0",
-    "debug-logfmt": "^1.4.7",
-    "dotenv": "^17.2.3",
-    "flat-cache": "^6.1.20",
-    "hono": "^4.11.7",
+    "date-fns": "^4.4.0",
+    "debug-logfmt": "^1.4.15",
+    "dotenv": "^17.4.2",
+    "flat-cache": "^6.1.23",
+    "hono": "^4.13.1",
     "ical": "^0.8.0",
-    "ky": "^1.14.3",
-    "mobx": "^6.15.0",
+    "ky": "^2.0.2",
+    "mobx": "^7.0.0",
     "mustache": "^4.2.0",
     "superjson": "^2.2.6",
     "totp-generator": "^2.0.1",
-    "zod": "^4.3.6"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/ical": "^0.8.3",
     "@types/mustache": "^4.2.6",
-    "esbuild": "^0.27.2"
+    "esbuild": "^0.28.2",
+    "typescript": "~7.0.2"
   }
 }

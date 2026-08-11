@@ -22,7 +22,7 @@ export function bleboxDiscoveryUrl(sn: string): string {
   return `http://bbx-${sn}.local/info`
 }
 
-/** Build ky `prefixUrl` from the IP string returned by `/info`. */
+/** Build ky `prefix` from the IP string returned by `/info`. */
 export function bleboxApiPrefixFromInfoIp(ip: string): string {
   return `http://${ip}`
 }

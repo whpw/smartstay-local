@@ -79,7 +79,12 @@ export const HeatingBox = ({ deviceId }: { deviceId: string }) => {
   return (
     <BoxContainer
       title={
-        <Stack direction="row" alignItems="center" gap={1}>
+        <Stack
+          direction="row"
+          sx={{
+            alignItems: 'center',
+            gap: 1,
+          }}>
           <Box component="img" src={heaterIcon} sx={{ width: 24 }} />
           <>{viewData.name}</>
         </Stack>
