@@ -35,8 +35,9 @@ It copies [`backend/dev-config.example.json`](backend/dev-config.example.json) t
 `MOCKLSW` and sauna `ip` `127.0.0.1:9100/saunabox`). The script sets `weatherUrl` to the IMGW Pułtusk
 meteo station (`https://danepubliczne.imgw.pl/api/data/meteo/id/252210050`) — heating stays
 **active** only while average outdoor temp is below `externalTempLimit` (18°C) — and `sunsetUrl` to
-`https://api.sunrise-sunset.org/json` (lat/lng/date are appended by the backend). Lights follow
-sunset + `turnOnShift` until `turnOffAt` (22:00); before that window the UI shows **Włącz**.
+`https://api.sunrise-sunset.org/json` with `lat`/`lng` `52.15` / `21` (date is appended by the
+backend). Lights follow sunset + `turnOnShift` until `turnOffAt` (22:00); before that window the UI
+shows **Włącz**.
 
 ```bash
 export PATH="$HOME/.nvm/versions/node/v24.10.0/bin:$PATH"

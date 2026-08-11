@@ -23,14 +23,16 @@ if [[ ! -f "$DEV_CONFIG" ]]; then
   cp "$EXAMPLE_CONFIG" "$DEV_CONFIG"
 fi
 
-# Ensure IMGW weather + sunrise-sunset.org URLs. Restore lights turnOffAt if it was
-# closed for the earlier mock-only default (00:00).
+# Ensure IMGW weather + sunrise-sunset.org URLs and Warsaw-area lat/lng for sunset.
+# Restore lights turnOffAt if it was closed for the earlier mock-only default (00:00).
 node <<'NODE'
 const fs = require('fs')
 const path = process.env.DEV_CONFIG
 const weatherUrl =
   'https://danepubliczne.imgw.pl/api/data/meteo/id/252210050'
 const sunsetUrl = 'https://api.sunrise-sunset.org/json'
+const lat = 52.15
+const lng = 21
 const cfg = JSON.parse(fs.readFileSync(path, 'utf8'))
 let changed = false
 if (cfg.weatherUrl !== weatherUrl) {
@@ -42,6 +44,12 @@ if (cfg.sunsetUrl !== sunsetUrl) {
   cfg.sunsetUrl = sunsetUrl
   changed = true
   console.log(`[dev:mock] Set sunsetUrl → ${sunsetUrl}`)
+}
+if (cfg.lat !== lat || cfg.lng !== lng) {
+  cfg.lat = lat
+  cfg.lng = lng
+  changed = true
+  console.log(`[dev:mock] Set lat/lng → ${lat}, ${lng} (sunset API)`)
 }
 for (const device of cfg.devices || []) {
   if (device.type === 'light-switch' && device.sunsetMode?.turnOffAt === '00:00') {
