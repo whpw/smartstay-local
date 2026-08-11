@@ -1,6 +1,6 @@
 {
   "name": "smartstay-local",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "private": true,
   "author": "Piotr Walczyszyn <piotr.walczyszyn@gmail.com>",
   "scripts": {
