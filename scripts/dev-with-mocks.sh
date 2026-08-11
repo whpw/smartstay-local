@@ -23,20 +23,20 @@ if [[ ! -f "$DEV_CONFIG" ]]; then
   cp "$EXAMPLE_CONFIG" "$DEV_CONFIG"
 fi
 
-# Ensure mock weather URL (heating stays on) and lights default off (Włącz, not Wyłącz).
+# Ensure IMGW weather URL and lights default off (Włącz, not Wyłącz).
 # Sunset auto-on uses default 17:00 when sunsetUrl is empty; after that window starts the
 # schedule fires immediately. turnOffAt 00:00 closes today's window so lights stay idle.
 node <<'NODE'
 const fs = require('fs')
 const path = process.env.DEV_CONFIG
-const port = process.env.MOCK_DEVICES_PORT || '9100'
-const weatherUrl = `http://127.0.0.1:${port}/weather`
+const weatherUrl =
+  'https://danepubliczne.imgw.pl/api/data/meteo/id/252210050'
 const cfg = JSON.parse(fs.readFileSync(path, 'utf8'))
 let changed = false
 if (cfg.weatherUrl !== weatherUrl) {
   cfg.weatherUrl = weatherUrl
   changed = true
-  console.log(`[dev:mock] Set weatherUrl → ${weatherUrl} (enables heating)`)
+  console.log(`[dev:mock] Set weatherUrl → ${weatherUrl}`)
 }
 for (const device of cfg.devices || []) {
   if (device.type === 'light-switch' && device.sunsetMode?.turnOffAt !== '00:00') {

@@ -32,10 +32,11 @@ Standard scripts live in the root and workspace `package.json` files (`pnpm dev`
 runs `pnpm dev` with `MOCK_DEVICES=1` so BleBox controllers skip `.local` mDNS and talk to the mock.
 It copies [`backend/dev-config.example.json`](backend/dev-config.example.json) to
 `backend/appdata/dev-config.json` if that file is missing (devices use SNs `MOCKJAC` / `MOCKHEAT` /
-`MOCKLSW` and sauna `ip` `127.0.0.1:9100/saunabox`). The script also points `weatherUrl` at the
-mock (`http://127.0.0.1:9100/weather`, outdoor 5°C) so heating stays **active** (it turns off when
-average outdoor temp is at or above `externalTempLimit`), and sets light-switch `sunsetMode.turnOffAt`
-to `00:00` so sunset auto-on does not fire and the UI shows **Włącz** by default.
+`MOCKLSW` and sauna `ip` `127.0.0.1:9100/saunabox`). The script sets `weatherUrl` to the IMGW Pułtusk
+meteo station (`https://danepubliczne.imgw.pl/api/data/meteo/id/252210050`) — heating stays
+**active** only while average outdoor temp is below `externalTempLimit` (18°C) — and sets
+light-switch `sunsetMode.turnOffAt` to `00:00` so sunset auto-on does not fire and the UI shows
+**Włącz** by default.
 
 ```bash
 export PATH="$HOME/.nvm/versions/node/v24.10.0/bin:$PATH"

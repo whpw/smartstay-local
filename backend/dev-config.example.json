@@ -2,7 +2,7 @@
   "objectName": "Demo Hotel",
   "roomName": "Room 101",
   "apiKey": "dev-mock-api-key",
-  "weatherUrl": "http://127.0.0.1:9100/weather",
+  "weatherUrl": "https://danepubliczne.imgw.pl/api/data/meteo/id/252210050",
   "sunsetUrl": "",
   "lat": 52.15,
   "lng": 21,
