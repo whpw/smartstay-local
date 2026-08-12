@@ -1,13 +1,17 @@
-# Allow the smartstay user to stop/start the system unit during OTA.
+# Allow the smartstay user to stop/start the system unit during OTA, and to
+# reboot the host when the panel queues a remote reboot.
 # Install once on the host (requires root):
 #   sudo cp /home/smartstay/smartstay-local/current/scripts/smartstay-systemctl.sudoers \
 #     /etc/sudoers.d/smartstay-systemctl
 #   sudo chmod 440 /etc/sudoers.d/smartstay-systemctl
 #
-# Without this, apply-update.sh cannot systemctl start/stop the system unit.
+# Without this, apply-update.sh cannot systemctl start/stop the system unit,
+# and panel-triggered host reboot will fail.
 # Prefer scripts/install-host.sh which installs this drop-in.
+# Existing hosts: re-copy this file after upgrading to pick up reboot rules.
 
 # Match whichever path sudo resolves (merged /bin→/usr/bin on many hosts).
 Cmnd_Alias SMARTSTAY_SYSTEMCTL = /bin/systemctl stop smartstay, /bin/systemctl start smartstay, /bin/systemctl restart smartstay, /bin/systemctl is-active smartstay, /usr/bin/systemctl stop smartstay, /usr/bin/systemctl start smartstay, /usr/bin/systemctl restart smartstay, /usr/bin/systemctl is-active smartstay
+Cmnd_Alias SMARTSTAY_REBOOT = /sbin/reboot, /usr/sbin/reboot, /bin/systemctl reboot, /usr/bin/systemctl reboot
 
-smartstay ALL=(root) NOPASSWD: SMARTSTAY_SYSTEMCTL
+smartstay ALL=(root) NOPASSWD: SMARTSTAY_SYSTEMCTL, SMARTSTAY_REBOOT

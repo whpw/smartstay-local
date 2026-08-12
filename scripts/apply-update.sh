@@ -10,7 +10,7 @@
 #   $(dirname $SMARTSTAY_HOME)/appdata/   durable state
 #
 # The service unit is a *system* unit (User=smartstay). OTA runs as smartstay, so
-# passwordless sudo for systemctl is required:
+# passwordless sudo for systemctl (OTA) and reboot (panel remote reboot) is required:
 #   See scripts/smartstay-systemctl.sudoers.
 set -euo pipefail
 

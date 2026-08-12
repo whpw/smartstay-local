@@ -22,6 +22,7 @@ type HeartbeatResponse = {
   desiredVersion: string | null
   downloadUrl: string | null
   sha256: string | null
+  reboot?: boolean
 }
 
 type UpdateStatus =
@@ -106,7 +107,10 @@ async function downloadArtifact(
   await writeFile(destPath, buffer)
 }
 
-function resolveInstalledApplyScript(installRoot: string, smartstayHome: string) {
+function resolveInstalledApplyScript(
+  installRoot: string,
+  smartstayHome: string,
+) {
   const fromEnv = process.env.APPLY_UPDATE_SCRIPT
   if (fromEnv) {
     return fromEnv
@@ -281,11 +285,7 @@ function exitIfDiskVersionAhead() {
 }
 
 async function applyPendingUpdate(response: HeartbeatResponse) {
-  if (
-    !response.desiredVersion ||
-    !response.downloadUrl ||
-    !response.sha256
-  ) {
+  if (!response.desiredVersion || !response.downloadUrl || !response.sha256) {
     return
   }
 
@@ -318,11 +318,7 @@ async function applyPendingUpdate(response: HeartbeatResponse) {
       updateError: null,
     })
 
-    await downloadArtifact(
-      response.downloadUrl,
-      archivePath,
-      response.sha256,
-    )
+    await downloadArtifact(response.downloadUrl, archivePath, response.sha256)
 
     await postHeartbeat({
       version: APP_VERSION,
@@ -365,6 +361,53 @@ async function applyPendingUpdate(response: HeartbeatResponse) {
   }
 }
 
+/**
+ * Full OS reboot requested by the panel. Prefer passwordless sudo (see
+ * scripts/smartstay-systemctl.sudoers). Skipped outside production so local
+ * `pnpm dev` never power-cycles the developer machine.
+ */
+function rebootHost() {
+  if (process.env.NODE_ENV !== 'production') {
+    logger.warn(
+      'Panel requested host reboot, but NODE_ENV is not production — skipping',
+    )
+    return
+  }
+
+  const candidates = [
+    ['sudo', '-n', '/sbin/reboot'],
+    ['sudo', '-n', '/usr/sbin/reboot'],
+    ['sudo', '-n', 'systemctl', 'reboot'],
+  ] as const
+
+  for (const args of candidates) {
+    const [cmd, ...cmdArgs] = args
+    logger.info(`Attempting host reboot via: ${args.join(' ')}`)
+    const result = spawnSync(cmd, cmdArgs, {
+      encoding: 'utf8',
+      timeout: 15_000,
+    })
+    if (result.error) {
+      logger.warn(
+        `Reboot command failed to start (${args.join(' ')}): ${result.error.message}`,
+      )
+      continue
+    }
+    if (result.status === 0) {
+      logger.info('Host reboot initiated')
+      return
+    }
+    const stderr = (result.stderr || result.stdout || '').trim()
+    logger.warn(
+      `Reboot command exited ${result.status} (${args.join(' ')}): ${stderr || '<no output>'}`,
+    )
+  }
+
+  logger.error(
+    'Failed to reboot host — ensure scripts/smartstay-systemctl.sudoers is installed in /etc/sudoers.d/',
+  )
+}
+
 export async function updateCheck() {
   logger.debug('Running update heartbeat…')
   try {
@@ -384,7 +427,7 @@ export async function updateCheck() {
     }
 
     logger.info(
-      `Heartbeat ok — version=${APP_VERSION} latest=${response.latestVersion} desired=${response.desiredVersion}`,
+      `Heartbeat ok — version=${APP_VERSION} latest=${response.latestVersion} desired=${response.desiredVersion} reboot=${response.reboot === true}`,
     )
 
     if (
@@ -394,6 +437,15 @@ export async function updateCheck() {
       response.sha256
     ) {
       await applyPendingUpdate(response)
+      return
+    }
+
+    if (response.reboot === true) {
+      if (updating) {
+        logger.info('Skipping host reboot — update already in progress')
+        return
+      }
+      rebootHost()
     }
   } catch (error) {
     logger.error('Update heartbeat failed:', error)
