@@ -1,5 +1,9 @@
 import { APP_VERSION, readDiskVersion, resolveInstallRoot } from '@/version'
 import { resolveAppdataDir, resolveSmartstayHome } from '@/paths'
+import {
+  collectHeartbeatTelemetry,
+  type HeartbeatTelemetry,
+} from '@/utils/heartbeat-telemetry'
 import { logger } from '@/utils/logger'
 import { ip } from 'address'
 import { CronJob } from 'cron'
@@ -57,6 +61,7 @@ async function postHeartbeat(body: {
   ip?: string
   updateStatus?: UpdateStatus
   updateError?: string | null
+  telemetry?: HeartbeatTelemetry
 }): Promise<HeartbeatResponse | null> {
   const configApiUrl = process.env.CONFIG_API_URL
   const apiKey = process.env.CONFIG_API_KEY
@@ -417,9 +422,17 @@ export async function updateCheck() {
     await reportOtaResultIfAny(installRoot)
 
     const networkAddr = ip()
+    let telemetry: HeartbeatTelemetry | undefined
+    try {
+      telemetry = collectHeartbeatTelemetry()
+    } catch (error) {
+      logger.warn('Failed to collect device telemetry for heartbeat:', error)
+    }
+
     const response = await postHeartbeat({
       version: APP_VERSION,
       ...(networkAddr ? { ip: networkAddr } : {}),
+      ...(telemetry ? { telemetry } : {}),
     })
 
     if (!response) {
