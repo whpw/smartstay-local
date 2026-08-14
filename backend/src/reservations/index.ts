@@ -11,8 +11,8 @@ import {
 import { DAO } from '@/utils/DAO'
 import { logger } from '@/utils/logger'
 import { isWithinInterval, setHours } from 'date-fns'
-import Mustache from 'mustache'
 import { adminRes } from './admin'
+import { renderAddonsUrl } from './addons-url'
 import { devRes } from './dev'
 
 const isDev = () => process.env.NODE_ENV === 'development'
@@ -27,7 +27,7 @@ export function normalizeLastName(lastName: string) {
 
 export async function getResDetails(
   resNumber: string,
-  lastName: string
+  lastName: string,
 ): Promise<ResDetails> {
   // Checking if it's admin
   const isAdmin =
@@ -55,7 +55,7 @@ export async function getResDetails(
   if (Array.isArray(res)) {
     logger.error(
       'Error getting reservation from Hotres: Invalid response:',
-      res
+      res,
     )
     throw {
       code: 'login.error',
@@ -128,7 +128,7 @@ export async function getResDetails(
       $AddonMode.safeParse(addonMode).success
     ) {
       const existing = acc.find(
-        (a) => a.type === deviceType && a.mode === addonMode
+        (a) => a.type === deviceType && a.mode === addonMode,
       )
       if (existing) {
         existing.quantity += parseInt(addon.quantity)
@@ -154,7 +154,8 @@ export async function getResDetails(
     firstName: res.first_name,
     lastName: res.last_name,
     addons,
-    addonsUrl: Mustache.render(appConfig.hotresAddonsUrl, {
+    addonsUrl: renderAddonsUrl({
+      oid: appConfig.hotresObjectId ?? '',
       resId: res.id,
       resAuth: res.auth,
     }),
