@@ -11,8 +11,8 @@ import {
 import { DAO } from '@/utils/DAO'
 import { logger } from '@/utils/logger'
 import { isWithinInterval, setHours } from 'date-fns'
+import Mustache from 'mustache'
 import { adminRes } from './admin'
-import { renderAddonsUrl } from './addons-url'
 import { devRes } from './dev'
 
 const isDev = () => process.env.NODE_ENV === 'development'
@@ -154,7 +154,7 @@ export async function getResDetails(
     firstName: res.first_name,
     lastName: res.last_name,
     addons,
-    addonsUrl: renderAddonsUrl({
+    addonsUrl: Mustache.render(appConfig.hotresAddonsUrl || '', {
       oid: appConfig.hotresObjectId ?? '',
       resId: res.id,
       resAuth: res.auth,

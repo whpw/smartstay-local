@@ -33,6 +33,7 @@ export type AppConfig = {
   hotresAuthCode: string
   hotresApiKey: string
   hotresObjectId?: string
+  hotresAddonsUrl: string
   devices: Array<DeviceConfig>
   wifi: {
     name: string
