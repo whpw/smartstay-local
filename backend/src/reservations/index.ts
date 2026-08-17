@@ -10,7 +10,7 @@ import {
 } from '@/models/ResDetails'
 import { DAO } from '@/utils/DAO'
 import { logger } from '@/utils/logger'
-import { isWithinInterval, setHours } from 'date-fns'
+import { isNowInStay, stayWindow } from '@/utils/stay-window'
 import Mustache from 'mustache'
 import { adminRes } from './admin'
 import { devRes } from './dev'
@@ -78,9 +78,6 @@ export async function getResDetails(
     }
   }
 
-  // Getting checkin and checkout dates
-  const now = new Date()
-
   // Getting room
   const room = res.rooms.find((room) => room.room_id === appConfig.hotresRoomId)
 
@@ -90,19 +87,21 @@ export async function getResDetails(
     }
   }
 
-  const arrDate = setHours(room.arrival_date, appConfig.checkinHour)
-  const depDate = setHours(room.departure_date, appConfig.checkoutHour)
+  const window = stayWindow(
+    room.arrival_date,
+    room.departure_date,
+    appConfig.checkinHour,
+    appConfig.checkoutHour,
+    appConfig.tz,
+  )
 
-  const isNow = isWithinInterval(now, {
-    start: arrDate,
-    end: depDate,
-  })
-
-  if (!isNow) {
+  if (!window || !isNowInStay(window)) {
     throw {
       code: 'login.errorNotArrivedYet',
     }
   }
+
+  const { start: arrDate, end: depDate } = window
 
   // Getting all addons from reservation
   const allAddons = [
