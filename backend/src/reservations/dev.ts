@@ -10,6 +10,7 @@ export const devRes = () =>
     first_name: 'John',
     last_name: 'test',
     email: 'johndoe@wp.pl',
+    number_str: 'dev-number-str',
     auth: 'xxx',
     rooms: [
       {
@@ -33,4 +34,4 @@ export const devRes = () =>
         quantity: '1',
       },
     ],
-  } as unknown as HotresReservationDTO)
+  }) as unknown as HotresReservationDTO
