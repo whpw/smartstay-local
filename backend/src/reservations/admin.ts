@@ -10,6 +10,7 @@ export const adminRes = () =>
     first_name: process.env.ADMIN_LAST_NAME,
     last_name: process.env.ADMIN_LAST_NAME,
     email: '',
+    number_str: '',
     auth: '',
     rooms: [
       {
@@ -33,4 +34,4 @@ export const adminRes = () =>
         quantity: '1',
       },
     ],
-  } as unknown as HotresReservationDTO)
+  }) as unknown as HotresReservationDTO

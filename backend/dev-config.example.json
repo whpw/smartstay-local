@@ -15,7 +15,7 @@
   "hotresAuthCode": "",
   "hotresApiKey": "",
   "hotresObjectId": "2660",
-  "hotresAddonsUrl": "https://booking.hotres.pl/v4_upselling?oid=2660&id={{resId}}&auth={{resAuth}}",
+  "hotresAddonsUrl": "https://booking.hotres.pl/upsell/{{number_str}}/{{resId}}",
   "wifi": {
     "name": "Demo Wi-Fi",
     "ssid": "DemoHotel",

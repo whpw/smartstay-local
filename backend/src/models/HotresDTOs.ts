@@ -39,7 +39,9 @@ export interface HotresPaymentDTO {
 export interface HotresReservationDTO {
   id: string
   number: string
-  auth: string
+  /** Public extras-page token; previously `auth`. */
+  number_str: string
+  auth?: string
   add_date: string
   mod_date: string
   payment_date: string | null
