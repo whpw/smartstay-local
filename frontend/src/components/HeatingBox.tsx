@@ -100,7 +100,7 @@ export const HeatingBox = ({ deviceId }: { deviceId: string }) => {
         )
       }
       currentTemp={
-        isTurnedOff
+        isTurnedOff || viewData.currentTemp === viewData.targetTemp
           ? undefined
           : t('devices.now', { temp: viewData.currentTemp })
       }

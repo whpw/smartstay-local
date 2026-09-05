@@ -8,6 +8,7 @@ import Button from '@mui/material/Button'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AppDialog } from './AppDialog'
+import { formatClock } from '@/utils/formatRemaining'
 
 const MINUTE = 60_000
 
@@ -29,9 +30,7 @@ export default function SaunaStartButton({
 
   const onStartClick = () => {
     const end = new Date(Date.now() + viewData.sessionDuration * MINUTE)
-    setNewSessionEnd(
-      end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    )
+    setNewSessionEnd(formatClock(end))
     setOpen(true)
   }
 

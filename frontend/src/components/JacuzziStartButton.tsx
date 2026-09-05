@@ -10,6 +10,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { JacuzziViewData } from '@backend/models'
+import { formatClock } from '@/utils/formatRemaining'
 import { AppDialog } from './AppDialog'
 
 const MINUTE = 60_000
@@ -38,9 +39,7 @@ export default function JacuzziStartButton({
 
   const onStartClick = () => {
     const end = new Date(Date.now() + viewData.sessionDuration * MINUTE)
-    setNewSessionEnd(
-      end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    )
+    setNewSessionEnd(formatClock(end))
     setRulesChecks({ shower: false, noLiquids: false, noAnimals: false })
     setOpen(true)
   }

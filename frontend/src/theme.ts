@@ -159,6 +159,7 @@ export const theme = createTheme({
         paper: {
           margin: 0,
           width: '100%',
+          maxWidth: '100%',
           maxHeight: '92dvh',
           borderRadius: '28px 28px 0 0',
           '@media (min-width: 600px)': {

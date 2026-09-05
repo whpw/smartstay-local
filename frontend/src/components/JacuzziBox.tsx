@@ -123,11 +123,17 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
         />
       }
       currentTemp={
-        initializing
+        initializing || !isRunning
           ? undefined
           : t('devices.now', { temp: viewData.currentTemp })
       }
-      targetTemp={initializing ? undefined : viewData.targetTemp}
+      targetTemp={
+        initializing
+          ? undefined
+          : isRunning
+            ? viewData.targetTemp
+            : viewData.currentTemp
+      }
     >
       {isRunning && (
         <TempSlider
