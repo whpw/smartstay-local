@@ -1,9 +1,10 @@
 {
   "login": {
-    "title": "Login",
+    "title": "Welcome",
+    "subtitle": "Use the last name and number from your booking",
     "resNumber": "Reservation number",
     "lastName": "Last name",
-    "submit": "Login",
+    "submit": "Continue",
     "error": "Login failed :(",
     "errorEmpty": "Please fill all fields",
     "errorNotArrivedYet": "Login is possible only during stay."
@@ -25,6 +26,7 @@
     "start": "Start"
   },
   "devices": {
+    "now": "Now {{temp}}°",
     "polling-error": "Connection error :(",
     "jacuzzi": {
       "start": "Start",

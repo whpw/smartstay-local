@@ -7,7 +7,6 @@ import { LightSwitchBox } from '../components/LightSwitchBox'
 import { SaunaBox } from '../components/SaunaBox'
 
 export const HomeRoute = () => {
-  // Devices query
   const { data } = useQuery({
     queryKey: ['devices'],
     queryFn: () => authedClient.devices.$get().then((res) => res.json()),
@@ -16,11 +15,12 @@ export const HomeRoute = () => {
 
   return (
     <Stack
-      spacing={2}
+      spacing={1.5}
       sx={{
-        alignItems: 'center',
-        mb: 2,
-      }}>
+        alignItems: 'stretch',
+        pb: 2,
+      }}
+    >
       {data.map((device) => {
         switch (device.type) {
           case 'sauna':

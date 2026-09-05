@@ -4,7 +4,6 @@ import {
   AccordionDetails,
   AccordionSummary,
   Box,
-  Stack,
   Typography,
 } from '@mui/material'
 import { useCallback, useState } from 'react'
@@ -15,10 +14,11 @@ import { UpsellModal } from './UpsellModal'
 
 import saunaIcon from '@/assets/sauna.png'
 import { authedClient } from '@/dao'
+import { formatRemaining } from '@/utils/formatRemaining'
 import { isSessionRunning } from '@/utils/isSessionRunning'
 import type { SaunaViewData } from '@backend/models'
 import { useMutation } from '@tanstack/react-query'
-import { BoxContainer } from './BoxContainer'
+import { DeviceCard } from './DeviceCard'
 
 export const SaunaBoxManual = ({
   viewData,
@@ -50,75 +50,83 @@ export const SaunaBoxManual = ({
         setUpsellingModalOpen(true)
         return
       }
-      // Setting da
       setViewData(data as SaunaViewData)
     },
   })
 
-  // Calculating duration that is left
   const duration = useCallback(() => {
     return Math.max((viewData?.session?.endTime ?? 0) - Date.now(), 0)
   }, [viewData])
 
-  // Checking if session is running
   const isRunning = isSessionRunning(viewData?.session?.endTime)
 
   const onConfirmedStartClick = () => {
     startSession()
   }
 
-  if (!viewData) return <div>Loading...</div>
-
   return (
-    <BoxContainer
-      title={
-        <Stack
-          direction="row"
-          sx={{
-            alignItems: 'center',
-            gap: 1,
-          }}>
-          <Box component="img" src={saunaIcon} sx={{ width: 24 }} />
-          <>{viewData.name}</>
-        </Stack>
+    <DeviceCard
+      tone="sauna"
+      active={isRunning}
+      icon={<Box component="img" src={saunaIcon} alt="" />}
+      title={viewData.name}
+      status={
+        isRunning ? (
+          <Typography
+            variant="caption"
+            color="secondary"
+            sx={{ fontWeight: 600 }}
+          >
+            {t('devices.sauna.ends-in', {
+              time: formatRemaining(duration()),
+            })}
+          </Typography>
+        ) : null
       }
-      ctaButton={
+      action={
         <SaunaStartButton
           isRunning={isRunning}
-          duration={duration()}
           viewData={viewData}
           onConfirmedStartClick={onConfirmedStartClick}
         />
       }
     >
       {isRunning && (
-        <Box sx={{ mt: 2 }}>
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography className="font-semibold">
-                {t('devices.sauna.instructions.title')}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <ol className="list-decimal">
-                {t('devices.sauna.instructions.details', {
-                  defaultValue: '',
-                })
-                  .split('\n')
-                  .map((line, index) => (
-                    <li key={index} className="first:mt-0 mt-4">
-                      {line}
-                    </li>
-                  ))}
-              </ol>
-            </AccordionDetails>
-          </Accordion>
-        </Box>
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography sx={{ fontWeight: 600, fontSize: 14 }}>
+              {t('devices.sauna.instructions.title')}
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Box
+              component="ol"
+              sx={{
+                m: 0,
+                pl: 2.5,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1.5,
+                color: 'text.secondary',
+                fontSize: 14,
+                lineHeight: 1.5,
+              }}
+            >
+              {t('devices.sauna.instructions.details', {
+                defaultValue: '',
+              })
+                .split('\n')
+                .map((line, index) => (
+                  <li key={index}>{line}</li>
+                ))}
+            </Box>
+          </AccordionDetails>
+        </Accordion>
       )}
       <UpsellModal
         open={upsellingModalOpen}
         handleClose={() => setUpsellingModalOpen(false)}
       />
-    </BoxContainer>
+    </DeviceCard>
   )
 }
