@@ -1,3 +1,4 @@
+import { deviceColors } from '@/theme'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import {
   Accordion,
@@ -19,6 +20,7 @@ import { isSessionRunning } from '@/utils/isSessionRunning'
 import type { SaunaViewData } from '@backend/models'
 import { useMutation } from '@tanstack/react-query'
 import { BoxContainer } from './BoxContainer'
+import { DeviceCardSkeleton } from './DeviceCardSkeleton'
 
 export const SaunaBoxManual = ({
   viewData,
@@ -67,18 +69,25 @@ export const SaunaBoxManual = ({
     startSession()
   }
 
-  if (!viewData) return <div>Loading...</div>
+  if (!viewData) return <DeviceCardSkeleton />
 
   return (
     <BoxContainer
+      accent={deviceColors.sauna}
       title={
         <Stack
           direction="row"
           sx={{
             alignItems: 'center',
             gap: 1,
-          }}>
-          <Box component="img" src={saunaIcon} sx={{ width: 24 }} />
+          }}
+        >
+          <Box
+            component="img"
+            src={saunaIcon}
+            alt=""
+            sx={{ width: 28, height: 28, objectFit: 'contain' }}
+          />
           <>{viewData.name}</>
         </Stack>
       }
@@ -95,22 +104,30 @@ export const SaunaBoxManual = ({
         <Box sx={{ mt: 2 }}>
           <Accordion>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography className="font-semibold">
+              <Typography sx={{ fontWeight: 600 }}>
                 {t('devices.sauna.instructions.title')}
               </Typography>
             </AccordionSummary>
             <AccordionDetails>
-              <ol className="list-decimal">
+              <Box
+                component="ol"
+                sx={{
+                  m: 0,
+                  pl: 2.5,
+                  '& li': { mb: 1.5 },
+                  '& li:last-child': { mb: 0 },
+                }}
+              >
                 {t('devices.sauna.instructions.details', {
                   defaultValue: '',
                 })
                   .split('\n')
                   .map((line, index) => (
-                    <li key={index} className="first:mt-0 mt-4">
+                    <Box component="li" key={index}>
                       {line}
-                    </li>
+                    </Box>
                   ))}
-              </ol>
+              </Box>
             </AccordionDetails>
           </Accordion>
         </Box>

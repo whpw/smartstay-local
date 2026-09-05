@@ -1,3 +1,4 @@
+import { deviceColors } from '@/theme'
 import { Box, Slider, Stack } from '@mui/material'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -12,6 +13,7 @@ import { BoxContainer } from './BoxContainer'
 import { UpsellModal } from './UpsellModal'
 
 import jacuzziIcon from '@/assets/jacuzzi.png'
+import { DeviceCardSkeleton } from './DeviceCardSkeleton'
 import { PollingErrorCover } from './PollingErrorCover'
 
 export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
@@ -23,7 +25,7 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
 
   // Target temp
   const [targetTemp, setTargetTemp] = useState<number | undefined>(
-    viewData?.targetTemp ? viewData.targetTemp : 0
+    viewData?.targetTemp ? viewData.targetTemp : 0,
   )
 
   const [upsellingModalOpen, setUpsellingModalOpen] = useState(false)
@@ -93,18 +95,25 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
   }
 
   // Checking if data is loaded
-  if (!viewData) return <div>Loading...</div>
+  if (!viewData) return <DeviceCardSkeleton />
 
   return (
     <BoxContainer
+      accent={deviceColors.jacuzzi}
       title={
         <Stack
           direction="row"
           sx={{
             alignItems: 'center',
             gap: 1,
-          }}>
-          <Box component="img" src={jacuzziIcon} sx={{ width: 24 }} />
+          }}
+        >
+          <Box
+            component="img"
+            src={jacuzziIcon}
+            alt=""
+            sx={{ width: 28, height: 28, objectFit: 'contain' }}
+          />
           <>{viewData.name}</>
         </Stack>
       }
@@ -128,41 +137,37 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
       })}
     >
       {isRunning && (
-        <Box>
-          <Stack
-            spacing={2}
-            direction="row"
-            sx={{ alignItems: 'center', mb: 2, px: 2 }}>
-            <Slider
-              aria-label={t('devices.jacuzzi.slider.title')}
-              min={viewData.minTemp}
-              max={viewData.maxTemp}
-              value={targetTemp}
-              disabled={viewData.pollingError}
-              marks={[
-                {
-                  value: viewData.minTemp,
-                  label: `${viewData.minTemp}°C`,
-                },
-                {
-                  value: viewData.defaultTemp,
-                  label: `${viewData.defaultTemp}°C`,
-                },
-                {
-                  value: viewData.maxTemp,
-                  label: `${viewData.maxTemp}°C`,
-                },
-              ]}
-              valueLabelDisplay="auto"
-              onChange={(_e, value) => {
-                setTargetTemp(value)
-              }}
-              onChangeCommitted={(_e, value) => {
-                setTargetTemp(value)
-                onTemperatureChange(value)
-              }}
-            />
-          </Stack>
+        <Box sx={{ px: { xs: 0, sm: 1 } }}>
+          <Slider
+            sx={{ width: '100%' }}
+            aria-label={t('devices.jacuzzi.slider.title')}
+            min={viewData.minTemp}
+            max={viewData.maxTemp}
+            value={targetTemp}
+            disabled={viewData.pollingError}
+            marks={[
+              {
+                value: viewData.minTemp,
+                label: `${viewData.minTemp}°C`,
+              },
+              {
+                value: viewData.defaultTemp,
+                label: `${viewData.defaultTemp}°C`,
+              },
+              {
+                value: viewData.maxTemp,
+                label: `${viewData.maxTemp}°C`,
+              },
+            ]}
+            valueLabelDisplay="auto"
+            onChange={(_e, value) => {
+              setTargetTemp(value)
+            }}
+            onChangeCommitted={(_e, value) => {
+              setTargetTemp(value)
+              onTemperatureChange(value)
+            }}
+          />
         </Box>
       )}
 

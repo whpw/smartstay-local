@@ -1,3 +1,4 @@
+import { deviceColors } from '@/theme'
 import heaterIcon from '@/assets/heater.png'
 import { authedClient } from '@/dao'
 import type { HeatingViewData } from '@/models'
@@ -78,14 +79,21 @@ export const HeatingBox = ({ deviceId }: { deviceId: string }) => {
 
   return (
     <BoxContainer
+      accent={deviceColors.heating}
       title={
         <Stack
           direction="row"
           sx={{
             alignItems: 'center',
             gap: 1,
-          }}>
-          <Box component="img" src={heaterIcon} sx={{ width: 24 }} />
+          }}
+        >
+          <Box
+            component="img"
+            src={heaterIcon}
+            alt=""
+            sx={{ width: 28, height: 28, objectFit: 'contain' }}
+          />
           <>{viewData.name}</>
         </Stack>
       }

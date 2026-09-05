@@ -1,3 +1,4 @@
+import { deviceColors } from '@/theme'
 import { Box, Button, Stack } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -6,6 +7,7 @@ import lightIcon from '@/assets/light.png'
 import { authedClient } from '@/dao'
 import { type SwitchBoxViewData } from '@backend/models'
 import { useMutation } from '@tanstack/react-query'
+import { DeviceCardSkeleton } from './DeviceCardSkeleton'
 import { BoxContainer } from './BoxContainer'
 
 export const LightSwitchBox = ({ deviceId }: { deviceId: string }) => {
@@ -47,18 +49,25 @@ export const LightSwitchBox = ({ deviceId }: { deviceId: string }) => {
     }
   }, [deviceId])
 
-  if (!viewData) return null
+  if (!viewData) return <DeviceCardSkeleton />
 
   return (
     <BoxContainer
+      accent={deviceColors.light}
       title={
         <Stack
           direction="row"
           sx={{
             alignItems: 'center',
             gap: 1,
-          }}>
-          <Box component="img" src={lightIcon} sx={{ width: 24 }} />
+          }}
+        >
+          <Box
+            component="img"
+            src={lightIcon}
+            alt=""
+            sx={{ width: 28, height: 28, objectFit: 'contain' }}
+          />
           <>{viewData.name}</>
         </Stack>
       }
@@ -79,7 +88,7 @@ export const LightSwitchBox = ({ deviceId }: { deviceId: string }) => {
             : t('devices.light-switch.on')}
         </Button>
       }
-      targetTemp="&nbsp;"
+      targetTemp={undefined}
       currentTemp={
         viewData.state === 'initializing'
           ? t('devices.light-switch.initializing')

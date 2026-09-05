@@ -31,5 +31,5 @@ createRoot(document.getElementById('root')!).render(
         </QueryClientProvider>
       </ThemeProvider>
     </CacheProvider>
-  </StrictMode>
+  </StrictMode>,
 )

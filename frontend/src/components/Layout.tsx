@@ -2,6 +2,7 @@ import { infoClient } from '@/dao'
 import {
   Box,
   Container,
+  Skeleton,
   Stack,
   Typography,
   useColorScheme,
@@ -26,26 +27,51 @@ export const Layout = () => {
   return (
     <Container
       component="main"
+      maxWidth="sm"
+      disableGutters
       sx={{
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        mt: 8,
-      }}>
-      <Stack sx={{ alignItems: 'center', gap: 2, mb: 3 }}>
-        <Box component="img" src={logo} alt="logo" sx={{ width: 300 }} />
-        <Typography variant="h6" color="textSecondary" sx={{ fontSize: 24 }}>
-          {data?.objectName}
-        </Typography>
+        minHeight: '100dvh',
+        px: { xs: 2, sm: 3 },
+        pt: 'calc(var(--safe-top) + 24px)',
+        pb: 'calc(var(--safe-bottom) + 24px)',
+      }}
+    >
+      <Stack
+        sx={{
+          alignItems: 'center',
+          gap: 1,
+          mb: { xs: 3, sm: 4 },
+          width: '100%',
+        }}
+      >
+        <Box
+          component="img"
+          src={logo}
+          alt="SmartStay"
+          sx={{
+            width: { xs: 180, sm: 220 },
+            height: 'auto',
+          }}
+        />
+        {data?.objectName ? (
+          <Typography
+            variant="subtitle1"
+            color="text.secondary"
+            align="center"
+            sx={{ fontSize: { xs: '0.9375rem', sm: '1rem' } }}
+          >
+            {data.objectName}
+          </Typography>
+        ) : (
+          <Skeleton variant="text" width={160} height={24} />
+        )}
       </Stack>
 
-      <Box
-        sx={{
-          flex: 1,
-          flexBasis: '100%',
-          width: '100%',
-        }}>
+      <Box sx={{ flex: 1, width: '100%' }}>
         <Outlet />
       </Box>
     </Container>

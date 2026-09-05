@@ -1,3 +1,4 @@
+import { deviceColors } from '@/theme'
 import { Box, Button, Slider, Stack } from '@mui/material'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -93,37 +94,39 @@ export const SaunaBoxAuto = ({
     startSession()
   }
 
-  if (!viewData) return <div>Loading...</div>
+  if (!viewData) return null
 
   return (
     <BoxContainer
+      accent={deviceColors.sauna}
       title={
         <Stack
           direction="row"
           sx={{
             alignItems: 'center',
             gap: 1,
-          }}>
-          <Box component="img" src={saunaIcon} sx={{ width: 24 }} />
+          }}
+        >
+          <Box
+            component="img"
+            src={saunaIcon}
+            alt=""
+            sx={{ width: 28, height: 28, objectFit: 'contain' }}
+          />
           <>{viewData.name}</>
         </Stack>
       }
       ctaButton={
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 2,
-          }}>
+        <>
           {isRunning && (
-            <Box>
-              <Button
-                type="button"
-                variant="contained"
-                onClick={() => onStop()}
-              >
-                {t('devices.sauna.stop')}
-              </Button>
-            </Box>
+            <Button
+              type="button"
+              variant="outlined"
+              color="inherit"
+              onClick={() => onStop()}
+            >
+              {t('devices.sauna.stop')}
+            </Button>
           )}
           <SaunaStartButton
             isRunning={isRunning}
@@ -132,7 +135,7 @@ export const SaunaBoxAuto = ({
             onConfirmedStartClick={onConfirmedStartClick}
             showDetailsAccordion={false}
           />
-        </Box>
+        </>
       }
       currentTemp={
         viewData.state === 'initializing'
@@ -146,41 +149,37 @@ export const SaunaBoxAuto = ({
       })}
     >
       {isRunning && (
-        <Box>
-          <Stack
-            spacing={2}
-            direction="row"
-            sx={{ alignItems: 'center', mb: 2, px: 2 }}>
-            <Slider
-              aria-label={t('devices.sauna.slider.title')}
-              min={viewData.minTemp}
-              max={viewData.maxTemp}
-              value={targetTemp}
-              disabled={viewData.pollingError}
-              marks={[
-                {
-                  value: viewData.minTemp,
-                  label: `${viewData.minTemp}°C`,
-                },
-                {
-                  value: viewData.defaultTemp,
-                  label: `${viewData.defaultTemp}°C`,
-                },
-                {
-                  value: viewData.maxTemp,
-                  label: `${viewData.maxTemp}°C`,
-                },
-              ]}
-              valueLabelDisplay="auto"
-              onChange={(_e, value) => {
-                setTargetTemp(value)
-              }}
-              onChangeCommitted={(_e, value) => {
-                setTargetTemp(value)
-                onTemperatureChange(value)
-              }}
-            />
-          </Stack>
+        <Box sx={{ px: { xs: 0, sm: 1 } }}>
+          <Slider
+            sx={{ width: '100%' }}
+            aria-label={t('devices.sauna.slider.title')}
+            min={viewData.minTemp}
+            max={viewData.maxTemp}
+            value={targetTemp}
+            disabled={viewData.pollingError}
+            marks={[
+              {
+                value: viewData.minTemp,
+                label: `${viewData.minTemp}°C`,
+              },
+              {
+                value: viewData.defaultTemp,
+                label: `${viewData.defaultTemp}°C`,
+              },
+              {
+                value: viewData.maxTemp,
+                label: `${viewData.maxTemp}°C`,
+              },
+            ]}
+            valueLabelDisplay="auto"
+            onChange={(_e, value) => {
+              setTargetTemp(value)
+            }}
+            onChangeCommitted={(_e, value) => {
+              setTargetTemp(value)
+              onTemperatureChange(value)
+            }}
+          />
         </Box>
       )}
 
