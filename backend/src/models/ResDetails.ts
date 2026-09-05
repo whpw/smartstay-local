@@ -14,6 +14,14 @@ export const $AddonDTO = z.object({
   type: $DeviceType,
   mode: $AddonMode,
   quantity: z.number(),
+  /** Present on entitlements granted by this app, not purchased in Hotres. */
+  complimentary: z.boolean().optional(),
+})
+
+export const $ComplimentaryAddon = z.object({
+  type: $DeviceType,
+  mode: $AddonMode,
+  quantity: z.number().int().positive(),
 })
 
 export const $ResDetails = z.object({
@@ -29,5 +37,6 @@ export const $ResDetails = z.object({
 })
 
 export type AddonDTO = z.infer<typeof $AddonDTO>
+export type ComplimentaryAddon = z.infer<typeof $ComplimentaryAddon>
 export type ResDetails = z.infer<typeof $ResDetails>
 export type AddonMode = z.infer<typeof $AddonMode>
