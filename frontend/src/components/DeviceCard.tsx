@@ -79,7 +79,14 @@ export const DeviceCard = ({
           {status}
         </Box>
         {!hasTemp && action != null && (
-          <Box sx={{ flexShrink: 0 }}>{action}</Box>
+          <Box
+            sx={{
+              flexShrink: 0,
+              '& .MuiButton-root': { minWidth: 112 },
+            }}
+          >
+            {action}
+          </Box>
         )}
       </Stack>
 

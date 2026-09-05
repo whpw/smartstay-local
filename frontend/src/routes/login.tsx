@@ -1,7 +1,7 @@
 import { authClient } from '@/dao'
 import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { useMutation } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 
@@ -17,6 +17,7 @@ const isError = (data: unknown): data is { code: string } => {
 export const LoginRoute = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const [emptyError, setEmptyError] = useState(false)
 
   const {
     mutate: login,
@@ -88,12 +89,12 @@ export const LoginRoute = () => {
         {t('login.subtitle')}
       </Typography>
 
-      {loginError && (
+      {(emptyError || loginError) && (
         <Alert severity="error" sx={{ mb: 2.5 }}>
-          {
-            // @ts-expect-error
-            t(loginError.code)
-          }
+          {emptyError
+            ? t('login.errorEmpty')
+            : // @ts-expect-error
+              t(loginError.code)}
         </Alert>
       )}
 
@@ -103,8 +104,13 @@ export const LoginRoute = () => {
         onSubmit={(e) => {
           e.preventDefault()
           const formData = new FormData(e.currentTarget)
-          const resNumber = formData.get('resNumber') as string
-          const lastName = formData.get('lastName') as string
+          const resNumber = (formData.get('resNumber') as string).trim()
+          const lastName = (formData.get('lastName') as string).trim()
+          if (!resNumber || !lastName) {
+            setEmptyError(true)
+            return
+          }
+          setEmptyError(false)
           login({ resNumber, lastName })
         }}
       >
@@ -137,7 +143,7 @@ export const LoginRoute = () => {
             variant="contained"
             size="large"
             fullWidth
-            disabled={isPending}
+            loading={isPending}
           >
             {t('login.submit')}
           </Button>
