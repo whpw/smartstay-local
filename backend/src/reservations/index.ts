@@ -1,19 +1,17 @@
 import { appConfig } from '@/config'
-import { $DeviceType, type DeviceType } from '@/config/types'
 import type { HotresReservationDTO } from '@/models/HotresDTOs'
-import {
-  $AddonMode,
-  $ResDetails,
-  type AddonDTO,
-  type AddonMode,
-  type ResDetails,
-} from '@/models/ResDetails'
+import { $ResDetails, type ResDetails } from '@/models/ResDetails'
 import { DAO } from '@/utils/DAO'
 import { logger } from '@/utils/logger'
 import { isNowInStay, stayWindow } from '@/utils/stay-window'
 import { adminRes } from './admin'
 import { renderAddonsUrl } from './addons-url'
+import {
+  applyComplimentaryAddons,
+  normalizeComplimentaryAddons,
+} from './complimentary-addons'
 import { devRes } from './dev'
+import { parseHotresAddons } from './parse-addons'
 
 const isDev = () => process.env.NODE_ENV === 'development'
 
@@ -111,37 +109,15 @@ export async function getResDetails(
     ...(res.rooms || []).flatMap((room) => room.addons || []),
   ]
 
-  // Filtering jacuzzi and sauna addons
-  const addons = allAddons.reduce((acc, addon) => {
-    // Getting device type and addon mode
-    const title = addon.title.toLowerCase()
-    // Getting device type and addon mode from title
-    const [, deviceType, addonMode] =
-      title.match(/\[kod: (\w+)-((\w|-)+)\]/) || []
-
-    // Checking if device type and addon mode are valid
-    if (
-      deviceType &&
-      addonMode &&
-      $DeviceType.safeParse(deviceType).success &&
-      $AddonMode.safeParse(addonMode).success
-    ) {
-      const existing = acc.find(
-        (a) => a.type === deviceType && a.mode === addonMode,
-      )
-      if (existing) {
-        existing.quantity += parseInt(addon.quantity)
-      } else {
-        acc.push({
-          type: deviceType as DeviceType,
-          mode: addonMode as AddonMode,
-          quantity: parseInt(addon.quantity),
-        })
-      }
-    }
-
-    return acc
-  }, [] as Array<AddonDTO>)
+  const reservationAddons = parseHotresAddons(allAddons)
+  const complimentaryAddons = applyComplimentaryAddons(
+    resNumber,
+    depDate,
+    reservationAddons,
+    normalizeComplimentaryAddons(appConfig.complimentaryAddons),
+  )
+  // Complimentary first so session counters consume free entitlement before paid
+  const addons = [...complimentaryAddons, ...reservationAddons]
 
   // Creating JWT res object
   return {

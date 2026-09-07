@@ -16,6 +16,13 @@
   "hotresApiKey": "",
   "hotresObjectId": "2660",
   "hotresAddonsUrl": "https://booking.hotres.pl/upsell/{{number_str}}/{{resId}}",
+  "complimentaryAddons": [
+    {
+      "type": "jacuzzi",
+      "mode": "per-session",
+      "quantity": 1
+    }
+  ],
   "wifi": {
     "name": "Demo Wi-Fi",
     "ssid": "DemoHotel",

@@ -19,7 +19,7 @@ function getSessionsSum(
   res: ResDetails,
   deviceType: DeviceType,
   addonMode: AddonMode,
-  untilDate: string
+  untilDate: string,
 ) {
   // We need to check how many sessions we had in previous days
   const days = eachDayOfInterval({
@@ -38,54 +38,63 @@ function getSessionsSum(
           addonMode,
           formatISO(day, {
             representation: 'date',
-          })
-        )
+          }),
+        ),
       ) || 0
     return acc + sessions
   }, 0)
+}
+
+export function addonQuantity(
+  addons: ResDetails['addons'],
+  deviceType: DeviceType,
+  addonMode: AddonMode,
+) {
+  return addons
+    .filter((addon) => addon.type === deviceType && addon.mode === addonMode)
+    .reduce((sum, addon) => sum + addon.quantity, 0)
 }
 
 function canStartToday(res: ResDetails, deviceType: DeviceType, today: string) {
   const resNumber = res.number
   const resAddons = res.addons
 
-  const deviceAddons = resAddons.filter((addon) => addon.type === deviceType)
+  const perSessionQty = addonQuantity(resAddons, deviceType, 'per-session')
+  const perDayQty = addonQuantity(resAddons, deviceType, 'per-day')
+  const perStayQty = addonQuantity(resAddons, deviceType, 'per-stay')
 
-  return deviceAddons
-    .map((addon) => {
-      switch (addon.mode) {
-        case 'per-session': {
-          const sessions =
-            db().get<number>(
-              toKey('sessions', deviceType, resNumber, 'per-session')
-            ) || 0
-          return sessions < addon.quantity
-        }
-        case 'per-day': {
-          // Getting todays sessions
-          const sessions =
-            db().get<number>(
-              toKey('sessions', deviceType, resNumber, 'per-day', today)
-            ) || 0
+  if (perStayQty > 0) {
+    return true
+  }
 
-          // If started today we can allow more sessions
-          if (sessions > 0) {
-            return true
-          }
+  if (perSessionQty > 0) {
+    const sessions =
+      db().get<number>(
+        toKey('sessions', deviceType, resNumber, 'per-session'),
+      ) || 0
+    if (sessions < perSessionQty) {
+      return true
+    }
+  }
 
-          // Otherwise we need to calculate sessions sum from previous days
-          const allSessions = getSessionsSum(res, deviceType, addon.mode, today)
+  if (perDayQty > 0) {
+    const sessions =
+      db().get<number>(
+        toKey('sessions', deviceType, resNumber, 'per-day', today),
+      ) || 0
 
-          // Checking if we can start session
-          return allSessions < addon.quantity
-        }
-        case 'per-stay': {
-          // If per-stay is unlimited, return true
-          return true
-        }
-      }
-    })
-    .some((result) => result)
+    // If started today we can allow more sessions
+    if (sessions > 0) {
+      return true
+    }
+
+    const allSessions = getSessionsSum(res, deviceType, 'per-day', today)
+    if (allSessions < perDayQty) {
+      return true
+    }
+  }
+
+  return false
 }
 
 export async function canStartSession(res: ResDetails, deviceType: DeviceType) {
@@ -101,7 +110,7 @@ export async function canStartSession(res: ResDetails, deviceType: DeviceType) {
     const resDetails = await getResDetails(res.number, res.lastName).catch(
       (error) => {
         logger.error('Error getting reservation details', error)
-      }
+      },
     )
 
     // If we can't get reservation details, let's return true
@@ -118,7 +127,7 @@ export async function canStartSession(res: ResDetails, deviceType: DeviceType) {
 
 export function incrementSessionsCount(
   res: ResDetails,
-  deviceType: DeviceType
+  deviceType: DeviceType,
 ) {
   // Getting today
   const today = getToday()
@@ -129,44 +138,35 @@ export function incrementSessionsCount(
 
   function incrementSessions(
     key: string,
-    addonMode: 'per-session' | 'per-day'
+    addonMode: 'per-session' | 'per-day',
   ) {
-    // Getting addon
-    const addon = resAddons.find(
-      (resAddon) => resAddon.type === deviceType && resAddon.mode === addonMode
-    )
+    // Complimentary + paid of the same type+mode share one counter.
+    // Complimentary entries are listed first, so the first N uses are free.
+    const quantity = addonQuantity(resAddons, deviceType, addonMode)
+    if (quantity <= 0) {
+      return false
+    }
 
-    // If addon exists
-    if (addon) {
-      // Getting today sessions count
-      const keySessions = db().get<number>(key) || 0
+    const keySessions = db().get<number>(key) || 0
 
-      // It doesn't make sense to increment per-day if
-      // we already incremented it today
-      if (addonMode !== 'per-session' && keySessions > 0) {
-        return true
-      }
+    // It doesn't make sense to increment per-day if
+    // we already incremented it today
+    if (addonMode !== 'per-session' && keySessions > 0) {
+      return true
+    }
 
-      // Checking if we can increment sessions count
-      if (keySessions < addon.quantity) {
-        // Expire in 1 week from departure date
-        const expireIn =
-          new Date(res.departureDate).getTime() - Date.now() + WEEK
-
-        // Set incremented sessions count
-        db().set(key, keySessions + 1, expireIn)
-
-        // Return true
-        return true
-      }
+    if (keySessions < quantity) {
+      const expireIn = new Date(res.departureDate).getTime() - Date.now() + WEEK
+      db().set(key, keySessions + 1, expireIn)
+      return true
     }
     return false
   }
 
-  // First check per-session
+  // First check per-session (complimentary quota is consumed before paid)
   let incremented = incrementSessions(
     toKey('sessions', deviceType, resNumber, 'per-session'),
-    'per-session'
+    'per-session',
   )
   if (incremented) {
     return
@@ -175,7 +175,7 @@ export function incrementSessionsCount(
   // Next check per-day
   incremented = incrementSessions(
     toKey('sessions', deviceType, resNumber, 'per-day', today),
-    'per-day'
+    'per-day',
   )
   if (incremented) {
     return

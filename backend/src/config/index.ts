@@ -1,4 +1,5 @@
 import { db } from '@/db'
+import { normalizeComplimentaryAddons } from '@/reservations/complimentary-addons'
 import { logger } from '@/utils/logger'
 import ky from 'ky'
 import type { AppConfig } from './types'
@@ -55,6 +56,10 @@ export async function initConfig() {
     loadedConfig.lat = 52.15
     loadedConfig.lng = 21
   }
+
+  loadedConfig.complimentaryAddons = normalizeComplimentaryAddons(
+    loadedConfig.complimentaryAddons,
+  )
 
   // Assigning config to the exported variable
   appConfig = loadedConfig

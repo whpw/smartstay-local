@@ -34,6 +34,16 @@ export type AppConfig = {
   hotresApiKey: string
   hotresObjectId?: string
   hotresAddonsUrl: string
+  /**
+   * Addons granted once per reservation when Hotres does not already include
+   * the same type+mode. Omit or pass `[]` for no complimentary grants.
+   * Example: `{ "type": "jacuzzi", "mode": "per-session", "quantity": 1 }`
+   */
+  complimentaryAddons?: Array<{
+    type: DeviceType
+    mode: 'per-session' | 'per-day' | 'per-stay'
+    quantity: number
+  }>
   devices: Array<DeviceConfig>
   wifi: {
     name: string

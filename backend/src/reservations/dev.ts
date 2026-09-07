@@ -26,10 +26,6 @@ export const devRes = () =>
     ],
     addons: [
       {
-        title: 'jedna sesja jacuzzi [kod: jacuzzi-per-session]',
-        quantity: '100',
-      },
-      {
         title: 'Sauna na cały pobyt [kod: sauna-per-stay]',
         quantity: '1',
       },
