@@ -7,19 +7,11 @@ import {
 
 const WEEK = 60 * 60 * 24 * 7
 
-/** Used when panel config omits `complimentaryAddons`. Pass `[]` to disable. */
-export const DEFAULT_COMPLIMENTARY_ADDONS: ComplimentaryAddon[] = [
-  { type: 'jacuzzi', mode: 'per-session', quantity: 1 },
-]
-
 export function normalizeComplimentaryAddons(
   value: unknown,
 ): ComplimentaryAddon[] {
-  if (value === undefined || value === null) {
-    return DEFAULT_COMPLIMENTARY_ADDONS
-  }
   if (!Array.isArray(value)) {
-    return DEFAULT_COMPLIMENTARY_ADDONS
+    return []
   }
   return value.flatMap((item) => {
     const parsed = $ComplimentaryAddon.safeParse(item)
@@ -44,13 +36,14 @@ export function resolveComplimentaryAddons({
   previouslyGranted: ComplimentaryAddon[]
 }): { addons: AddonDTO[]; grantsToPersist: ComplimentaryAddon[] } {
   const grantsToPersist = [...previouslyGranted]
-  const addons: AddonDTO[] = previouslyGranted.map((grant) => ({
-    ...grant,
-    complimentary: true,
-  }))
+  const addons: AddonDTO[] = []
 
   for (const configuredAddon of configured) {
-    if (grantsToPersist.some((grant) => sameAddon(grant, configuredAddon))) {
+    const existingGrant = grantsToPersist.find((grant) =>
+      sameAddon(grant, configuredAddon),
+    )
+    if (existingGrant) {
+      addons.push({ ...existingGrant, complimentary: true })
       continue
     }
     if (reservationAddons.some((addon) => sameAddon(addon, configuredAddon))) {
