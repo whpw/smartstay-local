@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Container,
   Paper,
   Stack,
   TextField,
@@ -47,11 +46,8 @@ export const LoginRoute = () => {
         },
       })
 
-      // If response is not 200, throw error
       if (res.status !== 200) {
-        // Log error
         console.error('Error logging in:', res.statusText)
-        // Return error json
         throw await res.json().catch(() => {
           return { code: 'login.error' }
         })
@@ -71,25 +67,31 @@ export const LoginRoute = () => {
     }
   }, [login])
 
-  // Getting login error
   const loginError =
     (isError(authError) && authError) || (isError(authData) && authData)
 
   return (
-    <Container maxWidth="md" sx={{ mt: 2 }}>
-      <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-        <Typography
-          variant="h5"
-          component="h2"
-          gutterBottom
-          align="center"
-          sx={{ mb: 3 }}
-        >
-          {t('login.title')}
-        </Typography>
+    <Box sx={{ width: '100%', maxWidth: 400, mx: 'auto' }}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 3, sm: 4 },
+          border: '1px solid',
+          borderColor: 'divider',
+          boxShadow: '0 4px 24px rgba(0, 0, 0, 0.08)',
+        }}
+      >
+        <Stack spacing={1} sx={{ mb: 3, textAlign: 'center' }}>
+          <Typography variant="h5" component="h1">
+            {t('login.title')}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {t('login.subtitle', { defaultValue: 'Wprowadź dane rezerwacji' })}
+          </Typography>
+        </Stack>
 
         {loginError && (
-          <Alert severity="error" sx={{ mb: 3 }}>
+          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
             {
               // @ts-expect-error
               t(loginError.code)
@@ -108,11 +110,12 @@ export const LoginRoute = () => {
             login({ resNumber, lastName })
           }}
         >
-          <Stack spacing={3}>
+          <Stack spacing={2.5}>
             <TextField
               name="lastName"
-              placeholder={t('login.lastName')}
-              variant="outlined"
+              label={t('login.lastName')}
+              autoComplete="family-name"
+              autoCapitalize="words"
               fullWidth
               required
               disabled={isPending}
@@ -120,8 +123,9 @@ export const LoginRoute = () => {
 
             <TextField
               name="resNumber"
-              placeholder={t('login.resNumber')}
-              variant="outlined"
+              label={t('login.resNumber')}
+              inputMode="numeric"
+              autoComplete="off"
               fullWidth
               required
               disabled={isPending}
@@ -132,14 +136,14 @@ export const LoginRoute = () => {
               variant="contained"
               size="large"
               fullWidth
-              sx={{ mt: 2 }}
               disabled={isPending}
+              sx={{ mt: 1 }}
             >
               {t('login.submit')}
             </Button>
           </Stack>
         </Box>
       </Paper>
-    </Container>
+    </Box>
   )
 }

@@ -1,20 +1,24 @@
 import type { SaunaViewData } from '@backend/models'
 import { TZDate } from '@date-fns/tz'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import { Box } from '@mui/material'
+import CloseIcon from '@mui/icons-material/Close'
+import {
+  Box,
+  Button,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  IconButton,
+} from '@mui/material'
 import Accordion from '@mui/material/Accordion'
 import AccordionDetails from '@mui/material/AccordionDetails'
 import AccordionSummary from '@mui/material/AccordionSummary'
-import Button from '@mui/material/Button'
-import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
-import DialogContent from '@mui/material/DialogContent'
-import DialogContentText from '@mui/material/DialogContentText'
-import DialogTitle from '@mui/material/DialogTitle'
 import Typography from '@mui/material/Typography'
 import { lightFormat } from 'date-fns'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { MobileDialog } from './MobileDialog'
 
 const MINUTE = 60_000
 
@@ -32,7 +36,6 @@ export default function SaunaStartButton({
   showDetailsAccordion?: boolean
 }) {
   const [open, setOpen] = useState(false)
-  // Time when new session will end
   const [newSessionEnd, setNewSessionEnd] = useState<string | null>(null)
 
   const handleClose = () => setOpen(false)
@@ -46,7 +49,7 @@ export default function SaunaStartButton({
   const { t } = useTranslation()
 
   return (
-    <div>
+    <>
       <Button
         type="button"
         onClick={onStartClick}
@@ -63,29 +66,63 @@ export default function SaunaStartButton({
             })
           : t('devices.sauna.start')}
       </Button>
-      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>{t('devices.sauna.modal.title')}</DialogTitle>
+      <MobileDialog open={open} onClose={handleClose}>
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            pr: 1,
+          }}
+        >
+          {t('devices.sauna.modal.title')}
+          <IconButton onClick={handleClose} edge="end" aria-label="close">
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
         <DialogContent>
-          <DialogContentText>
+          <DialogContentText sx={{ fontSize: '1rem' }}>
             {t('devices.sauna.modal.until', {
               time: newSessionEnd,
             })}
           </DialogContentText>
           {showDetailsAccordion ? (
-            <Accordion sx={{ mt: 2 }}>
+            <Accordion
+              sx={{
+                mt: 2,
+                boxShadow: 'none',
+                border: 1,
+                borderColor: 'divider',
+              }}
+            >
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography>{t('devices.sauna.modal.more-info')}</Typography>
+                <Typography sx={{ fontWeight: 500 }}>
+                  {t('devices.sauna.modal.more-info')}
+                </Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <Typography>{t('devices.sauna.modal.details')}</Typography>
+                <Typography variant="body2">
+                  {t('devices.sauna.modal.details')}
+                </Typography>
               </AccordionDetails>
             </Accordion>
           ) : (
-            <Box sx={{ minWidth: 300 }}></Box>
+            <Box sx={{ minHeight: 8 }} />
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>
+        <DialogActions
+          sx={{
+            p: 2,
+            pt: 0,
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: 1,
+          }}
+        >
+          <Button
+            onClick={handleClose}
+            fullWidth
+            sx={{ order: { xs: 2, sm: 1 } }}
+          >
             {t('devices.sauna.modal.cancel')}
           </Button>
           <Button
@@ -94,11 +131,13 @@ export default function SaunaStartButton({
               handleClose()
             }}
             variant="contained"
+            fullWidth
+            sx={{ order: { xs: 1, sm: 2 } }}
           >
             {t('devices.sauna.modal.start')}
           </Button>
         </DialogActions>
-      </Dialog>
-    </div>
+      </MobileDialog>
+    </>
   )
 }
