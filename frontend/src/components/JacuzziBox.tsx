@@ -94,7 +94,6 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
 
   return (
     <DeviceCard
-      tone="jacuzzi"
       active={isRunning}
       icon={<Box component="img" src={jacuzziIcon} alt="" />}
       title={viewData.name}
@@ -106,7 +105,7 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
         ) : isRunning ? (
           <Typography
             variant="caption"
-            color="secondary"
+            color="text.secondary"
             sx={{ fontWeight: 600 }}
           >
             {t('devices.jacuzzi.ends-in', {

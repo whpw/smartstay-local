@@ -1,20 +1,10 @@
 import { Box, Skeleton, Stack, Typography } from '@mui/material'
 import type { PropsWithChildren, ReactNode } from 'react'
 
-export type DeviceTone = 'sauna' | 'jacuzzi' | 'heating' | 'light'
-
-const TONE_WELL: Record<DeviceTone, string> = {
-  sauna: 'rgba(180, 83, 9, 0.12)',
-  jacuzzi: 'rgba(56, 112, 148, 0.12)',
-  heating: 'rgba(180, 72, 48, 0.12)',
-  light: 'rgba(196, 148, 40, 0.16)',
-}
-
 export const DeviceCard = ({
   children,
   title,
   icon,
-  tone = 'heating',
   action,
   status,
   targetTemp,
@@ -23,7 +13,6 @@ export const DeviceCard = ({
 }: PropsWithChildren<{
   title: ReactNode
   icon: ReactNode
-  tone?: DeviceTone
   action?: ReactNode
   status?: ReactNode
   targetTemp?: ReactNode
@@ -39,14 +28,12 @@ export const DeviceCard = ({
         p: 2.25,
         borderRadius: '22px',
         border: '1px solid',
-        borderColor: active ? 'secondary.main' : 'divider',
+        borderColor: active ? 'rgba(26, 25, 23, 0.2)' : 'divider',
         bgcolor: 'background.paper',
         width: '100%',
         gap: 2,
         overflow: 'hidden',
-        boxShadow: active
-          ? '0 10px 28px rgba(28, 25, 23, 0.07)'
-          : '0 8px 24px rgba(28, 25, 23, 0.04)',
+        boxShadow: '0 8px 24px rgba(26, 25, 23, 0.035)',
       }}
     >
       <Stack direction="row" sx={{ alignItems: 'center', gap: 1.5 }}>
@@ -57,7 +44,7 @@ export const DeviceCard = ({
             borderRadius: '14px',
             display: 'grid',
             placeItems: 'center',
-            bgcolor: TONE_WELL[tone],
+            bgcolor: 'rgba(26, 25, 23, 0.05)',
             flexShrink: 0,
             '& img': { width: 22, height: 22, objectFit: 'contain' },
           }}

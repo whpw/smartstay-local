@@ -78,7 +78,6 @@ export const HeatingBox = ({ deviceId }: { deviceId: string }) => {
 
   return (
     <DeviceCard
-      tone="heating"
       icon={<Box component="img" src={heaterIcon} alt="" />}
       title={viewData.name}
       status={

@@ -4,22 +4,22 @@ const fontFamily = '"Plus Jakarta Sans", system-ui, -apple-system, sans-serif'
 
 const lightPalette = {
   primary: {
-    main: '#1C1917',
-    contrastText: '#FFFCF7',
+    main: '#1A1917',
+    contrastText: '#FAFAF8',
   },
   secondary: {
-    main: '#B45309',
-    contrastText: '#FFFCF7',
+    main: '#57534E',
+    contrastText: '#FAFAF8',
   },
   background: {
-    default: '#F3EFE8',
-    paper: '#FFFCF7',
+    default: '#F4F3F1',
+    paper: '#FFFEFC',
   },
   text: {
-    primary: '#1C1917',
-    secondary: '#78716C',
+    primary: '#1A1917',
+    secondary: '#73716C',
   },
-  divider: 'rgba(28, 25, 23, 0.08)',
+  divider: 'rgba(26, 25, 23, 0.08)',
   success: {
     main: '#3F6B4F',
   },
@@ -30,22 +30,22 @@ const lightPalette = {
 
 const darkPalette = {
   primary: {
-    main: '#F5F0E8',
-    contrastText: '#1C1917',
+    main: '#F4F3F0',
+    contrastText: '#1A1917',
   },
   secondary: {
-    main: '#E8A35A',
-    contrastText: '#1C1917',
+    main: '#A8A29E',
+    contrastText: '#1A1917',
   },
   background: {
-    default: '#161310',
-    paper: '#221E1A',
+    default: '#161615',
+    paper: '#1F1E1C',
   },
   text: {
-    primary: '#F5F0E8',
+    primary: '#F4F3F0',
     secondary: '#A8A29E',
   },
-  divider: 'rgba(245, 240, 232, 0.1)',
+  divider: 'rgba(244, 243, 240, 0.1)',
   success: {
     main: '#86A78F',
   },
@@ -102,7 +102,7 @@ export const theme = createTheme({
       styleOverrides: {
         body: {
           backgroundImage:
-            'radial-gradient(1200px 420px at 50% -12%, rgba(180, 83, 9, 0.08), transparent 62%)',
+            'radial-gradient(900px 380px at 50% -18%, rgba(26, 25, 23, 0.035), transparent 58%)',
         },
       },
     },

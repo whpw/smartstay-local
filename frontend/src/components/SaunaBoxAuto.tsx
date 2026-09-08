@@ -94,7 +94,6 @@ export const SaunaBoxAuto = ({
 
   return (
     <DeviceCard
-      tone="sauna"
       active={isRunning}
       icon={<Box component="img" src={saunaIcon} alt="" />}
       title={viewData.name}
@@ -106,7 +105,7 @@ export const SaunaBoxAuto = ({
         ) : isRunning ? (
           <Typography
             variant="caption"
-            color="secondary"
+            color="text.secondary"
             sx={{ fontWeight: 600 }}
           >
             {t('devices.sauna.ends-in', {

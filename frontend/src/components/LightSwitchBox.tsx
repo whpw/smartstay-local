@@ -53,7 +53,6 @@ export const LightSwitchBox = ({ deviceId }: { deviceId: string }) => {
 
   return (
     <DeviceCard
-      tone="light"
       active={isOn}
       icon={<Box component="img" src={lightIcon} alt="" />}
       title={viewData.name}
