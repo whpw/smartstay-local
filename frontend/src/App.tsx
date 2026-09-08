@@ -1,7 +1,11 @@
 import { SnackbarProvider } from 'notistack'
-import { createBrowserRouter, RouterProvider } from 'react-router'
+import {
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  RouterProvider,
+} from 'react-router'
 
-import { Navigate, Outlet } from 'react-router'
 import { Layout } from './components/Layout'
 import { HomeRoute } from './routes'
 import { LoginRoute } from './routes/login'
@@ -35,14 +39,14 @@ const router = createBrowserRouter([
 ])
 
 function App() {
-  // const { mode, setMode } = useColorScheme()
-
   return (
-    <>
-      <SnackbarProvider maxSnack={3}>
-        <RouterProvider router={router} />
-      </SnackbarProvider>
-    </>
+    <SnackbarProvider
+      maxSnack={3}
+      autoHideDuration={3500}
+      anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+    >
+      <RouterProvider router={router} />
+    </SnackbarProvider>
   )
 }
 

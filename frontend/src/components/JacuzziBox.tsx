@@ -1,29 +1,28 @@
-import { Box, Slider, Stack } from '@mui/material'
+import { Box, Typography } from '@mui/material'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import JacuzziStartButton from './JacuzziStartButton'
 
 import { authedClient } from '@/dao'
+import { formatRemaining } from '@/utils/formatRemaining'
 import { isSessionRunning } from '@/utils/isSessionRunning'
 import type { JacuzziViewData } from '@backend/models'
 import { useMutation } from '@tanstack/react-query'
-import { BoxContainer } from './BoxContainer'
+import { DeviceCard, DeviceCardSkeleton } from './DeviceCard'
 import { UpsellModal } from './UpsellModal'
 
 import jacuzziIcon from '@/assets/jacuzzi.png'
 import { PollingErrorCover } from './PollingErrorCover'
+import { TempSlider } from './TempSlider'
 
 export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
-  // Translation
   const { t } = useTranslation()
 
-  // View data
   const [viewData, setDeviceData] = useState<JacuzziViewData>()
 
-  // Target temp
   const [targetTemp, setTargetTemp] = useState<number | undefined>(
-    viewData?.targetTemp ? viewData.targetTemp : 0
+    viewData?.targetTemp ? viewData.targetTemp : 0,
   )
 
   const [upsellingModalOpen, setUpsellingModalOpen] = useState(false)
@@ -45,7 +44,6 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
         setUpsellingModalOpen(true)
         return
       }
-      // Setting da
       setDeviceData(data as JacuzziViewData)
     },
   })
@@ -80,90 +78,73 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
     },
   })
 
-  // Calculating duration that is left
   const duration = useCallback(() => {
     return Math.max((viewData?.session?.endTime ?? 0) - Date.now(), 0)
   }, [viewData])
 
-  // Checking if session is running
   const isRunning = isSessionRunning(viewData?.session?.endTime)
 
   const onConfirmedStartClick = () => {
     startSession()
   }
 
-  // Checking if data is loaded
-  if (!viewData) return <div>Loading...</div>
+  if (!viewData) return <DeviceCardSkeleton />
+
+  const initializing = viewData.state === 'initializing'
 
   return (
-    <BoxContainer
-      title={
-        <Stack
-          direction="row"
-          sx={{
-            alignItems: 'center',
-            gap: 1,
-          }}>
-          <Box component="img" src={jacuzziIcon} sx={{ width: 24 }} />
-          <>{viewData.name}</>
-        </Stack>
+    <DeviceCard
+      active={isRunning}
+      icon={<Box component="img" src={jacuzziIcon} alt="" />}
+      title={viewData.name}
+      status={
+        initializing ? (
+          <Typography variant="caption" color="text.secondary">
+            {t('devices.jacuzzi.initializing')}
+          </Typography>
+        ) : isRunning ? (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontWeight: 600 }}
+          >
+            {t('devices.jacuzzi.ends-in', {
+              time: formatRemaining(duration()),
+            })}
+          </Typography>
+        ) : null
       }
-      ctaButton={
+      action={
         <JacuzziStartButton
-          duration={duration()}
           isRunning={isRunning}
           viewData={viewData}
           onConfirmedStartClick={onConfirmedStartClick}
         />
       }
       currentTemp={
-        viewData.state === 'initializing'
-          ? t('devices.jacuzzi.initializing')
-          : t('devices.jacuzzi.current-temp', {
-              temp: viewData.currentTemp,
-            })
+        initializing || !isRunning
+          ? undefined
+          : t('devices.now', { temp: viewData.currentTemp })
       }
-      targetTemp={t('devices.jacuzzi.target-temp', {
-        temp: viewData.targetTemp,
-      })}
+      targetTemp={
+        initializing
+          ? undefined
+          : isRunning
+            ? viewData.targetTemp
+            : viewData.currentTemp
+      }
     >
       {isRunning && (
-        <Box>
-          <Stack
-            spacing={2}
-            direction="row"
-            sx={{ alignItems: 'center', mb: 2, px: 2 }}>
-            <Slider
-              aria-label={t('devices.jacuzzi.slider.title')}
-              min={viewData.minTemp}
-              max={viewData.maxTemp}
-              value={targetTemp}
-              disabled={viewData.pollingError}
-              marks={[
-                {
-                  value: viewData.minTemp,
-                  label: `${viewData.minTemp}°C`,
-                },
-                {
-                  value: viewData.defaultTemp,
-                  label: `${viewData.defaultTemp}°C`,
-                },
-                {
-                  value: viewData.maxTemp,
-                  label: `${viewData.maxTemp}°C`,
-                },
-              ]}
-              valueLabelDisplay="auto"
-              onChange={(_e, value) => {
-                setTargetTemp(value)
-              }}
-              onChangeCommitted={(_e, value) => {
-                setTargetTemp(value)
-                onTemperatureChange(value)
-              }}
-            />
-          </Stack>
-        </Box>
+        <TempSlider
+          ariaLabel={t('devices.jacuzzi.slider.title')}
+          min={viewData.minTemp}
+          max={viewData.maxTemp}
+          value={targetTemp}
+          disabled={viewData.pollingError}
+          defaultTemp={viewData.defaultTemp}
+          onChange={setTargetTemp}
+          onChangeCommitted={onTemperatureChange}
+        />
       )}
 
       {viewData.pollingError && <PollingErrorCover />}
@@ -172,6 +153,6 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
         open={upsellingModalOpen}
         handleClose={() => setUpsellingModalOpen(false)}
       />
-    </BoxContainer>
+    </DeviceCard>
   )
 }

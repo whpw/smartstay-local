@@ -1,104 +1,97 @@
 import type { SaunaViewData } from '@backend/models'
-import { TZDate } from '@date-fns/tz'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import { Box } from '@mui/material'
+import { Box, Typography } from '@mui/material'
 import Accordion from '@mui/material/Accordion'
 import AccordionDetails from '@mui/material/AccordionDetails'
 import AccordionSummary from '@mui/material/AccordionSummary'
 import Button from '@mui/material/Button'
-import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
-import DialogContent from '@mui/material/DialogContent'
-import DialogContentText from '@mui/material/DialogContentText'
-import DialogTitle from '@mui/material/DialogTitle'
-import Typography from '@mui/material/Typography'
-import { lightFormat } from 'date-fns'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { AppDialog } from './AppDialog'
+import { formatClock } from '@/utils/formatRemaining'
 
 const MINUTE = 60_000
 
 export default function SaunaStartButton({
   isRunning,
-  duration,
   viewData,
   onConfirmedStartClick,
   showDetailsAccordion = true,
 }: {
   isRunning: boolean
-  duration: number
   viewData: SaunaViewData
   onConfirmedStartClick: () => void
   showDetailsAccordion?: boolean
 }) {
   const [open, setOpen] = useState(false)
-  // Time when new session will end
   const [newSessionEnd, setNewSessionEnd] = useState<string | null>(null)
 
   const handleClose = () => setOpen(false)
 
   const onStartClick = () => {
     const end = new Date(Date.now() + viewData.sessionDuration * MINUTE)
-    setNewSessionEnd(lightFormat(end, 'HH:mm'))
+    setNewSessionEnd(formatClock(end))
     setOpen(true)
   }
 
   const { t } = useTranslation()
 
+  if (isRunning) return null
+
   return (
-    <div>
+    <>
       <Button
         type="button"
         onClick={onStartClick}
-        disabled={
-          isRunning ||
-          viewData.state === 'initializing' ||
-          viewData.pollingError
-        }
+        disabled={viewData.state === 'initializing' || viewData.pollingError}
         variant="contained"
       >
-        {isRunning
-          ? t('devices.sauna.ends-in', {
-              time: lightFormat(new TZDate(duration, 'UTC'), 'HH:mm'),
-            })
-          : t('devices.sauna.start')}
+        {t('devices.sauna.start')}
       </Button>
-      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>{t('devices.sauna.modal.title')}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            {t('devices.sauna.modal.until', {
-              time: newSessionEnd,
-            })}
-          </DialogContentText>
-          {showDetailsAccordion ? (
-            <Accordion sx={{ mt: 2 }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography>{t('devices.sauna.modal.more-info')}</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography>{t('devices.sauna.modal.details')}</Typography>
-              </AccordionDetails>
-            </Accordion>
-          ) : (
-            <Box sx={{ minWidth: 300 }}></Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>
-            {t('devices.sauna.modal.cancel')}
-          </Button>
-          <Button
-            onClick={() => {
-              onConfirmedStartClick()
-              handleClose()
-            }}
-            variant="contained"
-          >
-            {t('devices.sauna.modal.start')}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </div>
+      <AppDialog
+        open={open}
+        onClose={handleClose}
+        title={t('devices.sauna.modal.title')}
+        actions={
+          <>
+            <Button onClick={handleClose}>
+              {t('devices.sauna.modal.cancel')}
+            </Button>
+            <Button
+              onClick={() => {
+                onConfirmedStartClick()
+                handleClose()
+              }}
+              variant="contained"
+            >
+              {t('devices.sauna.modal.start')}
+            </Button>
+          </>
+        }
+      >
+        <Typography
+          color="text.secondary"
+          sx={{ mb: showDetailsAccordion ? 2 : 0 }}
+        >
+          {t('devices.sauna.modal.until', {
+            time: newSessionEnd,
+          })}
+        </Typography>
+        {showDetailsAccordion ? (
+          <Accordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography>{t('devices.sauna.modal.more-info')}</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Typography color="text.secondary">
+                {t('devices.sauna.modal.details')}
+              </Typography>
+            </AccordionDetails>
+          </Accordion>
+        ) : (
+          <Box sx={{ minHeight: 8 }} />
+        )}
+      </AppDialog>
+    </>
   )
 }

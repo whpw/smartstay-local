@@ -1,16 +1,7 @@
 import { authClient } from '@/dao'
-import {
-  Alert,
-  Box,
-  Button,
-  Container,
-  Paper,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material'
+import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { useMutation } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 
@@ -26,6 +17,7 @@ const isError = (data: unknown): data is { code: string } => {
 export const LoginRoute = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const [emptyError, setEmptyError] = useState(false)
 
   const {
     mutate: login,
@@ -47,11 +39,8 @@ export const LoginRoute = () => {
         },
       })
 
-      // If response is not 200, throw error
       if (res.status !== 200) {
-        // Log error
         console.error('Error logging in:', res.statusText)
-        // Return error json
         throw await res.json().catch(() => {
           return { code: 'login.error' }
         })
@@ -71,75 +60,95 @@ export const LoginRoute = () => {
     }
   }, [login])
 
-  // Getting login error
   const loginError =
     (isError(authError) && authError) || (isError(authData) && authData)
 
   return (
-    <Container maxWidth="md" sx={{ mt: 2 }}>
-      <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-        <Typography
-          variant="h5"
-          component="h2"
-          gutterBottom
-          align="center"
-          sx={{ mb: 3 }}
-        >
-          {t('login.title')}
-        </Typography>
+    <Box
+      sx={{
+        mt: 1,
+        p: 2.5,
+        borderRadius: '22px',
+        border: '1px solid',
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+        boxShadow: '0 8px 24px rgba(28, 25, 23, 0.04)',
+      }}
+    >
+      <Typography
+        variant="h5"
+        component="h1"
+        sx={{ mb: 0.75, textAlign: 'center' }}
+      >
+        {t('login.title')}
+      </Typography>
+      <Typography
+        color="text.secondary"
+        sx={{ mb: 3, textAlign: 'center', fontSize: 14 }}
+      >
+        {t('login.subtitle')}
+      </Typography>
 
-        {loginError && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {
-              // @ts-expect-error
-              t(loginError.code)
-            }
-          </Alert>
-        )}
+      {(emptyError || loginError) && (
+        <Alert severity="error" sx={{ mb: 2.5 }}>
+          {emptyError
+            ? t('login.errorEmpty')
+            : // @ts-expect-error
+              t(loginError.code)}
+        </Alert>
+      )}
 
-        <Box
-          component="form"
-          noValidate
-          onSubmit={(e) => {
-            e.preventDefault()
-            const formData = new FormData(e.currentTarget)
-            const resNumber = formData.get('resNumber') as string
-            const lastName = formData.get('lastName') as string
-            login({ resNumber, lastName })
-          }}
-        >
-          <Stack spacing={3}>
-            <TextField
-              name="lastName"
-              placeholder={t('login.lastName')}
-              variant="outlined"
-              fullWidth
-              required
-              disabled={isPending}
-            />
+      <Box
+        component="form"
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault()
+          const formData = new FormData(e.currentTarget)
+          const resNumber = (formData.get('resNumber') as string).trim()
+          const lastName = (formData.get('lastName') as string).trim()
+          if (!resNumber || !lastName) {
+            setEmptyError(true)
+            return
+          }
+          setEmptyError(false)
+          login({ resNumber, lastName })
+        }}
+      >
+        <Stack spacing={2}>
+          <TextField
+            name="lastName"
+            label={t('login.lastName')}
+            autoComplete="family-name"
+            autoCapitalize="words"
+            autoCorrect="off"
+            enterKeyHint="next"
+            variant="outlined"
+            required
+            disabled={isPending}
+          />
 
-            <TextField
-              name="resNumber"
-              placeholder={t('login.resNumber')}
-              variant="outlined"
-              fullWidth
-              required
-              disabled={isPending}
-            />
+          <TextField
+            name="resNumber"
+            label={t('login.resNumber')}
+            autoComplete="off"
+            autoCorrect="off"
+            enterKeyHint="go"
+            variant="outlined"
+            required
+            disabled={isPending}
+          />
 
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              fullWidth
-              sx={{ mt: 2 }}
-              disabled={isPending}
-            >
-              {t('login.submit')}
-            </Button>
-          </Stack>
-        </Box>
-      </Paper>
-    </Container>
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            fullWidth
+            loading={isPending}
+          >
+            {t('login.submit')}
+          </Button>
+        </Stack>
+      </Box>
+    </Box>
   )
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import type { SaunaViewData } from '@backend/models'
+import { DeviceCardSkeleton } from './DeviceCard'
 import { SaunaBoxAuto } from './SaunaBoxAuto'
 import { SaunaBoxManual } from './SaunaBoxManual'
 
@@ -23,9 +24,8 @@ export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
     }
   }, [deviceId])
 
-  if (!viewData) return <div>Loading...</div>
+  if (!viewData) return <DeviceCardSkeleton />
 
-  // Only saunabox is automated; missing / manual / thermobox → timer + instructions.
   if (viewData.thermostat === 'saunabox') {
     return (
       <SaunaBoxAuto

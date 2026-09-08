@@ -1,9 +1,10 @@
 {
   "login": {
-    "title": "Zaloguj się",
+    "title": "Witamy",
+    "subtitle": "Podaj nazwisko i numer z rezerwacji",
     "resNumber": "Numer rezerwacji",
     "lastName": "Nazwisko z rezerwacji",
-    "submit": "Zaloguj się",
+    "submit": "Dalej",
     "error": "Błąd logowania :(",
     "errorEmpty": "Wypełnij wszystkie pola",
     "errorNotArrivedYet": "Logowanie jest możliwe tylko w trakcie pobytu."
@@ -25,6 +26,7 @@
     "start": "Uruchom"
   },
   "devices": {
+    "now": "Teraz {{temp}}°",
     "polling-error": "Błąd połączenia :(",
     "jacuzzi": {
       "start": "Uruchom",

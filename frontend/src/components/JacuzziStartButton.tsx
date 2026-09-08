@@ -1,46 +1,34 @@
-import { TZDate } from '@date-fns/tz'
 import {
   Box,
   Checkbox,
   FormControlLabel,
-  Paper,
+  Stack,
   Typography,
 } from '@mui/material'
 import Button from '@mui/material/Button'
-import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
-import DialogContent from '@mui/material/DialogContent'
-import DialogContentText from '@mui/material/DialogContentText'
-import DialogTitle from '@mui/material/DialogTitle'
-import { lightFormat } from 'date-fns'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { JacuzziViewData } from '@backend/models'
+import { formatClock } from '@/utils/formatRemaining'
+import { AppDialog } from './AppDialog'
 
 const MINUTE = 60_000
 
 export default function JacuzziStartButton({
   viewData,
-  duration,
   isRunning,
   onConfirmedStartClick,
 }: {
   viewData: JacuzziViewData
-  duration: number
   isRunning: boolean
   onConfirmedStartClick: () => void
 }) {
-  // Translation
   const { t } = useTranslation()
 
-  // Dialog state
   const [open, setOpen] = useState(false)
-
-  // Time when new session will end
   const [newSessionEnd, setNewSessionEnd] = useState<string | null>(null)
 
-  // Jacuzzi safety checkboxes state
   const [rulesChecks, setRulesChecks] = useState({
     shower: false,
     noLiquids: false,
@@ -51,101 +39,120 @@ export default function JacuzziStartButton({
 
   const onStartClick = () => {
     const end = new Date(Date.now() + viewData.sessionDuration * MINUTE)
-    setNewSessionEnd(lightFormat(end, 'HH:mm'))
+    setNewSessionEnd(formatClock(end))
+    setRulesChecks({ shower: false, noLiquids: false, noAnimals: false })
     setOpen(true)
   }
+
+  if (isRunning) return null
 
   return (
     <Box>
       <Button
         type="button"
         onClick={onStartClick}
-        disabled={
-          isRunning || viewData.state === 'eco' || viewData.pollingError
-        }
+        disabled={viewData.state === 'eco' || viewData.pollingError}
         variant="contained"
       >
-        {isRunning
-          ? t('devices.jacuzzi.ends-in', {
-              time: lightFormat(new TZDate(duration, 'UTC'), 'HH:mm'),
-            })
-          : t('devices.jacuzzi.start')}
+        {t('devices.jacuzzi.start')}
       </Button>
-      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>{t('devices.jacuzzi.modal.title')}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            {t('devices.jacuzzi.modal.until', {
-              time: newSessionEnd,
-            })}
-          </DialogContentText>
-          <Paper
-            sx={{
-              p: 2,
-              mt: 2,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 2,
-            }}
-          >
-            <Typography variant="body1">
-              {t('devices.jacuzzi.modal.safety-rules')}
-            </Typography>
-            <FormControlLabel
-              control={<Checkbox />}
-              label={t('devices.jacuzzi.modal.shower-rule')}
-              checked={rulesChecks.shower}
-              onChange={(e) => {
-                setRulesChecks({
-                  ...rulesChecks,
-                  shower: (e.currentTarget as HTMLInputElement).checked,
-                })
+      <AppDialog
+        open={open}
+        onClose={handleClose}
+        title={t('devices.jacuzzi.modal.title')}
+        actions={
+          <>
+            <Button onClick={handleClose}>
+              {t('devices.jacuzzi.modal.cancel')}
+            </Button>
+            <Button
+              onClick={() => {
+                onConfirmedStartClick()
+                handleClose()
               }}
-            />
-            <FormControlLabel
-              control={<Checkbox />}
-              label={t('devices.jacuzzi.modal.no-liquids-rule')}
-              checked={rulesChecks.noLiquids}
-              onChange={(e) => {
-                setRulesChecks({
-                  ...rulesChecks,
-                  noLiquids: (e.currentTarget as HTMLInputElement).checked,
-                })
-              }}
-            />
-            <FormControlLabel
-              control={<Checkbox />}
-              label={t('devices.jacuzzi.modal.no-animals-rule')}
-              checked={rulesChecks.noAnimals}
-              onChange={(e) => {
-                setRulesChecks({
-                  ...rulesChecks,
-                  noAnimals: (e.currentTarget as HTMLInputElement).checked,
-                })
-              }}
-            />
-          </Paper>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>
-            {t('devices.sauna.modal.cancel')}
-          </Button>
-          <Button
-            onClick={() => {
-              onConfirmedStartClick()
-              handleClose()
-            }}
-            variant="contained"
-            disabled={
-              !rulesChecks.shower ||
-              !rulesChecks.noLiquids ||
-              !rulesChecks.noAnimals
+              variant="contained"
+              disabled={
+                !rulesChecks.shower ||
+                !rulesChecks.noLiquids ||
+                !rulesChecks.noAnimals
+              }
+            >
+              {t('devices.jacuzzi.modal.start')}
+            </Button>
+          </>
+        }
+      >
+        <Typography color="text.secondary">
+          {t('devices.jacuzzi.modal.until', {
+            time: newSessionEnd,
+          })}
+        </Typography>
+        <Stack
+          sx={{
+            p: 2,
+            mt: 2,
+            borderRadius: '16px',
+            bgcolor: 'rgba(28, 25, 23, 0.04)',
+            gap: 0.5,
+          }}
+        >
+          <Typography sx={{ fontWeight: 600, fontSize: 14, mb: 1 }}>
+            {t('devices.jacuzzi.modal.safety-rules')}
+          </Typography>
+          <RuleCheck
+            label={t('devices.jacuzzi.modal.shower-rule')}
+            checked={rulesChecks.shower}
+            onChange={(checked) =>
+              setRulesChecks({ ...rulesChecks, shower: checked })
             }
-          >
-            {t('devices.sauna.modal.start')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          />
+          <RuleCheck
+            label={t('devices.jacuzzi.modal.no-liquids-rule')}
+            checked={rulesChecks.noLiquids}
+            onChange={(checked) =>
+              setRulesChecks({ ...rulesChecks, noLiquids: checked })
+            }
+          />
+          <RuleCheck
+            label={t('devices.jacuzzi.modal.no-animals-rule')}
+            checked={rulesChecks.noAnimals}
+            onChange={(checked) =>
+              setRulesChecks({ ...rulesChecks, noAnimals: checked })
+            }
+          />
+        </Stack>
+      </AppDialog>
     </Box>
   )
 }
+
+const RuleCheck = ({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+}) => (
+  <FormControlLabel
+    sx={{
+      alignItems: 'flex-start',
+      mx: 0,
+      py: 1,
+      '& .MuiFormControlLabel-label': {
+        fontSize: 14,
+        lineHeight: 1.4,
+        pt: 1,
+      },
+    }}
+    control={
+      <Checkbox
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        sx={{ mt: -0.25 }}
+      />
+    }
+    label={label}
+  />
+)

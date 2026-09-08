@@ -1,12 +1,12 @@
 import heaterIcon from '@/assets/heater.png'
 import { authedClient } from '@/dao'
 import type { HeatingViewData } from '@/models'
-import { Box, Button, Stack } from '@mui/material'
+import { Box, Button, Typography } from '@mui/material'
 import { useMutation } from '@tanstack/react-query'
 import { useSnackbar } from 'notistack'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BoxContainer } from './BoxContainer'
+import { DeviceCard, DeviceCardSkeleton } from './DeviceCard'
 import { HeatingModal } from './HeatingModal'
 import { PollingErrorCover } from './PollingErrorCover'
 
@@ -14,10 +14,8 @@ export const HeatingBox = ({ deviceId }: { deviceId: string }) => {
   const { t } = useTranslation()
   const { enqueueSnackbar } = useSnackbar()
 
-  // Vuew state
   const [editMode, setEditMode] = useState(false)
 
-  // View data
   const [viewData, setDeviceData] = useState<HeatingViewData>({
     state: 'initializing',
     name: '',
@@ -33,7 +31,6 @@ export const HeatingBox = ({ deviceId }: { deviceId: string }) => {
   })
 
   useEffect(() => {
-    // Subscribe to device state updates
     const evtSource = new EventSource(`/api/state/${deviceId}`, {
       withCredentials: true,
     })
@@ -75,37 +72,38 @@ export const HeatingBox = ({ deviceId }: { deviceId: string }) => {
   })
 
   const isTurnedOff = viewData.state !== 'active'
+  const initializing = viewData.state === 'initializing'
+
+  if (initializing && !viewData.name) return <DeviceCardSkeleton />
 
   return (
-    <BoxContainer
-      title={
-        <Stack
-          direction="row"
-          sx={{
-            alignItems: 'center',
-            gap: 1,
-          }}>
-          <Box component="img" src={heaterIcon} sx={{ width: 24 }} />
-          <>{viewData.name}</>
-        </Stack>
+    <DeviceCard
+      icon={<Box component="img" src={heaterIcon} alt="" />}
+      title={viewData.name}
+      status={
+        isTurnedOff ? (
+          <Typography variant="caption" color="text.secondary">
+            {t('devices.heating.turned-off')}
+          </Typography>
+        ) : null
       }
-      ctaButton={
-        <Button
-          variant="contained"
-          onClick={() => setEditMode(true)}
-          disabled={viewData.pollingError || isTurnedOff}
-        >
-          {isTurnedOff
-            ? t('devices.heating.turned-off')
-            : t('devices.heating.edit')}
-        </Button>
+      action={
+        isTurnedOff ? undefined : (
+          <Button
+            variant="contained"
+            onClick={() => setEditMode(true)}
+            disabled={viewData.pollingError}
+          >
+            {t('devices.heating.edit')}
+          </Button>
+        )
       }
-      currentTemp={t('devices.heating.current-temp', {
-        temp: isTurnedOff ? '--' : viewData.currentTemp,
-      })}
-      targetTemp={t('devices.heating.target-temp', {
-        temp: isTurnedOff ? '--' : viewData.targetTemp,
-      })}
+      currentTemp={
+        isTurnedOff || viewData.currentTemp === viewData.targetTemp
+          ? undefined
+          : t('devices.now', { temp: viewData.currentTemp })
+      }
+      targetTemp={isTurnedOff ? '–' : viewData.targetTemp}
     >
       {viewData.pollingError && <PollingErrorCover />}
 
@@ -118,6 +116,6 @@ export const HeatingBox = ({ deviceId }: { deviceId: string }) => {
           setEditMode(false)
         }}
       />
-    </BoxContainer>
+    </DeviceCard>
   )
 }

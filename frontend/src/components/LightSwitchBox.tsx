@@ -1,4 +1,4 @@
-import { Box, Button, Stack } from '@mui/material'
+import { Box, Button } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -6,10 +6,9 @@ import lightIcon from '@/assets/light.png'
 import { authedClient } from '@/dao'
 import { type SwitchBoxViewData } from '@backend/models'
 import { useMutation } from '@tanstack/react-query'
-import { BoxContainer } from './BoxContainer'
+import { DeviceCard, DeviceCardSkeleton } from './DeviceCard'
 
 export const LightSwitchBox = ({ deviceId }: { deviceId: string }) => {
-  // Data state
   const [viewData, setViewData] = useState<SwitchBoxViewData>()
 
   const { t } = useTranslation()
@@ -47,44 +46,34 @@ export const LightSwitchBox = ({ deviceId }: { deviceId: string }) => {
     }
   }, [deviceId])
 
-  if (!viewData) return null
+  if (!viewData) return <DeviceCardSkeleton />
+
+  const isOn = viewData.state === 'active'
+  const initializing = viewData.state === 'initializing'
 
   return (
-    <BoxContainer
-      title={
-        <Stack
-          direction="row"
-          sx={{
-            alignItems: 'center',
-            gap: 1,
-          }}>
-          <Box component="img" src={lightIcon} sx={{ width: 24 }} />
-          <>{viewData.name}</>
-        </Stack>
+    <DeviceCard
+      active={isOn}
+      icon={<Box component="img" src={lightIcon} alt="" />}
+      title={viewData.name}
+      status={
+        initializing ? (
+          <Box component="span" sx={{ fontSize: 12, color: 'text.secondary' }}>
+            {t('devices.light-switch.initializing')}
+          </Box>
+        ) : null
       }
-      ctaButton={
+      action={
         <Button
-          onClick={() =>
-            startSession(viewData.state === 'active' ? 'off' : 'on')
-          }
-          disabled={
-            viewData.pollingError ||
-            viewData.state === 'initializing' ||
-            isPending
-          }
-          variant={viewData.state === 'active' ? 'outlined' : 'contained'}
+          onClick={() => startSession(isOn ? 'off' : 'on')}
+          disabled={viewData.pollingError || initializing}
+          loading={isPending}
+          variant={isOn ? 'outlined' : 'contained'}
+          sx={{ minWidth: 112 }}
         >
-          {viewData.state === 'active'
-            ? t('devices.light-switch.off')
-            : t('devices.light-switch.on')}
+          {isOn ? t('devices.light-switch.off') : t('devices.light-switch.on')}
         </Button>
       }
-      targetTemp="&nbsp;"
-      currentTemp={
-        viewData.state === 'initializing'
-          ? t('devices.light-switch.initializing')
-          : ''
-      }
-    ></BoxContainer>
+    />
   )
 }

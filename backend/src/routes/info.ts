@@ -3,13 +3,16 @@ import { APP_VERSION } from '@/version'
 import { Hono } from 'hono'
 
 const api = new Hono().get('/info', async (c) => {
-  const config = db().get<{ objectName: string }>('appConfig')
+  const config = db().get<{ objectName: string; roomName?: string }>(
+    'appConfig',
+  )
   return c.json(
     {
       objectName: config.objectName,
+      roomName: config.roomName ?? null,
       version: APP_VERSION,
     },
-    200
+    200,
   )
 })
 
