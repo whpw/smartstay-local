@@ -1,4 +1,4 @@
-import { Box, Typography } from '@mui/material'
+import { Box, Button, Typography } from '@mui/material'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -7,8 +7,9 @@ import JacuzziStartButton from './JacuzziStartButton'
 import { authedClient } from '@/dao'
 import { formatRemaining } from '@/utils/formatRemaining'
 import { isSessionRunning } from '@/utils/isSessionRunning'
-import type { JacuzziViewData } from '@backend/models'
+import { JACUZZI_STOP_GRACE_MS, type JacuzziViewData } from '@backend/models'
 import { useMutation } from '@tanstack/react-query'
+import { AppDialog } from './AppDialog'
 import { DeviceCard, DeviceCardSkeleton } from './DeviceCard'
 import { UpsellModal } from './UpsellModal'
 
@@ -26,6 +27,7 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
   )
 
   const [upsellingModalOpen, setUpsellingModalOpen] = useState(false)
+  const [stopConfirmOpen, setStopConfirmOpen] = useState(false)
 
   const { mutate: startSession } = useMutation({
     mutationFn: async () => {
@@ -44,6 +46,24 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
         setUpsellingModalOpen(true)
         return
       }
+      setDeviceData(data as JacuzziViewData)
+    },
+  })
+
+  const { mutate: stopSession } = useMutation({
+    mutationFn: async () => {
+      const res = await authedClient.action.$post({
+        json: {
+          deviceId,
+          action: {
+            type: 'STOP',
+          },
+        },
+      })
+      return res.json()
+    },
+    onSuccess: (data) => {
+      setStopConfirmOpen(false)
       setDeviceData(data as JacuzziViewData)
     },
   })
@@ -88,6 +108,19 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
     startSession()
   }
 
+  const onStopClick = () => {
+    const session = viewData?.session
+    if (!session) {
+      return
+    }
+    const pastGrace = Date.now() - session.startTime >= JACUZZI_STOP_GRACE_MS
+    if (pastGrace && session.complimentary) {
+      setStopConfirmOpen(true)
+      return
+    }
+    stopSession()
+  }
+
   if (!viewData) return <DeviceCardSkeleton />
 
   const initializing = viewData.state === 'initializing'
@@ -115,11 +148,17 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
         ) : null
       }
       action={
-        <JacuzziStartButton
-          isRunning={isRunning}
-          viewData={viewData}
-          onConfirmedStartClick={onConfirmedStartClick}
-        />
+        isRunning ? (
+          <Button type="button" variant="outlined" onClick={onStopClick}>
+            {t('devices.jacuzzi.stop')}
+          </Button>
+        ) : (
+          <JacuzziStartButton
+            isRunning={isRunning}
+            viewData={viewData}
+            onConfirmedStartClick={onConfirmedStartClick}
+          />
+        )
       }
       currentTemp={
         initializing || !isRunning
@@ -153,6 +192,26 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
         open={upsellingModalOpen}
         handleClose={() => setUpsellingModalOpen(false)}
       />
+
+      <AppDialog
+        open={stopConfirmOpen}
+        onClose={() => setStopConfirmOpen(false)}
+        title={t('devices.jacuzzi.stop-modal.title')}
+        actions={
+          <>
+            <Button onClick={() => setStopConfirmOpen(false)}>
+              {t('devices.jacuzzi.stop-modal.cancel')}
+            </Button>
+            <Button variant="contained" onClick={() => stopSession()}>
+              {t('devices.jacuzzi.stop-modal.confirm')}
+            </Button>
+          </>
+        }
+      >
+        <Typography color="text.secondary">
+          {t('devices.jacuzzi.stop-modal.body')}
+        </Typography>
+      </AppDialog>
     </DeviceCard>
   )
 }

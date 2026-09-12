@@ -2,12 +2,19 @@ import { appConfig } from '@/config'
 import type { DeviceType } from '@/config/types'
 import { db, toKey } from '@/db'
 import type { AddonMode, ResDetails } from '@/models/ResDetails'
+import type { JacuzziSessionQuotaMode } from '@/models/ViewData'
+import { JACUZZI_STOP_GRACE_MS } from '@/models/ViewData'
 import { getResDetails } from '@/reservations'
 import { TZDate } from '@date-fns/tz'
 import { eachDayOfInterval, formatISO } from 'date-fns'
 import { logger } from './logger'
 
 const WEEK = 60 * 60 * 24 * 7
+
+export type SessionQuotaMeta = {
+  complimentary: boolean
+  refundableMode: JacuzziSessionQuotaMode | null
+}
 
 function getToday() {
   return formatISO(TZDate.tz(appConfig.tz), {
@@ -52,6 +59,21 @@ export function addonQuantity(
 ) {
   return addons
     .filter((addon) => addon.type === deviceType && addon.mode === addonMode)
+    .reduce((sum, addon) => sum + addon.quantity, 0)
+}
+
+export function complimentaryQuantity(
+  addons: ResDetails['addons'],
+  deviceType: DeviceType,
+  addonMode: AddonMode,
+) {
+  return addons
+    .filter(
+      (addon) =>
+        addon.type === deviceType &&
+        addon.mode === addonMode &&
+        addon.complimentary,
+    )
     .reduce((sum, addon) => sum + addon.quantity, 0)
 }
 
@@ -128,7 +150,7 @@ export async function canStartSession(res: ResDetails, deviceType: DeviceType) {
 export function incrementSessionsCount(
   res: ResDetails,
   deviceType: DeviceType,
-) {
+): SessionQuotaMeta {
   // Getting today
   const today = getToday()
 
@@ -138,13 +160,14 @@ export function incrementSessionsCount(
 
   function incrementSessions(
     key: string,
-    addonMode: 'per-session' | 'per-day',
-  ) {
+    addonMode: JacuzziSessionQuotaMode,
+    usedBefore: number,
+  ): SessionQuotaMeta | null {
     // Complimentary + paid of the same type+mode share one counter.
     // Complimentary entries are listed first, so the first N uses are free.
     const quantity = addonQuantity(resAddons, deviceType, addonMode)
     if (quantity <= 0) {
-      return false
+      return null
     }
 
     const keySessions = db().get<number>(key) || 0
@@ -152,35 +175,62 @@ export function incrementSessionsCount(
     // It doesn't make sense to increment per-day if
     // we already incremented it today
     if (addonMode !== 'per-session' && keySessions > 0) {
-      return true
+      return { complimentary: false, refundableMode: null }
     }
 
     if (keySessions < quantity) {
       const expireIn = new Date(res.departureDate).getTime() - Date.now() + WEEK
       db().set(key, keySessions + 1, expireIn)
-      return true
+      const complimentary =
+        usedBefore < complimentaryQuantity(resAddons, deviceType, addonMode)
+      return { complimentary, refundableMode: addonMode }
     }
-    return false
+    return null
   }
 
   // First check per-session (complimentary quota is consumed before paid)
-  let incremented = incrementSessions(
-    toKey('sessions', deviceType, resNumber, 'per-session'),
-    'per-session',
-  )
-  if (incremented) {
-    return
+  const perSessionKey = toKey('sessions', deviceType, resNumber, 'per-session')
+  const perSessionBefore = db().get<number>(perSessionKey) || 0
+  let meta = incrementSessions(perSessionKey, 'per-session', perSessionBefore)
+  if (meta) {
+    return meta
   }
 
   // Next check per-day
-  incremented = incrementSessions(
-    toKey('sessions', deviceType, resNumber, 'per-day', today),
-    'per-day',
-  )
-  if (incremented) {
+  const perDayKey = toKey('sessions', deviceType, resNumber, 'per-day', today)
+  const perDayUsedBefore = getSessionsSum(res, deviceType, 'per-day', today)
+  meta = incrementSessions(perDayKey, 'per-day', perDayUsedBefore)
+  if (meta) {
+    return meta
+  }
+
+  // Finally check per-stay - unlimited, nothing to refund
+  return {
+    complimentary: complimentaryQuantity(resAddons, deviceType, 'per-stay') > 0,
+    refundableMode: null,
+  }
+}
+
+export function refundSessionQuota(
+  res: ResDetails,
+  deviceType: DeviceType,
+  refundableMode: JacuzziSessionQuotaMode,
+) {
+  const today = getToday()
+  const key =
+    refundableMode === 'per-session'
+      ? toKey('sessions', deviceType, res.number, 'per-session')
+      : toKey('sessions', deviceType, res.number, 'per-day', today)
+
+  const current = db().get<number>(key) || 0
+  if (current <= 0) {
     return
   }
 
-  // Finally check per-stay
-  // this one doesn't require any checks
+  const expireIn = new Date(res.departureDate).getTime() - Date.now() + WEEK
+  db().set(key, current - 1, expireIn)
+}
+
+export function isWithinStopGrace(startTime: number, now = Date.now()) {
+  return now - startTime < JACUZZI_STOP_GRACE_MS
 }

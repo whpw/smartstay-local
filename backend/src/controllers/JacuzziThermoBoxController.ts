@@ -31,7 +31,13 @@ import {
   bleboxDiscoveryUrl,
 } from '@/utils/device-api'
 import { pushRemoteAlert } from '@/utils/remote-alerts'
-import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
+import { cancelPendingMessages } from '@/queue'
+import {
+  canStartSession,
+  incrementSessionsCount,
+  isWithinStopGrace,
+  refundSessionQuota,
+} from '@/utils/sessions'
 import { waitUntilReady } from '@/utils/waitUntilReady'
 import { hoursToMilliseconds } from 'date-fns'
 import ky, { type KyInstance } from 'ky'
@@ -177,11 +183,20 @@ export class JacuzziThermoBoxController extends DevController<
             }
           }
 
-          // Starting session
-          await this.startSession(res.departureDate)
-
-          // Increment sessions count
-          incrementSessionsCount(res, this.config.type)
+          await this.startSession(res)
+        }
+        break
+      case JacuzziActionType.STOP:
+        {
+          const session = this.persistentState.session
+          if (!session) {
+            break
+          }
+          if (session.refundableMode && isWithinStopGrace(session.startTime)) {
+            refundSessionQuota(res, this.config.type, session.refundableMode)
+          }
+          cancelPendingMessages(this.config.id, 'stop-session')
+          await this.stopSession()
         }
         break
       case JacuzziActionType.SET_TARGET_TEMP:
@@ -200,21 +215,25 @@ export class JacuzziThermoBoxController extends DevController<
   }
 
   @actionBound
-  public startSession(departureDate: string) {
+  public startSession(res: ResDetails) {
     // Calculate max delay
-    const maxDelay = new Date(departureDate).getTime() - Date.now()
+    const maxDelay = new Date(res.departureDate).getTime() - Date.now()
 
     // Calculate delay in ms
     const delay = Math.max(
       Math.min(this.config.sessionDuration * MINUTE, maxDelay),
-      0
+      0,
     )
+
+    const quota = incrementSessionsCount(res, this.config.type)
 
     // Creating session object
     const session = {
       targetTemp: this.defaultTemp,
       startTime: Date.now(),
       endTime: Date.now() + delay,
+      complimentary: quota.complimentary,
+      refundableMode: quota.refundableMode,
     }
 
     // Creating state object
