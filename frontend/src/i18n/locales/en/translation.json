@@ -50,7 +50,7 @@
       "stop": "Stop",
       "stop-modal": {
         "title": "End free session?",
-        "body": "The cancel window has passed. Stopping will use up your free jacuzzi session and it cannot be restored.",
+        "body": "Stopping will use up your free jacuzzi session and it cannot be restored.",
         "confirm": "End session",
         "cancel": "Cancel"
       }
