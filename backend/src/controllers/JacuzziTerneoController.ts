@@ -1,7 +1,14 @@
 import dgram from 'node:dgram'
 
 import { addHours, differenceInSeconds } from 'date-fns'
-import { actionBound, computed, observable, runInAction, toJS, when } from 'mobx'
+import {
+  actionBound,
+  computed,
+  observable,
+  runInAction,
+  toJS,
+  when,
+} from 'mobx'
 
 import type { ResDetails } from '../models/ResDetails'
 import type { QueueMessage } from '../queue'
@@ -25,7 +32,13 @@ import {
   isStopMessageCurrent,
   reconcileLoadedSession,
 } from '@/utils/reconcileSession'
-import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
+import { cancelPendingMessages } from '@/queue'
+import {
+  canStartSession,
+  incrementSessionsCount,
+  isWithinStopGrace,
+  refundSessionQuota,
+} from '@/utils/sessions'
 import { terneoFetch } from '@/utils/terneo'
 import { waitUntilReady } from '@/utils/waitUntilReady'
 
@@ -146,11 +159,20 @@ export class JacuzziTerneoController extends DevController<
             }
           }
 
-          // Starting session
-          await this.startSession(res.departureDate)
-
-          // Increment sessions count
-          incrementSessionsCount(res, this.config.type)
+          await this.startSession(res)
+        }
+        break
+      case JacuzziActionType.STOP:
+        {
+          const session = this.persistentState.session
+          if (!session) {
+            break
+          }
+          if (session.refundableMode && isWithinStopGrace(session.startTime)) {
+            refundSessionQuota(res, this.config.type, session.refundableMode)
+          }
+          cancelPendingMessages(this.config.id, 'stop-session')
+          await this.stopSession()
         }
         break
       case JacuzziActionType.SET_TARGET_TEMP:
@@ -169,21 +191,25 @@ export class JacuzziTerneoController extends DevController<
   }
 
   @actionBound
-  public async startSession(departureDate: string) {
+  public async startSession(res: ResDetails) {
     // Calculate max delay
-    const maxDelay = new Date(departureDate).getTime() - Date.now()
+    const maxDelay = new Date(res.departureDate).getTime() - Date.now()
 
     // Calculate delay in ms
     const delay = Math.max(
       Math.min(this.config.sessionDuration * MINUTE, maxDelay),
-      0
+      0,
     )
+
+    const quota = incrementSessionsCount(res, this.config.type)
 
     // Creating session object
     const session = {
       targetTemp: this.config.sessionTemp,
       startTime: Date.now(),
       endTime: Date.now() + delay,
+      complimentary: quota.complimentary,
+      refundableMode: quota.refundableMode,
     }
 
     // Creating state object
@@ -259,7 +285,7 @@ export class JacuzziTerneoController extends DevController<
         // Calculating eco end
         const ecoEnd = differenceInSeconds(
           addHours(new Date(), gap - ecoModeTreshold),
-          new Date('2000-01-01T00:00:00')
+          new Date('2000-01-01T00:00:00'),
         )
         // Enabling eco mode
         await terneoFetch(this.deviceConnection, {
@@ -450,10 +476,7 @@ export class JacuzziTerneoController extends DevController<
       })
         .then((data) => {
           this.logger.debug('Polled from Terneo...')
-          this.logger.debug(
-            'Polled target temp:',
-            parseFloat(data['t.5']) / 16,
-          )
+          this.logger.debug('Polled target temp:', parseFloat(data['t.5']) / 16)
           this.logger.debug(
             'Polled current temp:',
             parseFloat(data['t.1']) / 16,

@@ -41,10 +41,22 @@ export type JacuzziPersistentState = {
   session: JacuzziSession | null
 }
 
+/** Early STOP within this window refunds the consumed session quota. */
+export const JACUZZI_STOP_GRACE_MS = 2 * 60_000
+
+export type JacuzziSessionQuotaMode = 'per-session' | 'per-day'
+
 export type JacuzziSession = {
   targetTemp: number
   startTime: number
   endTime: number
+  /** True when this start consumed a complimentary (free) entitlement slot. */
+  complimentary?: boolean
+  /**
+   * Quota counter incremented for this start. Null when nothing was counted
+   * (per-stay, or per-day already opened today). Used for grace-period refunds.
+   */
+  refundableMode?: JacuzziSessionQuotaMode | null
 }
 
 export type JacuzziViewData = DeviceViewData & {
@@ -60,6 +72,7 @@ export type JacuzziViewData = DeviceViewData & {
 
 export const JacuzziActionType = {
   START: 'START',
+  STOP: 'STOP',
   SET_TARGET_TEMP: 'SET_TARGET_TEMP',
 }
 

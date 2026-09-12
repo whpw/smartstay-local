@@ -39,12 +39,19 @@
         "title": "Do you want to start the jacuzzi?",
         "until": "Until: {{time}}",
         "more-info": "Read more information",
-        "details": "After starting the session, it will not be possible to stop it. If you still want to use the jacuzzi today, you will need to purchase unlimited access.",
+        "details": "Within 2 minutes of starting you can cancel without losing access. Stopping later uses up the session.",
         "safety-rules": "Jacuzzi usage rules",
         "shower-rule": "Take a shower before using the jacuzzi",
         "no-liquids-rule": "Do not pour any liquids, bath soaps, or salts into the jacuzzi",
         "no-animals-rule": "Do not let your animal into the jacuzzi",
         "start": "Start",
+        "cancel": "Cancel"
+      },
+      "stop": "Stop",
+      "stop-modal": {
+        "title": "End free session?",
+        "body": "The cancel window has passed. Stopping will use up your free jacuzzi session and it cannot be restored.",
+        "confirm": "End session",
         "cancel": "Cancel"
       }
     },

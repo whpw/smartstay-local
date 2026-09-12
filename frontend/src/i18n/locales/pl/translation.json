@@ -39,12 +39,19 @@
         "title": "Czy uruchomić jacuzzi?",
         "until": "Do godziny: {{time}}",
         "more-info": "Przeczytaj więcej informacji",
-        "details": "Po uruchomieniu sesji nie będzie możliwości jej zatrzymania. Jeżeli jeszcze dzisiaj będziesz chciał skorzystać z jacuzzi, konieczne będzie wykupienie nielimitowanego dostępu.",
+        "details": "W ciągu 2 minut od uruchomienia możesz anulować sesję bez utraty dostępu. Późniejsze wyłączenie zużywa sesję.",
         "safety-rules": "Zasady korzystania z jacuzzi:",
         "shower-rule": "Weź prysznic przed wejściem do jacuzzi",
         "no-liquids-rule": "Nie wlewaj płynów, mydeł kąpielowych ani soli do jacuzzi",
         "no-animals-rule": "Nie wpuszczaj swojego zwierzęcia do jacuzzi",
         "start": "Uruchom",
+        "cancel": "Anuluj"
+      },
+      "stop": "Wyłącz",
+      "stop-modal": {
+        "title": "Zakończyć darmową sesję?",
+        "body": "Minął czas na anulowanie. Wyłączenie zużyje darmową sesję jacuzzi i nie będzie można jej odzyskać.",
+        "confirm": "Zakończ sesję",
         "cancel": "Anuluj"
       }
     },
