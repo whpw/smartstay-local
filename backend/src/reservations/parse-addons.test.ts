@@ -36,4 +36,20 @@ import { parseHotresAddons } from './parse-addons.ts'
   assert.deepEqual(parseHotresAddons([]), [])
 }
 
+{
+  const addons = parseHotresAddons([
+    {
+      title: 'Jacuzzi w cenie [kod: jacuzzi-per-session]',
+      quantity: '0',
+    },
+    {
+      title: 'Dodatkowa sesja [kod: jacuzzi-per-session]',
+      quantity: '1',
+    },
+  ])
+  assert.deepEqual(addons, [
+    { type: 'jacuzzi', mode: 'per-session', quantity: 1 },
+  ])
+}
+
 console.log('parse-addons.test.ts: ok')

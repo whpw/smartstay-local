@@ -1,7 +1,9 @@
 import { db, toKey } from '@/db'
+import type { DeviceType } from '@/config/types'
 import {
   $ComplimentaryAddon,
   type AddonDTO,
+  type AddonMode,
   type ComplimentaryAddon,
 } from '@/models/ResDetails'
 
@@ -26,6 +28,16 @@ export function sameAddon(
   return a.type === b.type && a.mode === b.mode
 }
 
+function paidAddonQuantity(
+  reservationAddons: AddonDTO[],
+  deviceType: DeviceType,
+  addonMode: AddonMode,
+) {
+  return reservationAddons
+    .filter((addon) => sameAddon(addon, { type: deviceType, mode: addonMode }))
+    .reduce((sum, addon) => sum + addon.quantity, 0)
+}
+
 export function resolveComplimentaryAddons({
   reservationAddons,
   configured,
@@ -46,7 +58,13 @@ export function resolveComplimentaryAddons({
       addons.push({ ...existingGrant, complimentary: true })
       continue
     }
-    if (reservationAddons.some((addon) => sameAddon(addon, configuredAddon))) {
+    if (
+      paidAddonQuantity(
+        reservationAddons,
+        configuredAddon.type,
+        configuredAddon.mode,
+      ) > 0
+    ) {
       continue
     }
     grantsToPersist.push(configuredAddon)
