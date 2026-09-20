@@ -20,6 +20,9 @@ export function parseHotresAddons(
         (a) => a.type === deviceType && a.mode === addonMode,
       )
       const quantity = parseInt(addon.quantity, 10) || 0
+      if (quantity <= 0) {
+        return acc
+      }
       if (existing) {
         existing.quantity += quantity
       } else {

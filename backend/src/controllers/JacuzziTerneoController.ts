@@ -152,14 +152,17 @@ export class JacuzziTerneoController extends DevController<
     switch (actionToInvoke.type) {
       case JacuzziActionType.START:
         {
-          // Checking if session can be started
-          if (!(await canStartSession(res, this.config.type))) {
+          const { allowed, res: sessionRes } = await canStartSession(
+            res,
+            this.config.type,
+          )
+          if (!allowed) {
             return {
               error: 'REACHED_LIMIT',
             }
           }
 
-          await this.startSession(res)
+          await this.startSession(sessionRes)
         }
         break
       case JacuzziActionType.STOP:

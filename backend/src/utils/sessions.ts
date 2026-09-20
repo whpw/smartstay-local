@@ -119,32 +119,35 @@ function canStartToday(res: ResDetails, deviceType: DeviceType, today: string) {
   return false
 }
 
-export async function canStartSession(res: ResDetails, deviceType: DeviceType) {
-  // Getting today
+export type CanStartSessionResult = {
+  allowed: boolean
+  res: ResDetails
+}
+
+export async function canStartSession(
+  res: ResDetails,
+  deviceType: DeviceType,
+): Promise<CanStartSessionResult> {
   const today = getToday()
 
-  // Checking if session can be started
-  const canStart = canStartToday(res, deviceType, today)
-
-  // If session can't be started let's try reloading reservation addons
-  if (!canStart) {
-    // Getting new reservation details
-    const resDetails = await getResDetails(res.number, res.lastName).catch(
-      (error) => {
-        logger.error('Error getting reservation details', error)
-      },
-    )
-
-    // If we can't get reservation details, let's return true
-    if (!resDetails) {
-      return true
-    }
-
-    // Checking if session can be started
-    return canStartToday(resDetails, deviceType, today)
+  if (canStartToday(res, deviceType, today)) {
+    return { allowed: true, res }
   }
 
-  return canStart
+  const resDetails = await getResDetails(res.number, res.lastName).catch(
+    (error) => {
+      logger.error('Error getting reservation details', error)
+    },
+  )
+
+  if (!resDetails) {
+    return { allowed: true, res }
+  }
+
+  return {
+    allowed: canStartToday(resDetails, deviceType, today),
+    res: resDetails,
+  }
 }
 
 export function incrementSessionsCount(
