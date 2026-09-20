@@ -1,10 +1,11 @@
 import heaterIcon from '@/assets/heater.png'
 import { authedClient } from '@/dao'
 import type { HeatingViewData } from '@/models'
+import { useDeviceViewData } from '@/utils/useDeviceStates'
 import { Box, Button, Typography } from '@mui/material'
 import { useMutation } from '@tanstack/react-query'
 import { useSnackbar } from 'notistack'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DeviceCard, DeviceCardSkeleton } from './DeviceCard'
 import { HeatingModal } from './HeatingModal'
@@ -16,34 +17,7 @@ export const HeatingBox = ({ deviceId }: { deviceId: string }) => {
 
   const [editMode, setEditMode] = useState(false)
 
-  const [viewData, setDeviceData] = useState<HeatingViewData>({
-    state: 'initializing',
-    name: '',
-    currentTemp: 0,
-    targetTemp: 0,
-    dayTemp: 0,
-    nightTemp: 0,
-    minTemp: 0,
-    maxTemp: 0,
-    dayStart: 0,
-    nightStart: 0,
-    pollingError: false,
-  })
-
-  useEffect(() => {
-    const evtSource = new EventSource(`/api/state/${deviceId}`, {
-      withCredentials: true,
-    })
-
-    evtSource.addEventListener('device-state-update', (event) => {
-      const receivedData = JSON.parse(event.data) as HeatingViewData
-      setDeviceData(receivedData)
-    })
-
-    return () => {
-      evtSource.close()
-    }
-  }, [deviceId])
+  const [viewData] = useDeviceViewData<HeatingViewData>(deviceId)
 
   const { mutate: onTemperatureChange } = useMutation({
     mutationFn: async (value: { dayTemp: number; nightTemp: number }) => {
@@ -71,14 +45,14 @@ export const HeatingBox = ({ deviceId }: { deviceId: string }) => {
     },
   })
 
+  if (!viewData) return <DeviceCardSkeleton />
+
   // Weather monitoring sets `idle` when outdoor temp ≥ externalTempLimit.
   // Mirror jacuzzi/sauna idle UX: keep the live room temp as the hero value so
   // a weather shutdown does not look like a failed device init.
   const isIdle = viewData.state === 'idle'
   const isControllable = viewData.state === 'active' || viewData.state === 'eco'
   const initializing = viewData.state === 'initializing'
-
-  if (initializing && !viewData.name) return <DeviceCardSkeleton />
 
   return (
     <DeviceCard

@@ -1,5 +1,6 @@
 import { JacuzziBox } from '@/components/JacuzziBox'
 import { authedClient } from '@/dao'
+import { DeviceStateProvider } from '@/utils/useDeviceStates'
 import { Stack } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
 import { HeatingBox } from '../components/HeatingBox'
@@ -14,27 +15,29 @@ export const HomeRoute = () => {
   })
 
   return (
-    <Stack
-      spacing={1.5}
-      sx={{
-        alignItems: 'stretch',
-        pb: 2,
-      }}
-    >
-      {data.map((device) => {
-        switch (device.type) {
-          case 'sauna':
-            return <SaunaBox key={device.id} deviceId={device.id} />
-          case 'jacuzzi':
-            return <JacuzziBox key={device.id} deviceId={device.id} />
-          case 'heating':
-            return <HeatingBox key={device.id} deviceId={device.id} />
-          case 'light-switch':
-            return <LightSwitchBox key={device.id} deviceId={device.id} />
-          default:
-            return null
-        }
-      })}
-    </Stack>
+    <DeviceStateProvider>
+      <Stack
+        spacing={1.5}
+        sx={{
+          alignItems: 'stretch',
+          pb: 2,
+        }}
+      >
+        {data.map((device) => {
+          switch (device.type) {
+            case 'sauna':
+              return <SaunaBox key={device.id} deviceId={device.id} />
+            case 'jacuzzi':
+              return <JacuzziBox key={device.id} deviceId={device.id} />
+            case 'heating':
+              return <HeatingBox key={device.id} deviceId={device.id} />
+            case 'light-switch':
+              return <LightSwitchBox key={device.id} deviceId={device.id} />
+            default:
+              return null
+          }
+        })}
+      </Stack>
+    </DeviceStateProvider>
   )
 }

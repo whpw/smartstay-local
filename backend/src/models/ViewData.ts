@@ -10,6 +10,11 @@ export type DeviceViewData = {
   state: DeviceState
 }
 
+export type DeviceStateUpdate = {
+  deviceId: string
+  viewData: DeviceViewData
+}
+
 /**
  * Heating types
  */

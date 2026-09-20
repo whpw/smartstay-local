@@ -1,9 +1,9 @@
 import { Box, Button } from '@mui/material'
-import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import lightIcon from '@/assets/light.png'
 import { authedClient } from '@/dao'
+import { useDeviceViewData } from '@/utils/useDeviceStates'
 import { type SwitchBoxViewData } from '@backend/models'
 import { useMutation } from '@tanstack/react-query'
 import { useSnackbar } from 'notistack'
@@ -13,7 +13,7 @@ import { PollingErrorCover } from './PollingErrorCover'
 const ACTION_TIMEOUT_MS = 8_000
 
 export const LightSwitchBox = ({ deviceId }: { deviceId: string }) => {
-  const [viewData, setViewData] = useState<SwitchBoxViewData>()
+  const [viewData, setViewData] = useDeviceViewData<SwitchBoxViewData>(deviceId)
 
   const { t } = useTranslation()
   const { enqueueSnackbar } = useSnackbar()
@@ -60,21 +60,6 @@ export const LightSwitchBox = ({ deviceId }: { deviceId: string }) => {
       })
     },
   })
-
-  useEffect(() => {
-    const evtSource = new EventSource(`/api/state/${deviceId}`, {
-      withCredentials: true,
-    })
-
-    evtSource.addEventListener('device-state-update', (event) => {
-      const receivedData = JSON.parse(event.data)
-      setViewData(receivedData as SwitchBoxViewData)
-    })
-
-    return () => {
-      evtSource.close()
-    }
-  }, [deviceId])
 
   if (!viewData) return <DeviceCardSkeleton />
 
