@@ -1,14 +1,24 @@
 import assert from 'node:assert/strict'
 import type { AddonDTO } from '../models/ResDetails.ts'
 import {
+  DEFAULT_COMPLIMENTARY_ADDONS,
   normalizeComplimentaryAddons,
   resolveComplimentaryAddons,
 } from './complimentary-addons.ts'
 
 {
-  assert.deepEqual(normalizeComplimentaryAddons(undefined), [])
-  assert.deepEqual(normalizeComplimentaryAddons(null), [])
-  assert.deepEqual(normalizeComplimentaryAddons({}), [])
+  assert.deepEqual(
+    normalizeComplimentaryAddons(undefined),
+    DEFAULT_COMPLIMENTARY_ADDONS,
+  )
+  assert.deepEqual(
+    normalizeComplimentaryAddons(null),
+    DEFAULT_COMPLIMENTARY_ADDONS,
+  )
+  assert.deepEqual(
+    normalizeComplimentaryAddons({}),
+    DEFAULT_COMPLIMENTARY_ADDONS,
+  )
   assert.deepEqual(normalizeComplimentaryAddons([]), [])
   assert.deepEqual(
     normalizeComplimentaryAddons([
@@ -18,6 +28,17 @@ import {
     ]),
     [{ type: 'sauna', mode: 'per-session', quantity: 1 }],
   )
+}
+
+{
+  const omittedConfig = resolveComplimentaryAddons({
+    reservationAddons: [],
+    configured: normalizeComplimentaryAddons(undefined),
+    previouslyGranted: [],
+  })
+  assert.deepEqual(omittedConfig.addons, [
+    { type: 'jacuzzi', mode: 'per-session', quantity: 1, complimentary: true },
+  ])
 }
 
 {
