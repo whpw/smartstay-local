@@ -1,15 +1,21 @@
-import { Box, Typography, useColorScheme } from '@mui/material'
+import { Box, Typography } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
 import { Outlet } from 'react-router'
 import { infoClient } from '@/dao'
 
+/** Dark wordmark — for light backgrounds */
 const logoForLightTheme = '/logo-dark.png'
+/** Light wordmark — for dark backgrounds */
 const logoForDarkTheme = '/logo-light.png'
 
-export const Layout = () => {
-  const { mode } = useColorScheme()
-  const logo = mode === 'light' ? logoForLightTheme : logoForDarkTheme
+const logoSx = {
+  height: 28,
+  width: 'auto',
+  maxWidth: 168,
+  display: 'block',
+} as const
 
+export const Layout = () => {
   const { data } = useQuery({
     queryKey: ['info'],
     queryFn: () => {
@@ -50,11 +56,28 @@ export const Layout = () => {
             mb: 1,
           }}
         >
+          {/* Swap via the same prefers-color-scheme media query as the theme
+              palette (colorSchemeSelector: 'media'), not useColorScheme().mode
+              which stays at defaultMode="light". */}
           <Box
             component="img"
-            src={logo}
+            src={logoForLightTheme}
             alt="SmartStay"
-            sx={{ height: 28, width: 'auto', maxWidth: 168 }}
+            sx={(theme) => ({
+              ...logoSx,
+              ...theme.applyStyles('dark', { display: 'none' }),
+            })}
+          />
+          <Box
+            component="img"
+            src={logoForDarkTheme}
+            alt=""
+            aria-hidden
+            sx={(theme) => ({
+              ...logoSx,
+              display: 'none',
+              ...theme.applyStyles('dark', { display: 'block' }),
+            })}
           />
           {place && (
             <Typography
