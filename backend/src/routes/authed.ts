@@ -1,8 +1,8 @@
 import { appConfig } from '@/config'
 import type { DeviceConfig } from '@/config/types'
-import { getDeviceController } from '@/devices'
+import { devices as deviceControllers, getDeviceController } from '@/devices'
 import type { DevController } from '@/devices/controller'
-import type { DeviceViewData } from '@/models'
+import type { DeviceStateUpdate, DeviceViewData } from '@/models'
 import type { ResDetails } from '@/models/ResDetails'
 import { logger } from '@/utils/logger'
 import { zValidator } from '@hono/zod-validator'
@@ -118,29 +118,35 @@ const api = app
     return c.json(devices, 200)
   })
 
-  .get('/state/:deviceId', async (c) => {
-    const deviceId = c.req.param('deviceId')
-    const device = getDeviceController(deviceId)
-
+  .get('/state', async (c) => {
     return streamSSE(c, async (stream) => {
-      const disposer = reaction(
-        () => device.viewData,
-        (newState) => {
-          stream.writeSSE({
-            data: JSON.stringify(newState),
-            event: 'device-state-update',
-            id: crypto.randomUUID(),
-          })
-        },
-        {
-          fireImmediately: true,
-        },
+      const disposers = Object.entries(deviceControllers).map(
+        ([deviceId, device]) =>
+          reaction(
+            () => device.viewData,
+            (newState) => {
+              const payload: DeviceStateUpdate = {
+                deviceId,
+                viewData: newState,
+              }
+              stream.writeSSE({
+                data: JSON.stringify(payload),
+                event: 'device-state-update',
+                id: crypto.randomUUID(),
+              })
+            },
+            {
+              fireImmediately: true,
+            },
+          ),
       )
 
       let aborted = false
       stream.onAbort(() => {
         aborted = true
-        disposer()
+        for (const dispose of disposers) {
+          dispose()
+        }
       })
 
       while (!aborted) {

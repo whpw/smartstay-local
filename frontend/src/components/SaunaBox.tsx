@@ -1,28 +1,11 @@
-import { useEffect, useState } from 'react'
-
+import { useDeviceViewData } from '@/utils/useDeviceStates'
 import type { SaunaViewData } from '@backend/models'
 import { DeviceCardSkeleton } from './DeviceCard'
 import { SaunaBoxAuto } from './SaunaBoxAuto'
 import { SaunaBoxManual } from './SaunaBoxManual'
 
 export const SaunaBox = ({ deviceId }: { deviceId: string }) => {
-  const [viewData, setViewData] = useState<SaunaViewData>()
-
-  useEffect(() => {
-    const evtSource = new EventSource(`/api/state/${deviceId}`, {
-      withCredentials: true,
-    })
-
-    evtSource.addEventListener('device-state-update', (event) => {
-      const receivedData = JSON.parse(event.data)
-      console.log('Received sauna state update:', receivedData)
-      setViewData(receivedData as SaunaViewData)
-    })
-
-    return () => {
-      evtSource.close()
-    }
-  }, [deviceId])
+  const [viewData, setViewData] = useDeviceViewData<SaunaViewData>(deviceId)
 
   if (!viewData) return <DeviceCardSkeleton />
 

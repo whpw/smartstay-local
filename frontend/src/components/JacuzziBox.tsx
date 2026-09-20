@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import JacuzziStartButton from './JacuzziStartButton'
 
 import { authedClient } from '@/dao'
+import { useDeviceViewData } from '@/utils/useDeviceStates'
 import { formatRemaining } from '@/utils/formatRemaining'
 import { isSessionRunning } from '@/utils/isSessionRunning'
 import { JACUZZI_STOP_GRACE_MS, type JacuzziViewData } from '@backend/models'
@@ -20,7 +21,7 @@ import { TempSlider } from './TempSlider'
 export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
   const { t } = useTranslation()
 
-  const [viewData, setDeviceData] = useState<JacuzziViewData>()
+  const [viewData, setDeviceData] = useDeviceViewData<JacuzziViewData>(deviceId)
 
   const [targetTemp, setTargetTemp] = useState<number | undefined>(
     viewData?.targetTemp ? viewData.targetTemp : 0,
@@ -69,20 +70,10 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
   })
 
   useEffect(() => {
-    const evtSource = new EventSource(`/api/state/${deviceId}`, {
-      withCredentials: true,
-    })
-
-    evtSource.addEventListener('device-state-update', (event) => {
-      const receivedData = JSON.parse(event.data) as JacuzziViewData
-      setDeviceData(receivedData)
-      setTargetTemp(receivedData.targetTemp)
-    })
-
-    return () => {
-      evtSource.close()
+    if (viewData) {
+      setTargetTemp(viewData.targetTemp)
     }
-  }, [deviceId])
+  }, [viewData])
 
   const { mutate: onTemperatureChange } = useMutation({
     mutationFn: async (value: number) => {
