@@ -9,16 +9,11 @@ import {
 
 const WEEK = 60 * 60 * 24 * 7
 
-/** Used when panel/room config omits complimentaryAddons (never saved). */
-export const DEFAULT_COMPLIMENTARY_ADDONS: ComplimentaryAddon[] = [
-  { type: 'jacuzzi', mode: 'per-session', quantity: 1 },
-]
-
 export function normalizeComplimentaryAddons(
   value: unknown,
 ): ComplimentaryAddon[] {
   if (!Array.isArray(value)) {
-    return [...DEFAULT_COMPLIMENTARY_ADDONS]
+    return []
   }
   return value.flatMap((item) => {
     const parsed = $ComplimentaryAddon.safeParse(item)
