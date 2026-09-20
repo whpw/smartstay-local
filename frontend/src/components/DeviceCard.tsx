@@ -50,11 +50,13 @@ export const DeviceCard = ({
               width: 22,
               height: 22,
               objectFit: 'contain',
-              // Device icons are dark PNGs designed for light mode
-              ...theme.applyStyles('dark', {
-                filter: 'invert(1)',
-              }),
             },
+            // Device icons are dark PNGs designed for light mode;
+            // applyStyles must sit at this level (not nested under & img)
+            // so the dark selector rewrites correctly.
+            ...theme.applyStyles('dark', {
+              '& img': { filter: 'invert(1)' },
+            }),
           })}
         >
           {icon}

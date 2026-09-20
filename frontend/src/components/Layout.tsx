@@ -1,4 +1,4 @@
-import { Box, Typography, useColorScheme } from '@mui/material'
+import { Box, Typography, useMediaQuery } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
 import { Outlet } from 'react-router'
 import { infoClient } from '@/dao'
@@ -7,8 +7,10 @@ const logoForLightTheme = '/logo-dark.png'
 const logoForDarkTheme = '/logo-light.png'
 
 export const Layout = () => {
-  const { mode } = useColorScheme()
-  const logo = mode === 'light' ? logoForLightTheme : logoForDarkTheme
+  // Theme color schemes use the `media` selector, so the palette follows
+  // prefers-color-scheme even when useColorScheme().mode stays at defaultMode.
+  const prefersDark = useMediaQuery('(prefers-color-scheme: dark)')
+  const logo = prefersDark ? logoForDarkTheme : logoForLightTheme
 
   const { data } = useQuery({
     queryKey: ['info'],
