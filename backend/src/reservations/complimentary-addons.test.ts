@@ -80,6 +80,20 @@ import {
 
 {
   const result = resolveComplimentaryAddons({
+    reservationAddons: [{ type: 'jacuzzi', mode: 'per-session', quantity: 0 }],
+    configured: [{ type: 'jacuzzi', mode: 'per-session', quantity: 1 }],
+    previouslyGranted: [],
+  })
+  assert.deepEqual(result.addons, [
+    { type: 'jacuzzi', mode: 'per-session', quantity: 1, complimentary: true },
+  ])
+  assert.deepEqual(result.grantsToPersist, [
+    { type: 'jacuzzi', mode: 'per-session', quantity: 1 },
+  ])
+}
+
+{
+  const result = resolveComplimentaryAddons({
     reservationAddons: [],
     configured: [],
     previouslyGranted: [{ type: 'jacuzzi', mode: 'per-session', quantity: 1 }],

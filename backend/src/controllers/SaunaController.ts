@@ -89,18 +89,18 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
     switch (actionToInvoke.type) {
       case SaunaActionType.START:
         {
-          // Checking if session can be started
-          if (!(await canStartSession(res, this.config.type))) {
+          const { allowed, res: sessionRes } = await canStartSession(
+            res,
+            this.config.type,
+          )
+          if (!allowed) {
             return {
               error: 'REACHED_LIMIT',
             }
           }
 
-          // Starting session
-          await this.startSession(res.departureDate)
-
-          // Increment sessions count
-          incrementSessionsCount(res, this.config.type)
+          await this.startSession(sessionRes.departureDate)
+          incrementSessionsCount(sessionRes, this.config.type)
         }
         break
       case SaunaActionType.STOP:
