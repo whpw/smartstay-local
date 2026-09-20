@@ -20,6 +20,8 @@ export const DeviceCard = ({
   active?: boolean
 }>) => {
   const hasTemp = targetTemp != null || currentTemp != null
+  const hasAction = action != null
+  const showContentRow = hasTemp || hasAction
 
   return (
     <Stack
@@ -75,19 +77,9 @@ export const DeviceCard = ({
           </Typography>
           {status}
         </Box>
-        {!hasTemp && action != null && (
-          <Box
-            sx={{
-              flexShrink: 0,
-              '& .MuiButton-root': { minWidth: 112 },
-            }}
-          >
-            {action}
-          </Box>
-        )}
       </Stack>
 
-      {hasTemp && (
+      {showContentRow && (
         <Stack
           direction="row"
           sx={{
@@ -96,7 +88,7 @@ export const DeviceCard = ({
             gap: 2,
           }}
         >
-          <Box sx={{ minWidth: 0 }}>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
             {targetTemp != null && (
               <Typography
                 sx={{
@@ -120,7 +112,7 @@ export const DeviceCard = ({
               </Typography>
             )}
           </Box>
-          {action != null && (
+          {hasAction && (
             <Box
               sx={{
                 flexShrink: 0,

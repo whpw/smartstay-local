@@ -36,14 +36,16 @@ export default function SaunaStartButton({
 
   const { t } = useTranslation()
 
-  if (isRunning) return null
-
   return (
     <>
       <Button
         type="button"
         onClick={onStartClick}
-        disabled={viewData.state === 'initializing' || viewData.pollingError}
+        disabled={
+          isRunning ||
+          viewData.state === 'initializing' ||
+          viewData.pollingError
+        }
         variant="contained"
       >
         {t('devices.sauna.start')}
