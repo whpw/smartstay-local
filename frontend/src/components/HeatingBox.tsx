@@ -71,7 +71,11 @@ export const HeatingBox = ({ deviceId }: { deviceId: string }) => {
     },
   })
 
-  const isTurnedOff = viewData.state !== 'active'
+  // Weather monitoring sets `idle` when outdoor temp ≥ externalTempLimit.
+  // Mirror jacuzzi/sauna idle UX: keep the live room temp as the hero value so
+  // a weather shutdown does not look like a failed device init.
+  const isIdle = viewData.state === 'idle'
+  const isControllable = viewData.state === 'active' || viewData.state === 'eco'
   const initializing = viewData.state === 'initializing'
 
   if (initializing && !viewData.name) return <DeviceCardSkeleton />
@@ -81,14 +85,14 @@ export const HeatingBox = ({ deviceId }: { deviceId: string }) => {
       icon={<Box component="img" src={heaterIcon} alt="" />}
       title={viewData.name}
       status={
-        isTurnedOff ? (
+        isIdle ? (
           <Typography variant="caption" color="text.secondary">
             {t('devices.heating.turned-off')}
           </Typography>
         ) : null
       }
       action={
-        isTurnedOff ? undefined : (
+        isControllable ? (
           <Button
             variant="contained"
             onClick={() => setEditMode(true)}
@@ -96,14 +100,20 @@ export const HeatingBox = ({ deviceId }: { deviceId: string }) => {
           >
             {t('devices.heating.edit')}
           </Button>
-        )
+        ) : undefined
       }
       currentTemp={
-        isTurnedOff || viewData.currentTemp === viewData.targetTemp
+        !isControllable || viewData.currentTemp === viewData.targetTemp
           ? undefined
           : t('devices.now', { temp: viewData.currentTemp })
       }
-      targetTemp={isTurnedOff ? '–' : viewData.targetTemp}
+      targetTemp={
+        initializing
+          ? undefined
+          : isIdle
+            ? viewData.currentTemp
+            : viewData.targetTemp
+      }
     >
       {viewData.pollingError && <PollingErrorCover />}
 
