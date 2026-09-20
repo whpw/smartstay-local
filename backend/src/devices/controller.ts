@@ -22,6 +22,10 @@ export abstract class DevController<
     return this.config.type
   }
 
+  public get name(): string {
+    return this.config.name
+  }
+
   abstract init(): Promise<void>
 
   abstract dispose(): void

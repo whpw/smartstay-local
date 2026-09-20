@@ -5,6 +5,7 @@ import type { DevController } from '@/devices/controller'
 import type { DeviceStateUpdate, DeviceViewData } from '@/models'
 import type { ResDetails } from '@/models/ResDetails'
 import { logger } from '@/utils/logger'
+import { pushRemoteGuestAction } from '@/utils/remote-guest-actions'
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { contextStorage, getContext } from 'hono/context-storage'
@@ -71,13 +72,11 @@ const api = app
       const { deviceId, action } = await c.req.json()
 
       let device: DevController<DeviceConfig, DeviceViewData> | undefined
+      const resDetails = getContext<AuthedEnv>().get('resDetails')
 
       try {
         // Get controller
         device = getDeviceController(deviceId)
-
-        // Get ResDetails
-        const resDetails = getContext<AuthedEnv>().get('resDetails')
 
         // Log action
         device.logger.info('User action:', action)
@@ -88,10 +87,46 @@ const api = app
         // Return result
         device.logger.info('User action result:', result)
 
+        const failed =
+          result != null &&
+          typeof result === 'object' &&
+          'error' in result &&
+          typeof (result as { error?: unknown }).error === 'string'
+
+        void pushRemoteGuestAction({
+          ts: Date.now(),
+          reservationNumber: resDetails.number,
+          reservationId: resDetails.id,
+          kind: 'device',
+          deviceId: device.id,
+          deviceName: device.name,
+          deviceType: device.type,
+          actionType: action.type,
+          actionValue: action.value ?? null,
+          ok: !failed,
+          ...(failed
+            ? { error: String((result as { error: string }).error) }
+            : {}),
+        })
+
         return c.json(result, 200)
       } catch (error) {
         // Log error
         ;(device?.logger || logger).error('Error invoking user action:', error)
+
+        void pushRemoteGuestAction({
+          ts: Date.now(),
+          reservationNumber: resDetails.number,
+          reservationId: resDetails.id,
+          kind: 'device',
+          deviceId: device?.id ?? deviceId,
+          deviceName: device?.name,
+          deviceType: device?.type,
+          actionType: action.type,
+          actionValue: action.value ?? null,
+          ok: false,
+          error: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
+        })
 
         // Return error
         if (error instanceof Error) {
