@@ -92,7 +92,8 @@
     "light-switch": {
       "initializing": "Łączenie...",
       "on": "Włącz",
-      "off": "Wyłącz"
+      "off": "Wyłącz",
+      "action-error": "Nie udało się połączyć ze światłem. Spróbuj ponownie."
     }
   }
 }
