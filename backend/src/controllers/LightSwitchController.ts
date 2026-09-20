@@ -34,7 +34,9 @@ import { addMinutes, addSeconds, isAfter, max, parse, set } from 'date-fns'
 import ky, { type KyInstance } from 'ky'
 
 const DEVICE_API_TIMEOUT_MS = 5_000
-const DISCOVERY_RETRY_LIMIT = 6
+/** Show connection error in UI after this long, but keep discovering in the background. */
+const INITIALIZING_GRACE_MS = 120_000
+const RECONNECT_INTERVAL_MS = 30_000
 
 type LightPersistentState = {
   manualOffAt: number | null
@@ -71,6 +73,10 @@ export class LightSwitchController extends DevController<
 
   private discoveryPromise: Promise<void> | null = null
 
+  private initializingGraceTimer?: NodeJS.Timeout
+
+  private reconnectInterval?: NodeJS.Timeout
+
   @observable
   private accessor pollingError = false
 
@@ -86,19 +92,24 @@ export class LightSwitchController extends DevController<
   }
 
   public async init() {
+    this.startInitializingGraceTimer()
+
     try {
       await this.initDeviceApi()
     } catch {
+      this.startReconnectLoop()
       return
+    } finally {
+      this.clearInitializingGraceTimer()
     }
 
-    await this.reconcileManualSession()
-    await this.initStatePolling()
-    await this.initSchedule()
+    await this.onDeviceConnected()
   }
 
   public dispose() {
     this.discoveryAbort?.abort()
+    this.clearInitializingGraceTimer()
+    this.stopReconnectLoop()
     if (this.statePollingInterval) {
       clearInterval(this.statePollingInterval)
     }
@@ -272,6 +283,61 @@ export class LightSwitchController extends DevController<
     }
   }
 
+  private startInitializingGraceTimer() {
+    this.clearInitializingGraceTimer()
+    this.initializingGraceTimer = setTimeout(() => {
+      runInAction(() => {
+        if (this.state === 'initializing') {
+          this.state = 'idle'
+          this.pollingError = true
+        }
+      })
+    }, INITIALIZING_GRACE_MS)
+  }
+
+  private clearInitializingGraceTimer() {
+    if (this.initializingGraceTimer) {
+      clearTimeout(this.initializingGraceTimer)
+      this.initializingGraceTimer = undefined
+    }
+  }
+
+  private startReconnectLoop() {
+    if (this.reconnectInterval) {
+      return
+    }
+
+    this.reconnectInterval = setInterval(() => {
+      if (this.discoveryPromise) {
+        return
+      }
+
+      void this.initDeviceApi()
+        .then(() => this.onDeviceConnected())
+        .catch(() => {
+          // Connection state updated in initDeviceApi
+        })
+    }, RECONNECT_INTERVAL_MS)
+  }
+
+  private stopReconnectLoop() {
+    if (this.reconnectInterval) {
+      clearInterval(this.reconnectInterval)
+      this.reconnectInterval = undefined
+    }
+  }
+
+  private async onDeviceConnected() {
+    this.stopReconnectLoop()
+    await this.reconcileManualSession()
+    if (!this.statePollingInterval) {
+      await this.initStatePolling()
+    }
+    if (!this.dayScheduleInterval) {
+      this.initSchedule()
+    }
+  }
+
   private async setDeviceState(state: DeviceState) {
     this.logger.debug('Setting state to:', state)
     try {
@@ -323,7 +389,7 @@ export class LightSwitchController extends DevController<
             signal: abort.signal,
             retry: {
               retryOnTimeout: true,
-              limit: DISCOVERY_RETRY_LIMIT,
+              limit: Number.POSITIVE_INFINITY,
               backoffLimit: 15_000,
             },
             timeout: DEVICE_API_TIMEOUT_MS,
