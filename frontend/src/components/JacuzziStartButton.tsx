@@ -51,7 +51,11 @@ export default function JacuzziStartButton({
       <Button
         type="button"
         onClick={onStartClick}
-        disabled={viewData.state === 'eco' || viewData.pollingError}
+        disabled={
+          viewData.state === 'initializing' ||
+          viewData.state === 'eco' ||
+          viewData.pollingError
+        }
         variant="contained"
       >
         {t('devices.jacuzzi.start')}
