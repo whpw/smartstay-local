@@ -19,7 +19,10 @@ import { appConfig } from '@/config'
 import { sunset } from '@/cron/sunset'
 import { db, toKey } from '@/db'
 import { cancelPendingMessages, hasPendingMessage } from '@/queue'
-import { enqueueStopSession, isStopMessageCurrent } from '@/utils/reconcileSession'
+import {
+  enqueueStopSession,
+  isStopMessageCurrent,
+} from '@/utils/reconcileSession'
 import {
   bleboxApiPrefixFromInfoIp,
   bleboxDiscoveryUrl,
@@ -27,15 +30,11 @@ import {
 import { waitUntilReady } from '@/utils/waitUntilReady'
 import { TZDate } from '@date-fns/tz'
 import { CronJob, CronTime } from 'cron'
-import {
-  addMinutes,
-  addSeconds,
-  isAfter,
-  max,
-  parse,
-  set,
-} from 'date-fns'
+import { addMinutes, addSeconds, isAfter, max, parse, set } from 'date-fns'
 import ky, { type KyInstance } from 'ky'
+
+const DEVICE_API_TIMEOUT_MS = 5_000
+const DISCOVERY_RETRY_LIMIT = 6
 
 type LightPersistentState = {
   manualOffAt: number | null
@@ -87,7 +86,12 @@ export class LightSwitchController extends DevController<
   }
 
   public async init() {
-    await this.initDeviceApi()
+    try {
+      await this.initDeviceApi()
+    } catch {
+      return
+    }
+
     await this.reconcileManualSession()
     await this.initStatePolling()
     await this.initSchedule()
@@ -185,9 +189,7 @@ export class LightSwitchController extends DevController<
     if (msg.deviceId === this.id && msg.action === 'stop-session') {
       await waitUntilReady(() => this.state !== 'initializing')
       const persisted = db().get<LightPersistentState>(this.persistentKey)
-      if (
-        !isStopMessageCurrent(msg.sessionEndTime, persisted?.manualOffAt)
-      ) {
+      if (!isStopMessageCurrent(msg.sessionEndTime, persisted?.manualOffAt)) {
         return
       }
       this.clearManualOffAt()
@@ -197,6 +199,12 @@ export class LightSwitchController extends DevController<
 
   @actionBound
   public async invokeAction(actionToInvoke: Action, _res: ResDetails) {
+    if (this.state === 'initializing' || this.pollingError) {
+      return {
+        error: 'NOT_READY',
+      }
+    }
+
     switch (actionToInvoke.type) {
       case SwitchBoxActionType.START:
         {
@@ -237,7 +245,9 @@ export class LightSwitchController extends DevController<
   }
 
   private clearManualOffAt() {
-    db().set(this.persistentKey, { manualOffAt: null } satisfies LightPersistentState)
+    db().set(this.persistentKey, {
+      manualOffAt: null,
+    } satisfies LightPersistentState)
   }
 
   private async reconcileManualSession() {
@@ -262,10 +272,10 @@ export class LightSwitchController extends DevController<
     }
   }
 
-  private setDeviceState(state: DeviceState) {
+  private async setDeviceState(state: DeviceState) {
     this.logger.debug('Setting state to:', state)
-    return this.deviceApi
-      .post('state', {
+    try {
+      await this.deviceApi.post('state', {
         json: {
           relays: [
             {
@@ -274,18 +284,19 @@ export class LightSwitchController extends DevController<
             },
           ],
         },
+        timeout: DEVICE_API_TIMEOUT_MS,
       })
-      .then(() => {
-        runInAction(() => {
-          this.state = state
-        })
+      runInAction(() => {
+        this.state = state
+        this.pollingError = false
       })
-      .catch((e) => {
-        this.logger.error('Error setting state:', e)
-        runInAction(() => {
-          this.pollingError = true
-        })
+    } catch (error) {
+      this.logger.error('Error setting state:', error)
+      runInAction(() => {
+        this.pollingError = true
       })
+      throw error
+    }
   }
 
   private async initDeviceApi() {
@@ -298,60 +309,78 @@ export class LightSwitchController extends DevController<
     const isReconnect = !!this.deviceApi
 
     this.discoveryPromise = (async () => {
-      const apiUrl = bleboxDiscoveryUrl(this.config.sn)
+      try {
+        const apiUrl = bleboxDiscoveryUrl(this.config.sn)
 
-      if (isReconnect) {
-        this.logger.warn('Reconnecting to API at:', apiUrl)
-      } else {
-        this.logger.info('Connecting to API at:', apiUrl)
-      }
+        if (isReconnect) {
+          this.logger.warn('Reconnecting to API at:', apiUrl)
+        } else {
+          this.logger.info('Connecting to API at:', apiUrl)
+        }
 
-      const { device } = await ky
-        .get<{ device: { ip: string } }>(apiUrl, {
-          signal: abort.signal,
-          retry: {
-            retryOnTimeout: true,
-            limit: Number.POSITIVE_INFINITY,
-            backoffLimit: 15_000,
-          },
-          hooks: {
-            beforeRetry: [
-              ({ error, retryCount }) => {
-                this.logger.warn(
-                  'Failed to connect to API, retrying:',
-                  apiUrl,
-                  'attempt=',
-                  retryCount,
-                  error,
-                )
-              },
-            ],
-          },
+        const { device } = await ky
+          .get<{ device: { ip: string } }>(apiUrl, {
+            signal: abort.signal,
+            retry: {
+              retryOnTimeout: true,
+              limit: DISCOVERY_RETRY_LIMIT,
+              backoffLimit: 15_000,
+            },
+            timeout: DEVICE_API_TIMEOUT_MS,
+            hooks: {
+              beforeRetry: [
+                ({ error, retryCount }) => {
+                  this.logger.warn(
+                    'Failed to connect to API, retrying:',
+                    apiUrl,
+                    'attempt=',
+                    retryCount,
+                    error,
+                  )
+                },
+              ],
+            },
+          })
+          .json()
+
+        this.logger.info('Connected to API at:', device.ip)
+
+        this.deviceApi = ky.create({
+          prefix: bleboxApiPrefixFromInfoIp(device.ip),
+          timeout: DEVICE_API_TIMEOUT_MS,
         })
-        .json()
 
-      this.logger.info('Connected to API at:', device.ip)
+        const {
+          relays: [relay],
+        } = await this.deviceApi
+          .get<{ relays: Array<{ relay: number; state: 0 | 1 }> }>('state', {
+            signal: abort.signal,
+          })
+          .json()
 
-      this.deviceApi = ky.create({
-        prefix: bleboxApiPrefixFromInfoIp(device.ip),
-      })
+        if (!relay) {
+          throw new Error('No relays found')
+        }
 
-      const {
-        relays: [relay],
-      } = await this.deviceApi
-        .get<{ relays: Array<{ relay: number; state: 0 | 1 }> }>('state', {
-          signal: abort.signal,
+        this.relayId = relay.relay
+        runInAction(() => {
+          this.state = relay.state === 1 ? 'active' : 'idle'
+          this.pollingError = false
         })
-        .json()
+      } catch (error) {
+        if (abort.signal.aborted) {
+          throw error
+        }
 
-      if (!relay) {
-        throw new Error('No relays found')
+        this.logger.error('Failed to connect to light switch API:', error)
+        runInAction(() => {
+          if (this.state === 'initializing') {
+            this.state = 'idle'
+          }
+          this.pollingError = true
+        })
+        throw error
       }
-
-      this.relayId = relay.relay
-      runInAction(() => {
-        this.state = relay.state === 1 ? 'active' : 'idle'
-      })
     })().finally(() => {
       if (this.discoveryAbort === abort) {
         this.discoveryPromise = null
@@ -383,6 +412,7 @@ export class LightSwitchController extends DevController<
           runInAction(() => {
             this.relayId = relay.relay
             this.state = relay.state === 1 ? 'active' : 'idle'
+            this.pollingError = false
           })
         })
         .catch((e) => {
@@ -391,7 +421,9 @@ export class LightSwitchController extends DevController<
             this.pollingError = true
           })
 
-          void this.initDeviceApi()
+          void this.initDeviceApi().catch(() => {
+            // Connection state updated in initDeviceApi
+          })
         })
         .finally(() => {
           isFetching = false

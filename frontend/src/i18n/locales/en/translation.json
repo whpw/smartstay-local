@@ -92,7 +92,8 @@
     "light-switch": {
       "initializing": "Initializing...",
       "on": "Turn on",
-      "off": "Turn off"
+      "off": "Turn off",
+      "action-error": "Could not reach the light switch. Please try again."
     }
   }
 }
