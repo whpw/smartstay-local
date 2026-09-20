@@ -1,4 +1,5 @@
 import { getResDetails, isResDetails } from '@/reservations'
+import { pushRemoteGuestAction } from '@/utils/remote-guest-actions'
 import { zValidator } from '@hono/zod-validator'
 import { differenceInSeconds } from 'date-fns'
 import { Hono } from 'hono'
@@ -13,7 +14,7 @@ const api = new Hono().post(
     z.object({
       resNumber: z.string(),
       lastName: z.string(),
-    })
+    }),
   ),
   async (c) => {
     // Destructuring data
@@ -30,7 +31,7 @@ const api = new Hono().post(
       (error) => {
         console.error('Error getting reservation details', error)
         return error
-      }
+      },
     )
 
     // Handling errors
@@ -42,7 +43,7 @@ const api = new Hono().post(
         {
           code: 'login.unknown',
         },
-        401
+        401,
       )
     }
 
@@ -54,7 +55,7 @@ const api = new Hono().post(
         payload: resDetails,
       },
       'jwt-secret',
-      'HS256'
+      'HS256',
     )
 
     await setSignedCookie(c, '_auth', signed, 'cookie-secret', {
@@ -63,8 +64,17 @@ const api = new Hono().post(
       sameSite: 'Strict',
     })
 
+    void pushRemoteGuestAction({
+      ts: Date.now(),
+      reservationNumber: resDetails.number,
+      reservationId: resDetails.id,
+      kind: 'login',
+      actionType: 'LOGIN',
+      ok: true,
+    })
+
     return c.json({ isAuthed: true }, 200)
-  }
+  },
 )
 
 export { api }
