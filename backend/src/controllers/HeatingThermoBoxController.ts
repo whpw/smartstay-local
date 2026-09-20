@@ -403,11 +403,13 @@ export class HeatingThermoBoxController extends DevController<
 
     const pollState = () => {
       // Skip if device connection is not set or a fetch is in flight
-      if (!this.deviceApi || isFetching) return
+      if (!this.deviceApi || isFetching) {
+        return Promise.resolve()
+      }
 
       isFetching = true
 
-      this.deviceApi
+      return this.deviceApi
         .get<{
           thermo: { state: number; desiredTemp: number }
           sensors: Array<{
@@ -445,9 +447,11 @@ export class HeatingThermoBoxController extends DevController<
         })
     }
 
-    // First reading immediately so idle UI has a live temp after init
-    pollState()
-    this.statePollingInterval = setInterval(pollState, 15_000)
+    // Await first reading so idle UI never flashes 0° before weather shutdown
+    await pollState()
+    this.statePollingInterval = setInterval(() => {
+      void pollState()
+    }, 15_000)
   }
 
   public override async toggleEcoMode(gap: GapInHours) {
