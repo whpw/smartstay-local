@@ -125,7 +125,7 @@ export class HeatingThermoBoxController extends DevController<
       },
       {
         fireImmediately: true,
-      }
+      },
     )
   }
 
@@ -245,7 +245,7 @@ export class HeatingThermoBoxController extends DevController<
   public async setDayPartTemp(
     dayTemp: number,
     nightTemp: number,
-    res: ResDetails
+    res: ResDetails,
   ) {
     // Creating new state
     const newState = {
@@ -261,7 +261,7 @@ export class HeatingThermoBoxController extends DevController<
       'Setting user defined temparatures:',
       res.firstName,
       res.lastName,
-      res.number
+      res.number,
     )
     this.logger.debug('Day temp:', dayTemp)
     this.logger.debug('Night temp:', nightTemp)
@@ -274,7 +274,7 @@ export class HeatingThermoBoxController extends DevController<
   private loadCurrentState() {
     // Getting current state
     const currentState = db().get<HeatingPersistentState>(
-      toKey('device-state', this.config.id)
+      toKey('device-state', this.config.id),
     ) || {
       state: 'active',
       dayTemp: this.config.dayTemp,
@@ -399,15 +399,12 @@ export class HeatingThermoBoxController extends DevController<
   }
 
   private async initStatePolling() {
-    // Creating deferred promise
     let isFetching = false
 
-    // Creating interval
-    this.statePollingInterval = setInterval(() => {
-      // Skip if device connection is not set or def is not resolved
+    const pollState = () => {
+      // Skip if device connection is not set or a fetch is in flight
       if (!this.deviceApi || isFetching) return
 
-      // Set fetching
       isFetching = true
 
       this.deviceApi
@@ -446,7 +443,11 @@ export class HeatingThermoBoxController extends DevController<
         .finally(() => {
           isFetching = false
         })
-    }, 15_000)
+    }
+
+    // First reading immediately so idle UI has a live temp after init
+    pollState()
+    this.statePollingInterval = setInterval(pollState, 15_000)
   }
 
   public override async toggleEcoMode(gap: GapInHours) {

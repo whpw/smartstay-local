@@ -10,10 +10,12 @@ export const weather = observable({
 })
 
 function setTemps(temps: Array<number>) {
-  // Setting average temp
+  // Setting average temp (empty history → 0, never NaN from 0/0)
   runInAction(() => {
     weather.averageTemp =
-      temps.reduce((acc, item) => acc + item, 0) / temps.length
+      temps.length === 0
+        ? 0
+        : temps.reduce((acc, item) => acc + item, 0) / temps.length
   })
 }
 
