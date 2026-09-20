@@ -66,15 +66,13 @@ export const HeatingBox = ({ deviceId }: { deviceId: string }) => {
         ) : null
       }
       action={
-        isControllable ? (
-          <Button
-            variant="contained"
-            onClick={() => setEditMode(true)}
-            disabled={viewData.pollingError}
-          >
-            {t('devices.heating.edit')}
-          </Button>
-        ) : undefined
+        <Button
+          variant="contained"
+          onClick={() => setEditMode(true)}
+          disabled={!isControllable || viewData.pollingError}
+        >
+          {t('devices.heating.edit')}
+        </Button>
       }
       currentTemp={
         !isControllable || viewData.currentTemp === viewData.targetTemp

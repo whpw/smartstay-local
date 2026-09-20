@@ -20,6 +20,8 @@ export const DeviceCard = ({
   active?: boolean
 }>) => {
   const hasTemp = targetTemp != null || currentTemp != null
+  const hasAction = action != null
+  const showContentRow = hasTemp || hasAction
 
   return (
     <Stack
@@ -38,26 +40,16 @@ export const DeviceCard = ({
     >
       <Stack direction="row" sx={{ alignItems: 'center', gap: 1.5 }}>
         <Box
-          sx={(theme) => ({
+          sx={{
             width: 44,
             height: 44,
             borderRadius: '14px',
             display: 'grid',
             placeItems: 'center',
-            bgcolor: 'action.hover',
+            bgcolor: 'rgba(26, 25, 23, 0.05)',
             flexShrink: 0,
-            '& img': {
-              width: 22,
-              height: 22,
-              objectFit: 'contain',
-            },
-            // Device icons are dark PNGs designed for light mode;
-            // applyStyles must sit at this level (not nested under & img)
-            // so the dark selector rewrites correctly.
-            ...theme.applyStyles('dark', {
-              '& img': { filter: 'invert(1)' },
-            }),
-          })}
+            '& img': { width: 22, height: 22, objectFit: 'contain' },
+          }}
         >
           {icon}
         </Box>
@@ -75,19 +67,9 @@ export const DeviceCard = ({
           </Typography>
           {status}
         </Box>
-        {!hasTemp && action != null && (
-          <Box
-            sx={{
-              flexShrink: 0,
-              '& .MuiButton-root': { minWidth: 112 },
-            }}
-          >
-            {action}
-          </Box>
-        )}
       </Stack>
 
-      {hasTemp && (
+      {showContentRow && (
         <Stack
           direction="row"
           sx={{
@@ -96,7 +78,7 @@ export const DeviceCard = ({
             gap: 2,
           }}
         >
-          <Box sx={{ minWidth: 0 }}>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
             {targetTemp != null && (
               <Typography
                 sx={{
@@ -120,7 +102,7 @@ export const DeviceCard = ({
               </Typography>
             )}
           </Box>
-          {action != null && (
+          {hasAction && (
             <Box
               sx={{
                 flexShrink: 0,

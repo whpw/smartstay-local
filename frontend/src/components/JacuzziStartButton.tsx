@@ -44,14 +44,13 @@ export default function JacuzziStartButton({
     setOpen(true)
   }
 
-  if (isRunning) return null
-
   return (
     <Box>
       <Button
         type="button"
         onClick={onStartClick}
         disabled={
+          isRunning ||
           viewData.state === 'initializing' ||
           viewData.state === 'eco' ||
           viewData.pollingError
