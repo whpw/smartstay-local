@@ -38,16 +38,24 @@ export const DeviceCard = ({
     >
       <Stack direction="row" sx={{ alignItems: 'center', gap: 1.5 }}>
         <Box
-          sx={{
+          sx={(theme) => ({
             width: 44,
             height: 44,
             borderRadius: '14px',
             display: 'grid',
             placeItems: 'center',
-            bgcolor: 'rgba(26, 25, 23, 0.05)',
+            bgcolor: 'action.hover',
             flexShrink: 0,
-            '& img': { width: 22, height: 22, objectFit: 'contain' },
-          }}
+            '& img': {
+              width: 22,
+              height: 22,
+              objectFit: 'contain',
+              // Device icons are dark PNGs designed for light mode
+              ...theme.applyStyles('dark', {
+                filter: 'invert(1)',
+              }),
+            },
+          })}
         >
           {icon}
         </Box>
