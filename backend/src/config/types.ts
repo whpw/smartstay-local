@@ -36,7 +36,7 @@ export type AppConfig = {
   hotresAddonsUrl: string
   /**
    * Addons granted once per reservation when Hotres does not already include
-   * the same type+mode. Omit or pass `[]` for no complimentary grants.
+   * the same type+mode. Omit, invalid, or `[]` → no complimentary grants.
    * Example: `{ "type": "jacuzzi", "mode": "per-session", "quantity": 1 }`
    */
   complimentaryAddons?: Array<{

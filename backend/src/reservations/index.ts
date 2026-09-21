@@ -1,4 +1,4 @@
-import { appConfig } from '@/config'
+import { appConfig, refreshComplimentaryAddons } from '@/config'
 import type { HotresReservationDTO } from '@/models/HotresDTOs'
 import { $ResDetails, type ResDetails } from '@/models/ResDetails'
 import { DAO } from '@/utils/DAO'
@@ -110,6 +110,7 @@ export async function getResDetails(
   ]
 
   const reservationAddons = parseHotresAddons(allAddons)
+  await refreshComplimentaryAddons()
   const complimentaryAddons = applyComplimentaryAddons(
     resNumber,
     depDate,

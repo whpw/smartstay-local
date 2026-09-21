@@ -7,29 +7,67 @@ import type { AppConfig } from './types'
 // Exporting initialized config
 export let appConfig!: AppConfig
 
-// Exporting config initialization function
-export async function initConfig() {
-  logger.debug('Initializing config...')
+const COMPLIMENTARY_REFRESH_TTL_MS = 60_000
+let lastComplimentaryRefreshAt = 0
 
+async function fetchRemoteConfig() {
   const CONFIG_API_URL = process.env.CONFIG_API_URL as string
   const CONFIG_API_KEY = process.env.CONFIG_API_KEY as string
 
-  // Get devices config
-  const loadedConfig = await ky
+  return ky
     .get<AppConfig>(CONFIG_API_URL, {
       headers: {
         Authorization: `Bearer ${CONFIG_API_KEY}`,
       },
     })
     .json()
-    .then((appConfig) => {
+}
+
+/**
+ * Re-read complimentary addons from the panel so a save there applies on the
+ * next login / session start without waiting for a room-app reboot.
+ */
+export async function refreshComplimentaryAddons() {
+  if (!appConfig || !process.env.CONFIG_API_URL) {
+    return
+  }
+
+  const now = Date.now()
+  if (now - lastComplimentaryRefreshAt < COMPLIMENTARY_REFRESH_TTL_MS) {
+    return
+  }
+
+  try {
+    const remote = await fetchRemoteConfig()
+    const complimentaryAddons = normalizeComplimentaryAddons(
+      remote.complimentaryAddons,
+    )
+    appConfig.complimentaryAddons = complimentaryAddons
+    lastComplimentaryRefreshAt = now
+
+    const cached = db().get<AppConfig | undefined>('appConfig')
+    if (cached) {
+      db().set('appConfig', { ...cached, complimentaryAddons })
+    }
+  } catch (err) {
+    logger.error('Error refreshing complimentary addons:', err)
+  }
+}
+
+// Exporting config initialization function
+export async function initConfig() {
+  logger.debug('Initializing config...')
+
+  // Get devices config
+  const loadedConfig = await fetchRemoteConfig()
+    .then((remoteConfig) => {
       logger.info('Remote config initialized successfully')
 
       // Storing config
-      db().set('appConfig', appConfig)
+      db().set('appConfig', remoteConfig)
 
       // Return received config
-      return appConfig
+      return remoteConfig
     })
     .catch((err) => {
       logger.error('Error getting remote config:', err)
@@ -60,6 +98,7 @@ export async function initConfig() {
   loadedConfig.complimentaryAddons = normalizeComplimentaryAddons(
     loadedConfig.complimentaryAddons,
   )
+  lastComplimentaryRefreshAt = Date.now()
 
   // Assigning config to the exported variable
   appConfig = loadedConfig

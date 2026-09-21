@@ -21,6 +21,16 @@ import {
 }
 
 {
+  const omittedConfig = resolveComplimentaryAddons({
+    reservationAddons: [],
+    configured: normalizeComplimentaryAddons(undefined),
+    previouslyGranted: [],
+  })
+  assert.deepEqual(omittedConfig.addons, [])
+  assert.deepEqual(omittedConfig.grantsToPersist, [])
+}
+
+{
   const reservationAddons: AddonDTO[] = []
   const first = resolveComplimentaryAddons({
     reservationAddons,
