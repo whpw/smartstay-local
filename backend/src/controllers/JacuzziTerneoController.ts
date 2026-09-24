@@ -274,6 +274,29 @@ export class JacuzziTerneoController extends DevController<
     await this.updateDevice(true)
   }
 
+  public override async exitEcoForOutage() {
+    if (this.state !== 'eco') {
+      return
+    }
+
+    cancelPendingMessages(this.config.id, 'stop-eco')
+    await terneoFetch(this.deviceConnection, {
+      par: [
+        [2, 2, '0'],
+        [1, 6, '0'],
+      ],
+    })
+
+    const newState = {
+      state: 'idle',
+      session: null,
+    } as JacuzziPersistentState
+
+    db().set(toKey('device-state', this.config.id), newState)
+    this.persistentState = observable(newState)
+    await this.updateDevice()
+  }
+
   public override async toggleEcoMode(gap: GapInHours) {
     // This makes sense if gap is > 0
     if (gap > 0 && this.state !== 'initializing') {

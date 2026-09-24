@@ -1,6 +1,6 @@
-import { authClient } from '@/dao'
+import { authClient, infoClient } from '@/dao'
 import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
@@ -18,6 +18,11 @@ export const LoginRoute = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [emptyError, setEmptyError] = useState(false)
+  const { data: info } = useQuery({
+    queryKey: ['info'],
+    queryFn: () => infoClient.info.$get().then((res) => res.json()),
+    refetchInterval: 30_000,
+  })
 
   const {
     mutate: login,
@@ -88,6 +93,12 @@ export const LoginRoute = () => {
       >
         {t('login.subtitle')}
       </Typography>
+
+      {info?.outageUnlocked ? (
+        <Alert severity="info" sx={{ mb: 2.5 }}>
+          {t('login.outage')}
+        </Alert>
+      ) : null}
 
       {(emptyError || loginError) && (
         <Alert severity="error" sx={{ mb: 2.5 }}>

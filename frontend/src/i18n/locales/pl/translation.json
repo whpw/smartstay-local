@@ -7,7 +7,8 @@
     "submit": "Dalej",
     "error": "Błąd logowania :(",
     "errorEmpty": "Wypełnij wszystkie pola",
-    "errorNotArrivedYet": "Logowanie jest możliwe tylko w trakcie pobytu."
+    "errorNotArrivedYet": "Logowanie jest możliwe tylko w trakcie pobytu.",
+    "outage": "Internet albo system rezerwacji nie odpowiada od dłuższej chwili. Wpisz dowolny numer rezerwacji i nazwisko, aby kontynuować, dopóki połączenie nie wróci."
   },
   "admin": {
     "login": {

@@ -5,6 +5,7 @@ import type { AddonMode, ResDetails } from '@/models/ResDetails'
 import type { JacuzziSessionQuotaMode } from '@/models/ViewData'
 import { JACUZZI_STOP_GRACE_MS } from '@/models/ViewData'
 import { getResDetails } from '@/reservations'
+import { isExtendedOutage } from '@/utils/internet-outage'
 import { TZDate } from '@date-fns/tz'
 import { eachDayOfInterval, formatISO } from 'date-fns'
 import { logger } from './logger'
@@ -128,6 +129,10 @@ export async function canStartSession(
   res: ResDetails,
   deviceType: DeviceType,
 ): Promise<CanStartSessionResult> {
+  if (isExtendedOutage()) {
+    return { allowed: true, res }
+  }
+
   const today = getToday()
 
   if (canStartToday(res, deviceType, today)) {

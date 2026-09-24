@@ -1,6 +1,7 @@
 import ical from 'ical'
 
 import { appConfig } from '@/config'
+import { isInternetDown } from '@/utils/internet-outage'
 import { devices } from '@/devices'
 import { logger } from '@/utils/logger'
 import { TZDate } from '@date-fns/tz'
@@ -14,6 +15,11 @@ export type Gap = {
 }
 
 export async function ecoMode() {
+  if (isInternetDown()) {
+    logger.info('Skipping eco mode — panel heartbeat is down')
+    return
+  }
+
   // Logging
   logger.info('Checking eco mode...')
 
@@ -46,11 +52,11 @@ export async function ecoMode() {
     .map((event) => ({
       start: setHours(
         new TZDate(event.start as Date, appConfig.tz),
-        appConfig.checkinHour
+        appConfig.checkinHour,
       ),
       end: setHours(
         new TZDate(event.end as Date, appConfig.tz),
-        appConfig.checkoutHour
+        appConfig.checkoutHour,
       ),
     }))
     // Filter out past events
@@ -90,7 +96,7 @@ export function initEcoMode() {
 
   // Logging next run
   logger.info(
-    'Eco mode cron scheduled to run at: ' + cronJob.nextDate().toISO()
+    'Eco mode cron scheduled to run at: ' + cronJob.nextDate().toISO(),
   )
 
   return () => cronJob.stop()

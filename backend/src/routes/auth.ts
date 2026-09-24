@@ -1,4 +1,6 @@
 import { getResDetails, isResDetails } from '@/reservations'
+import { isExtendedOutage } from '@/utils/internet-outage'
+import type { ResDetails } from '@/models/ResDetails'
 import { pushRemoteGuestAction } from '@/utils/remote-guest-actions'
 import { zValidator } from '@hono/zod-validator'
 import { differenceInSeconds } from 'date-fns'
@@ -6,6 +8,24 @@ import { Hono } from 'hono'
 import { setSignedCookie } from 'hono/cookie'
 import { sign } from 'hono/jwt'
 import { z } from 'zod'
+
+const OFFLINE_SESSION_MS = 12 * 60 * 60 * 1000
+
+function offlineResDetails(resNumber: string, lastName: string): ResDetails {
+  const arrival = new Date()
+  const departure = new Date(arrival.getTime() + OFFLINE_SESSION_MS)
+  return {
+    id: `offline-${resNumber}`,
+    number: resNumber,
+    email: '',
+    firstName: '',
+    lastName,
+    arrivalDate: arrival.toISOString(),
+    departureDate: departure.toISOString(),
+    addons: [],
+    addonsUrl: '',
+  }
+}
 
 const api = new Hono().post(
   '/login',
@@ -27,12 +47,14 @@ const api = new Hono().post(
     }
 
     // Getting reservation details
-    const resDetails = await getResDetails(resNumber, lastName).catch(
-      (error) => {
-        console.error('Error getting reservation details', error)
-        return error
-      },
-    )
+    let resDetails = await getResDetails(resNumber, lastName).catch((error) => {
+      console.error('Error getting reservation details', error)
+      return error
+    })
+
+    if (!isResDetails(resDetails) && isExtendedOutage()) {
+      resDetails = offlineResDetails(resNumber, lastName)
+    }
 
     // Handling errors
     if (!isResDetails(resDetails)) {
