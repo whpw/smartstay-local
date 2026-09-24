@@ -12,6 +12,7 @@ import { initUpdateCheck } from './cron/updateCheck'
 import { initWeather } from './cron/weather'
 import { disposeDb } from './db'
 import { devices, initDevices } from './devices'
+import { setExtendedInternetOutageHandler } from './utils/internet-outage'
 import { resolveAppdataDir } from './paths'
 import { disposeQueue, initQueue } from './queue'
 import { api as authApi } from './routes/auth'
@@ -43,6 +44,17 @@ const [disposeSunset, disposeWeather] = await Promise.all([
 
 // Initializing devices
 await initDevices()
+
+setExtendedInternetOutageHandler(() => {
+  for (const device of Object.values(devices)) {
+    void device.exitEcoForOutage().catch((error) => {
+      device.logger.error(
+        'Error leaving eco mode during internet outage:',
+        error,
+      )
+    })
+  }
+})
 
 // Initializing queue
 initQueue()
@@ -76,7 +88,7 @@ if (isProd) {
         }
         return reqPath
       },
-    })
+    }),
   )
 }
 
@@ -88,7 +100,7 @@ const server = serve(
   },
   (info) => {
     logger.info(`Server is running on http://localhost:${info.port}`)
-  }
+  },
 )
 
 let shuttingDown = false
@@ -100,7 +112,10 @@ function shutdown(exitCode = 0) {
   server.close((err) => {
     // Ctrl+C often delivers SIGINT more than once (tsx watch / pnpm parallel).
     // Ignore "already closed" so cleanup still runs once.
-    if (err && (err as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') {
+    if (
+      err &&
+      (err as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING'
+    ) {
       console.error(err)
       process.exit(1)
     }

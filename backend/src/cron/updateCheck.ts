@@ -4,6 +4,10 @@ import {
   collectHeartbeatTelemetry,
   type HeartbeatTelemetry,
 } from '@/utils/heartbeat-telemetry'
+import {
+  noteHeartbeatFailure,
+  noteHeartbeatSuccess,
+} from '@/utils/internet-outage'
 import { logger } from '@/utils/logger'
 import { ip } from 'address'
 import { CronJob } from 'cron'
@@ -27,6 +31,7 @@ type HeartbeatResponse = {
   downloadUrl: string | null
   sha256: string | null
   reboot?: boolean
+  hotresDownSince?: number | null
 }
 
 type UpdateStatus =
@@ -439,6 +444,8 @@ export async function updateCheck() {
       return
     }
 
+    noteHeartbeatSuccess(response.hotresDownSince ?? null)
+
     logger.info(
       `Heartbeat ok — version=${APP_VERSION} latest=${response.latestVersion} desired=${response.desiredVersion} reboot=${response.reboot === true}`,
     )
@@ -461,6 +468,7 @@ export async function updateCheck() {
       rebootHost()
     }
   } catch (error) {
+    noteHeartbeatFailure()
     logger.error('Update heartbeat failed:', error)
   }
 }
