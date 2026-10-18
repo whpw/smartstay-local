@@ -1,55 +1,56 @@
+import { test } from 'vitest'
 import assert from 'node:assert/strict'
 import { parseHotresAddons } from './parse-addons.ts'
 
-{
-  const addons = parseHotresAddons([
-    {
-      title: 'jedna sesja jacuzzi [kod: jacuzzi-per-session]',
-      quantity: '2',
-    },
-    {
-      title: 'Sauna na cały pobyt [kod: sauna-per-stay]',
-      quantity: '1',
-    },
-    {
-      title: 'Breakfast',
-      quantity: '1',
-    },
-  ])
-  assert.deepEqual(addons, [
-    { type: 'jacuzzi', mode: 'per-session', quantity: 2 },
-    { type: 'sauna', mode: 'per-stay', quantity: 1 },
-  ])
-}
+test('parse-addons regression checks', () => {
+  {
+    const addons = parseHotresAddons([
+      {
+        title: 'jedna sesja jacuzzi [kod: jacuzzi-per-session]',
+        quantity: '2',
+      },
+      {
+        title: 'Sauna na cały pobyt [kod: sauna-per-stay]',
+        quantity: '1',
+      },
+      {
+        title: 'Breakfast',
+        quantity: '1',
+      },
+    ])
+    assert.deepEqual(addons, [
+      { type: 'jacuzzi', mode: 'per-session', quantity: 2 },
+      { type: 'sauna', mode: 'per-stay', quantity: 1 },
+    ])
+  }
 
-{
-  const addons = parseHotresAddons([
-    { title: 'Jacuzzi [kod: jacuzzi-per-session]', quantity: '1' },
-    { title: 'Jacuzzi extra [kod: jacuzzi-per-session]', quantity: '2' },
-  ])
-  assert.deepEqual(addons, [
-    { type: 'jacuzzi', mode: 'per-session', quantity: 3 },
-  ])
-}
+  {
+    const addons = parseHotresAddons([
+      { title: 'Jacuzzi [kod: jacuzzi-per-session]', quantity: '1' },
+      { title: 'Jacuzzi extra [kod: jacuzzi-per-session]', quantity: '2' },
+    ])
+    assert.deepEqual(addons, [
+      { type: 'jacuzzi', mode: 'per-session', quantity: 3 },
+    ])
+  }
 
-{
-  assert.deepEqual(parseHotresAddons([]), [])
-}
+  {
+    assert.deepEqual(parseHotresAddons([]), [])
+  }
 
-{
-  const addons = parseHotresAddons([
-    {
-      title: 'Jacuzzi w cenie [kod: jacuzzi-per-session]',
-      quantity: '0',
-    },
-    {
-      title: 'Dodatkowa sesja [kod: jacuzzi-per-session]',
-      quantity: '1',
-    },
-  ])
-  assert.deepEqual(addons, [
-    { type: 'jacuzzi', mode: 'per-session', quantity: 1 },
-  ])
-}
-
-console.log('parse-addons.test.ts: ok')
+  {
+    const addons = parseHotresAddons([
+      {
+        title: 'Jacuzzi w cenie [kod: jacuzzi-per-session]',
+        quantity: '0',
+      },
+      {
+        title: 'Dodatkowa sesja [kod: jacuzzi-per-session]',
+        quantity: '1',
+      },
+    ])
+    assert.deepEqual(addons, [
+      { type: 'jacuzzi', mode: 'per-session', quantity: 1 },
+    ])
+  }
+})
