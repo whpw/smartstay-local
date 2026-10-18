@@ -7,8 +7,8 @@
     "dev": "pnpm --parallel dev",
     "dev:mock": "bash scripts/dev-with-mocks.sh",
     "typecheck": "pnpm -F @repo/frontend -F @repo/backend -r typecheck",
-    "build": "pnpm -F frontend -F backend -r build",
-    "start": "pnpm -F backend -r start",
+    "build": "pnpm -F @repo/frontend -F @repo/backend -r build",
+    "start": "pnpm -F @repo/backend -r start",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "format": "oxfmt --check .",
@@ -31,5 +31,5 @@
     "typescript": "^7.0.2",
     "vitest": "^5.0.5"
   },
-  "packageManager": "pnpm@10.34.7"
+  "packageManager": "pnpm@12.14.0"
 }

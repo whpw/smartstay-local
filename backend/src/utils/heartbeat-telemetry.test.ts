@@ -2,17 +2,12 @@ import { test, vi } from 'vitest'
 
 import assert from 'node:assert/strict'
 import { collectHeartbeatTelemetry } from './heartbeat-telemetry.ts'
-import { devices } from '@/devices'
+import { devices } from '../devices/index.ts'
 
-vi.mock('@/devices', () => ({ devices: {} }))
+// Keep the physical device controllers out of the test.
+vi.mock('../devices/index.ts', () => ({ devices: {} }))
 
 test('heartbeat-telemetry regression checks', () => {
-  const originalEntries = { ...devices }
-
-  for (const key of Object.keys(devices)) {
-    delete devices[key]
-  }
-
   devices['jac-1'] = {
     type: 'jacuzzi',
     viewData: {
@@ -48,9 +43,4 @@ test('heartbeat-telemetry regression checks', () => {
   assert.equal(telemetry.devices[0]?.type, 'jacuzzi')
   assert.equal(telemetry.devices[0]?.currentTemp, 36.5)
   assert.equal(telemetry.devices[0]?.session?.targetTemp, 37)
-
-  for (const key of Object.keys(devices)) {
-    delete devices[key]
-  }
-  Object.assign(devices, originalEntries)
 })

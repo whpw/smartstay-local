@@ -55,8 +55,6 @@ jobs:
       - name: Setup pnpm
         if: steps.gate.outputs.should_release == 'true'
         uses: pnpm/action-setup@v6
-        with:
-          version: 10
 
       - name: Setup Node
         if: steps.gate.outputs.should_release == 'true'
