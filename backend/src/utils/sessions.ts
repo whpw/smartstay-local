@@ -216,7 +216,7 @@ export function incrementSessionsCount(
 }
 
 export function refundSessionQuota(
-  res: ResDetails,
+  res: Pick<ResDetails, 'number' | 'departureDate'>,
   deviceType: DeviceType,
   refundableMode: JacuzziSessionQuotaMode,
 ) {

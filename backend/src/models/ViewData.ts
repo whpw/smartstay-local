@@ -64,6 +64,15 @@ export type JacuzziSession = {
    * (per-stay, or per-day already opened today). Used for grace-period refunds.
    */
   refundableMode?: JacuzziSessionQuotaMode | null
+  /**
+   * A STOP inside the refund grace period that the device has not confirmed
+   * yet: the quota is given back when a (retried) stop succeeds.
+   */
+  pendingRefund?: {
+    number: string
+    departureDate: string
+    mode: JacuzziSessionQuotaMode
+  }
 }
 
 export type JacuzziViewData = DeviceViewData & {
