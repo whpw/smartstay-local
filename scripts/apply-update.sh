@@ -383,9 +383,10 @@ fi
 UPDATE_DONE=1
 NEEDS_RESTORE=0
 
-# Old releases go only after the new one passed the health check.
-rm -rf "$RELEASES_DIR"/.previous-* 2>/dev/null || true
-prune_releases
-
+# The update succeeded: record it before the cleanup, which must not decide the result.
 write_result true
 log "Update to $VERSION applied (current=$(readlink "$CURRENT_LINK" 2>/dev/null || echo "?"))"
+
+# Old releases go only after the new one passed the health check (best effort).
+rm -rf "$RELEASES_DIR"/.previous-* 2>/dev/null || true
+prune_releases || log "WARN: could not prune old releases"
