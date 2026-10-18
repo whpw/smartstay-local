@@ -12,8 +12,12 @@ import {
 } from './complimentary-addons'
 import { devRes } from './dev'
 import { parseHotresAddons } from './parse-addons'
+import { redactHotresError } from './redact'
 
 const isDev = () => process.env.NODE_ENV === 'development'
+
+/** Hotres statuses that grant access to the room (canceled, new, checkout… do not). */
+const ACCESS_STATUSES = new Set(['confirmed', 'checkin'])
 
 export const isResDetails = (res: any): res is ResDetails => {
   return $ResDetails.safeParse(res).success
@@ -32,7 +36,8 @@ export async function getResDetails(
     resNumber === process.env.ADMIN_RES_NUMBER &&
     lastName === process.env.ADMIN_LAST_NAME
 
-  logger.info('Getting reservation defails:', { lastName, resNumber })
+  // Reservation number + last name are the login credentials: never logged
+  logger.info('Getting reservation details', { isAdmin })
 
   // Getting reservation from Hotres
   let res: HotresReservationDTO | never[]
@@ -44,7 +49,10 @@ export async function getResDetails(
     res = await DAO.get<HotresReservationDTO>('api_reservationdetails', {
       reservations_number: resNumber,
     }).catch((err: Error) => {
-      logger.error('Error getting reservation from Hotres:', err)
+      logger.error(
+        'Error getting reservation from Hotres:',
+        redactHotresError(err),
+      )
       return []
     })
   }
@@ -52,8 +60,7 @@ export async function getResDetails(
   // In edge cases Hotres returns an empty array
   if (Array.isArray(res)) {
     logger.error(
-      'Error getting reservation from Hotres: Invalid response:',
-      res,
+      'Error getting reservation from Hotres: Invalid response (empty array)',
     )
     throw {
       code: 'login.error',
@@ -67,10 +74,14 @@ export async function getResDetails(
     !lastName ||
     normalizeLastName(last_name) !== normalizeLastName(lastName)
   ) {
-    logger.error('Error getting reservation from Hotres: Invalid last name:', {
-      last_name,
-      lastName,
-    })
+    logger.error('Error getting reservation from Hotres: Invalid last name')
+    throw {
+      code: 'login.error',
+    }
+  }
+
+  if (!ACCESS_STATUSES.has(res.status)) {
+    logger.error('Reservation does not grant access:', { status: res.status })
     throw {
       code: 'login.error',
     }

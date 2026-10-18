@@ -22,6 +22,7 @@ import { JacuzziFailToRiseMonitor } from '@/utils/jacuzzi-fail-to-rise-monitor'
 import { JacuzziUnreachableMonitor } from '@/utils/jacuzzi-unreachable-monitor'
 import {
   enqueueStopEco,
+  enqueueStopRetry,
   enqueueStopSession,
   isStopMessageCurrent,
   reconcileLoadedSession,
@@ -186,7 +187,12 @@ export class JacuzziThermoBoxController extends DevController<
             }
           }
 
-          await this.startSession(sessionRes)
+          try {
+            await this.startSession(sessionRes)
+          } catch (error) {
+            await this.abortFailedStart(sessionRes)
+            throw error
+          }
         }
         break
       case JacuzziActionType.STOP:
@@ -195,11 +201,16 @@ export class JacuzziThermoBoxController extends DevController<
           if (!session) {
             break
           }
-          if (session.refundableMode && isWithinStopGrace(session.startTime)) {
+          const requestedAt = Date.now()
+          // Throws (and schedules a retry) when the device does not confirm
+          await this.stopSession()
+          cancelPendingMessages(this.config.id, 'stop-session')
+          if (
+            session.refundableMode &&
+            isWithinStopGrace(session.startTime, requestedAt)
+          ) {
             refundSessionQuota(res, this.config.type, session.refundableMode)
           }
-          cancelPendingMessages(this.config.id, 'stop-session')
-          await this.stopSession()
         }
         break
       case JacuzziActionType.SET_TARGET_TEMP:
@@ -275,13 +286,45 @@ export class JacuzziThermoBoxController extends DevController<
   }
 
   @actionBound
-  public stopSession() {
+  public async stopSession() {
+    const previous = toJS(this.persistentState)
+
     // Creating idle state
     const idleState: JacuzziPersistentState = {
       state: 'idle',
       session: null,
     }
-    return this.updateState(idleState)
+    try {
+      await this.updateState(idleState)
+    } catch (error) {
+      this.keepUnconfirmedState(previous)
+      throw error
+    }
+  }
+
+  /**
+   * The device did not confirm STOP: keep showing the session (it may still
+   * be heating) and retry until the device confirms.
+   */
+  @actionBound
+  private keepUnconfirmedState(previous: JacuzziPersistentState) {
+    if (previous.state === 'active' || previous.state === 'eco') {
+      this.persistentState = observable(previous)
+      // No TTL: the state must survive a restart until STOP is confirmed
+      db().set(toKey('device-state', this.config.id), previous)
+    }
+    enqueueStopRetry(this.config.id)
+  }
+
+  /** The device did not confirm START: give the quota back and switch it off. */
+  private async abortFailedStart(res: ResDetails) {
+    const refundableMode = this.persistentState.session?.refundableMode
+    if (refundableMode) {
+      refundSessionQuota(res, this.config.type, refundableMode)
+    }
+    await this.stopSession().catch((error: unknown) => {
+      this.logger.error('Error stopping after failed start:', error)
+    })
   }
 
   @actionBound

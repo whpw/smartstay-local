@@ -35,6 +35,8 @@ export type HeatingPersistentState = {
   state: DeviceState
   dayTemp: number
   nightTemp: number
+  /** Guest temperatures apply until departure (ms); defaults return after it. */
+  expiresAt?: number
 }
 
 /**

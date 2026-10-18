@@ -4,10 +4,9 @@ import { db, toKey } from '@/db'
 import type { AddonMode, ResDetails } from '@/models/ResDetails'
 import type { JacuzziSessionQuotaMode } from '@/models/ViewData'
 import { JACUZZI_STOP_GRACE_MS } from '@/models/ViewData'
-import { getResDetails } from '@/reservations'
 import { TZDate } from '@date-fns/tz'
 import { eachDayOfInterval, formatISO } from 'date-fns'
-import { logger } from './logger'
+import { refreshReservation } from './auth-session'
 
 const WEEK = 60 * 60 * 24 * 7
 
@@ -124,6 +123,12 @@ export type CanStartSessionResult = {
   res: ResDetails
 }
 
+/**
+ * Checks the cached entitlements and local counters first. Only when they deny
+ * the start is the reservation re-read from Hotres (e.g. an add-on bought
+ * after login). A failed refresh never grants access, and counters are kept
+ * (they are stored per reservation number, not in the reservation data).
+ */
 export async function canStartSession(
   res: ResDetails,
   deviceType: DeviceType,
@@ -134,14 +139,10 @@ export async function canStartSession(
     return { allowed: true, res }
   }
 
-  const resDetails = await getResDetails(res.number, res.lastName).catch(
-    (error) => {
-      logger.error('Error getting reservation details', error)
-    },
-  )
+  const resDetails = await refreshReservation(res)
 
   if (!resDetails) {
-    return { allowed: true, res }
+    return { allowed: false, res }
   }
 
   return {

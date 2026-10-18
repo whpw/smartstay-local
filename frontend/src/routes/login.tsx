@@ -1,6 +1,7 @@
 import { authClient } from '@/dao'
+import { resDetailsQueryKey } from '@/utils/useResDetails'
 import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
@@ -17,6 +18,7 @@ const isError = (data: unknown): data is { code: string } => {
 export const LoginRoute = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [emptyError, setEmptyError] = useState(false)
 
   const {
@@ -46,7 +48,8 @@ export const LoginRoute = () => {
         })
       }
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: resDetailsQueryKey })
       navigate('/')
     },
   })

@@ -4,49 +4,37 @@ import { devices as deviceControllers, getDeviceController } from '@/devices'
 import type { DevController } from '@/devices/controller'
 import type { DeviceStateUpdate, DeviceViewData } from '@/models'
 import type { ResDetails } from '@/models/ResDetails'
+import { getSessionReservation, SESSION_COOKIE } from '@/utils/auth-session'
 import { logger } from '@/utils/logger'
 import { pushRemoteGuestAction } from '@/utils/remote-guest-actions'
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { contextStorage, getContext } from 'hono/context-storage'
-import type { JwtVariables } from 'hono/jwt'
-import { jwt } from 'hono/jwt'
+import { getCookie } from 'hono/cookie'
 import { streamSSE } from 'hono/streaming'
 import { reaction } from 'mobx'
 import { z } from 'zod'
 
 export type AuthedEnv = {
-  Variables: JwtVariables & {
+  Variables: {
     resDetails: ResDetails
   }
 }
 
 const app = new Hono<AuthedEnv>()
-// JWT middleware
-app.use(
-  '/*',
-  jwt({
-    secret: 'jwt-secret',
-    cookie: {
-      key: '_auth',
-      secret: 'cookie-secret',
-    },
-    alg: 'HS256',
-  }),
-)
-
 // Context middleware
 app.use(contextStorage())
 
-// Set ResDetails
-app.use((c, next) => {
-  // Get ResDetails
-  const jwtPayload = c.get('jwtPayload')
+// Session middleware: reservation data comes from the backend cache
+app.use(async (c, next) => {
+  const resDetails = getSessionReservation(getCookie(c, SESSION_COOKIE))
+  if (!resDetails) {
+    return c.json({ error: 'UNAUTHORIZED' }, 401)
+  }
 
-  // Set ResDetails
-  c.set('resDetails', jwtPayload.payload)
+  c.set('resDetails', resDetails)
 
-  return next()
+  await next()
 })
 
 const api = app
@@ -146,6 +134,11 @@ const api = app
       }
     },
   )
+
+  // Reservation of the current session (cached, no Hotres request)
+  .get('/me', (c) => {
+    return c.json(c.get('resDetails'), 200)
+  })
 
   // Devices
   .get('/devices', async (c) => {

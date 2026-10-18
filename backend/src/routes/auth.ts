@@ -1,10 +1,9 @@
 import { getResDetails, isResDetails } from '@/reservations'
+import { createAuthSession, SESSION_COOKIE } from '@/utils/auth-session'
 import { pushRemoteGuestAction } from '@/utils/remote-guest-actions'
 import { zValidator } from '@hono/zod-validator'
-import { differenceInSeconds } from 'date-fns'
 import { Hono } from 'hono'
-import { setSignedCookie } from 'hono/cookie'
-import { sign } from 'hono/jwt'
+import { deleteCookie, setCookie } from 'hono/cookie'
 import { z } from 'zod'
 
 const api = new Hono().post(
@@ -47,22 +46,16 @@ const api = new Hono().post(
       )
     }
 
-    const signed = await sign(
-      {
-        exp: differenceInSeconds(resDetails.departureDate, 0),
-        user: resDetails.email,
-        role: 'user',
-        payload: resDetails,
-      },
-      'jwt-secret',
-      'HS256',
-    )
-
-    await setSignedCookie(c, '_auth', signed, 'cookie-secret', {
-      expires: new Date(resDetails.departureDate),
-      httpOnly: false,
+    // Session data stays in the backend; the cookie only carries its id
+    const session = createAuthSession(resDetails)
+    setCookie(c, SESSION_COOKIE, session.id, {
+      path: '/',
+      expires: session.expires,
+      httpOnly: true,
       sameSite: 'Strict',
     })
+    // Drop the pre-session JWT cookie, which is no longer accepted
+    deleteCookie(c, '_auth', { path: '/' })
 
     void pushRemoteGuestAction({
       ts: Date.now(),

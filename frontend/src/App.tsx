@@ -12,8 +12,11 @@ import { LoginRoute } from './routes/login'
 import { useResDetails } from './utils/useResDetails'
 
 const AuthOutlet = ({ fallbackPath }: { fallbackPath: string }) => {
-  const isAuthorized = !!useResDetails()
-  return isAuthorized ? <Outlet /> : <Navigate to={fallbackPath} />
+  const { data, isPending, isError } = useResDetails()
+  if (isPending) {
+    return null
+  }
+  return data && !isError ? <Outlet /> : <Navigate to={fallbackPath} />
 }
 
 const router = createBrowserRouter([

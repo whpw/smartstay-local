@@ -15,6 +15,7 @@ import {
 } from '@/models'
 import { cancelPendingMessages } from '@/queue'
 import {
+  enqueueStopRetry,
   enqueueStopSession,
   isStopMessageCurrent,
   reconcileLoadedSession,
@@ -157,14 +158,20 @@ export class SaunaBoxController extends DevController<
             }
           }
 
-          await this.startSession(sessionRes.departureDate)
+          try {
+            await this.startSession(sessionRes.departureDate)
+          } catch (error) {
+            await this.abortFailedStart()
+            throw error
+          }
           incrementSessionsCount(sessionRes, this.config.type)
         }
         break
       case SaunaActionType.STOP:
         {
-          cancelPendingMessages(this.config.id, 'stop-session')
+          // Throws (and schedules a retry) when the device does not confirm
           await this.stopSession()
+          cancelPendingMessages(this.config.id, 'stop-session')
         }
         break
       case SaunaActionType.SET_TARGET_TEMP:
@@ -238,13 +245,41 @@ export class SaunaBoxController extends DevController<
   }
 
   @actionBound
-  public stopSession() {
+  public async stopSession() {
+    const previous = toJS(this.persistentState)
+
     // Creating idle state
     const idleState: JacuzziPersistentState = {
       state: 'idle',
       session: null,
     }
-    return this.updateState(idleState)
+    try {
+      await this.updateState(idleState)
+    } catch (error) {
+      this.keepUnconfirmedState(previous)
+      throw error
+    }
+  }
+
+  /**
+   * The device did not confirm STOP: keep showing the session (it may still
+   * be heating) and retry until the device confirms.
+   */
+  @actionBound
+  private keepUnconfirmedState(previous: SaunaPersistentState) {
+    if (previous.state === 'active' || previous.state === 'eco') {
+      this.persistentState = observable(previous)
+      // No TTL: the state must survive a restart until STOP is confirmed
+      db().set(toKey('device-state', this.config.id), previous)
+    }
+    enqueueStopRetry(this.config.id)
+  }
+
+  /** The device did not confirm START: switch it off (quota was not counted). */
+  private async abortFailedStart() {
+    await this.stopSession().catch((error: unknown) => {
+      this.logger.error('Error stopping after failed start:', error)
+    })
   }
 
   @actionBound

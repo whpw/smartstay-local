@@ -26,6 +26,7 @@ import {
   type HeatingPersistentState,
   type HeatingViewData,
 } from '@/models'
+import { isNightHour } from '@/utils/day-part'
 import { enqueueStopEco } from '@/utils/reconcileSession'
 import {
   bleboxApiPrefixFromInfoIp,
@@ -247,27 +248,21 @@ export class HeatingThermoBoxController extends DevController<
     nightTemp: number,
     res: ResDetails,
   ) {
-    // Creating new state
+    // Creating new state, valid until the guest departs
     const newState = {
       state: 'active',
       dayTemp,
       nightTemp,
+      expiresAt: new Date(res.departureDate).getTime(),
     } as HeatingPersistentState
 
-    // Getting expire in
-    const expireIn = new Date(res.departureDate).getTime() - Date.now()
+    this.logger.debug('Setting user defined temperatures:', {
+      dayTemp,
+      nightTemp,
+      expiresAt: new Date(res.departureDate),
+    })
 
-    this.logger.debug(
-      'Setting user defined temparatures:',
-      res.firstName,
-      res.lastName,
-      res.number,
-    )
-    this.logger.debug('Day temp:', dayTemp)
-    this.logger.debug('Night temp:', nightTemp)
-    this.logger.debug('Expires at:', new Date(res.departureDate))
-
-    await this.updateState(newState, expireIn)
+    await this.updateState(newState)
   }
 
   @actionBound
@@ -281,31 +276,57 @@ export class HeatingThermoBoxController extends DevController<
       nightTemp: this.config.nightTemp,
     }
 
+    // Guest temperatures from a stay that has ended are not restored
+    if (this.isExpired(currentState)) {
+      return this.updateState(this.withDefaultTemps(currentState))
+    }
+
     // Updating state
     return this.updateState(currentState)
+  }
+
+  private isExpired(state: HeatingPersistentState) {
+    return state.expiresAt !== undefined && state.expiresAt <= Date.now()
+  }
+
+  private withDefaultTemps(state: HeatingPersistentState) {
+    return {
+      state: state.state,
+      dayTemp: this.config.dayTemp,
+      nightTemp: this.config.nightTemp,
+    } as HeatingPersistentState
   }
 
   private isNightNow() {
     const { dayStart, nightStart } = this.config
 
     const now = TZDate.tz(appConfig.tz)
-    const hours = now.getHours()
 
-    return hours >= nightStart && hours < dayStart
+    return isNightHour(now.getHours(), dayStart, nightStart)
   }
 
   @actionBound
-  private updateState(value: HeatingPersistentState, expireIn?: number) {
+  private updateState(value: HeatingPersistentState) {
     // Setting state
     this.persistentState = observable(value)
 
-    // Setting state
+    // Setting state (TTL kept across restarts via expiresAt)
+    const expireIn =
+      value.expiresAt !== undefined
+        ? Math.max(value.expiresAt - Date.now(), 1)
+        : undefined
     db().set(toKey('device-state', this.config.id), value, expireIn)
 
     return this.updateDevice()
   }
 
-  private async updateDevice() {
+  private async updateDevice(): Promise<void> {
+    // Guest temperatures end with the stay (checked every minute)
+    if (this.isExpired(this.persistentState)) {
+      this.logger.info('Guest temperatures expired, restoring defaults')
+      return this.updateState(this.withDefaultTemps(this.persistentState))
+    }
+
     // Getting session
     const { state, dayTemp, nightTemp } = this.persistentState
 

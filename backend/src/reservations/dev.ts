@@ -9,6 +9,7 @@ export const devRes = () =>
     number: 12345,
     first_name: 'John',
     last_name: 'test',
+    status: 'confirmed',
     email: 'johndoe@wp.pl',
     number_str: 'dev-number-str',
     auth: 'xxx',
