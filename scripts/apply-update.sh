@@ -60,10 +60,13 @@ release_lock() {
   rm -f "$OTA_LOCK_FILE" 2>/dev/null || true
 }
 
+RESULT_WRITTEN=0
+
 fail() {
   local msg="$1"
   log "ERROR: $msg"
   write_result false "$msg"
+  RESULT_WRITTEN=1
   exit 1
 }
 
@@ -168,6 +171,7 @@ migrate_inplace_tree_aside() {
   stamp="$(date +%Y%m%d%H%M%S)"
   local aside="$SMARTSTAY_HOME/.legacy-inplace-$stamp"
   mkdir -p "$aside"
+  LEGACY_ASIDE="$aside"
   log "Migrating legacy in-place tree aside → $aside"
   local item
   for item in "$SMARTSTAY_HOME"/*; do
@@ -179,18 +183,6 @@ migrate_inplace_tree_aside() {
     mv "$item" "$aside/" 2>/dev/null || true
   done
 }
-
-if [[ ! -f "$ARCHIVE" ]]; then
-  fail "Archive not found: $ARCHIVE"
-fi
-
-mkdir -p "$APPDATA_DIR" "$RELEASES_DIR" 2>/dev/null || true
-# Prevent systemd Restart= from bringing the app back while we replace files.
-printf '%s\n' "$VERSION" >"$OTA_LOCK_FILE"
-trap 'release_lock' EXIT
-
-# Let the parent Node process finish its "applying" heartbeat, then stop.
-sleep 2
 
 stop_service() {
   if ! command -v systemctl >/dev/null 2>&1; then
@@ -253,16 +245,78 @@ wait_for_version() {
   return 1
 }
 
-stop_service
+if [[ ! -f "$ARCHIVE" ]]; then
+  fail "Archive not found: $ARCHIVE"
+fi
+
+mkdir -p "$APPDATA_DIR" "$RELEASES_DIR" 2>/dev/null || true
+# Prevent systemd Restart= from bringing the app back while we replace files.
+printf '%s\n' "$VERSION" >"$OTA_LOCK_FILE"
+
+# Created after the EXIT trap is installed, so a failing mktemp still releases the lock.
+WORKDIR=""
+STAGING_DIR="$RELEASES_DIR/.incoming-$VERSION-$$"
+# Release `current` pointed at before the update ("" on a legacy in-place install).
+PREVIOUS_LINK="$(readlink "$CURRENT_LINK" 2>/dev/null || true)"
+# Set once the service was stopped: from then on a failure restores PREVIOUS_LINK.
+NEEDS_RESTORE=0
+UPDATE_DONE=0
+# Where migrate_inplace_tree_aside moved a legacy in-place install to.
+LEGACY_ASIDE=""
+
+restore_legacy_tree() {
+  log "Restoring legacy in-place install from $LEGACY_ASIDE"
+  rm -f "$CURRENT_LINK"
+  local item
+  for item in "$LEGACY_ASIDE"/*; do
+    [[ -e "$item" ]] || continue
+    mv "$item" "$SMARTSTAY_HOME/" || log "ERROR: cannot restore $item"
+  done
+  rmdir "$LEGACY_ASIDE" 2>/dev/null || true
+  free_app_port
+  release_lock
+  try_systemctl start || log "ERROR: cannot start $SERVICE_NAME after rollback"
+}
+
+restore_previous() {
+  if [[ -z "$PREVIOUS_LINK" ]]; then
+    if [[ -n "$LEGACY_ASIDE" && -d "$LEGACY_ASIDE" ]]; then
+      restore_legacy_tree
+    else
+      log "ERROR: no previous release to restore"
+    fi
+    return 0
+  fi
+  log "Restoring previous release $PREVIOUS_LINK"
+  atomic_symlink "$PREVIOUS_LINK" "$CURRENT_LINK" || log "ERROR: cannot restore current symlink"
+  free_app_port
+  release_lock
+  try_systemctl start || log "ERROR: cannot start $SERVICE_NAME after rollback"
+}
+
+on_exit() {
+  local ec=$?
+  set +e
+  if [[ $UPDATE_DONE -ne 1 ]]; then
+    if [[ $RESULT_WRITTEN -ne 1 ]]; then
+      log "ERROR: update aborted (exit $ec)"
+      write_result false "apply-update.sh aborted (exit $ec)"
+    fi
+    if [[ $NEEDS_RESTORE -eq 1 ]]; then
+      restore_previous
+    fi
+  fi
+  [[ -n "$WORKDIR" ]] && rm -rf "$WORKDIR"
+  rm -rf "$STAGING_DIR"
+  release_lock
+}
+trap on_exit EXIT
 
 WORKDIR="$(mktemp -d /tmp/smartstay-apply-XXXXXX)"
-cleanup_workdir() {
-  rm -rf "$WORKDIR"
-}
-trap 'cleanup_workdir; release_lock' EXIT
 
+# Unpack and validate the release while the current version keeps running.
 log "Extracting $ARCHIVE (version $VERSION) into $WORKDIR"
-tar -xzf "$ARCHIVE" -C "$WORKDIR"
+tar -xzf "$ARCHIVE" -C "$WORKDIR" || fail "Cannot extract $ARCHIVE"
 
 SRC="$WORKDIR"
 if [[ "$(find "$WORKDIR" -mindepth 1 -maxdepth 1 | wc -l)" -eq 1 ]]; then
@@ -279,18 +333,38 @@ if [[ ! -f "$SRC/backend/dist/index.js" ]]; then
   fail "Invalid archive: backend/dist/index.js missing (expected fully bundled release)"
 fi
 
+log "Staging release in $STAGING_DIR"
+rm -rf "$STAGING_DIR"
+mkdir -p "$STAGING_DIR"
+# Fully bundled release — copy tree as-is (no pnpm/npm on device).
+cp -a "$SRC/." "$STAGING_DIR/"
+chmod +x "$STAGING_DIR/scripts/"*.sh 2>/dev/null || true
+
+if [[ ! -f "$STAGING_DIR/backend/dist/index.js" ]]; then
+  fail "Release install incomplete: backend/dist/index.js missing at $STAGING_DIR"
+fi
+
+# Let the parent Node process finish its "applying" heartbeat, then stop.
+sleep 2
+
+stop_service
+NEEDS_RESTORE=1
+
 migrate_inplace_tree_aside
 
-log "Installing release into $TARGET_DIR"
-rm -rf "$TARGET_DIR"
-mkdir -p "$TARGET_DIR"
-# Fully bundled release — copy tree as-is (no pnpm/npm on device).
-cp -a "$SRC/." "$TARGET_DIR/"
-chmod +x "$TARGET_DIR/scripts/"*.sh 2>/dev/null || true
-
-if [[ ! -f "$TARGET_DIR/backend/dist/index.js" ]]; then
-  fail "Release install incomplete: backend/dist/index.js missing at $TARGET_DIR"
+if [[ -e "$TARGET_DIR" ]]; then
+  if [[ "$PREVIOUS_LINK" == "releases/$VERSION" ]]; then
+    # Re-applying the running version: keep it aside so it can be restored.
+    ASIDE="$RELEASES_DIR/.previous-$VERSION-$$"
+    mv "$TARGET_DIR" "$ASIDE"
+    PREVIOUS_LINK="releases/$(basename "$ASIDE")"
+  else
+    rm -rf "$TARGET_DIR"
+  fi
 fi
+
+log "Installing release into $TARGET_DIR"
+mv "$STAGING_DIR" "$TARGET_DIR"
 
 log "Flipping current → releases/$VERSION"
 # Relative symlink so the home dir remains relocatable.
@@ -300,13 +374,19 @@ rm -f "$APPDATA_DIR/pending-update.json" 2>/dev/null || true
 # Legacy path from older OTA builds
 rm -f "$SMARTSTAY_HOME/appdata/pending-update.json" 2>/dev/null || true
 
-prune_releases
-
 start_service
 
-if wait_for_version "$VERSION"; then
-  write_result true
-  log "Update to $VERSION applied (current=$(readlink "$CURRENT_LINK" 2>/dev/null || echo "?"))"
-else
+if ! wait_for_version "$VERSION"; then
   fail "Service did not report version ${VERSION} on :${APP_PORT}/api/info within ${HEALTH_TIMEOUT_SEC}s"
 fi
+
+UPDATE_DONE=1
+NEEDS_RESTORE=0
+
+# The update succeeded: record it before the cleanup, which must not decide the result.
+write_result true
+log "Update to $VERSION applied (current=$(readlink "$CURRENT_LINK" 2>/dev/null || echo "?"))"
+
+# Old releases go only after the new one passed the health check (best effort).
+rm -rf "$RELEASES_DIR"/.previous-* 2>/dev/null || true
+prune_releases || log "WARN: could not prune old releases"

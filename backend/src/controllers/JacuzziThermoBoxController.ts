@@ -16,12 +16,14 @@ import {
   type Action,
   type DeviceState,
   type JacuzziPersistentState,
+  type JacuzziSession,
   type JacuzziViewData,
 } from '@/models'
 import { JacuzziFailToRiseMonitor } from '@/utils/jacuzzi-fail-to-rise-monitor'
 import { JacuzziUnreachableMonitor } from '@/utils/jacuzzi-unreachable-monitor'
 import {
   enqueueStopEco,
+  enqueueStopRetry,
   enqueueStopSession,
   isStopMessageCurrent,
   reconcileLoadedSession,
@@ -36,6 +38,7 @@ import {
   canStartSession,
   incrementSessionsCount,
   isWithinStopGrace,
+  quotaDayOf,
   refundSessionQuota,
 } from '@/utils/sessions'
 import { waitUntilReady } from '@/utils/waitUntilReady'
@@ -186,7 +189,12 @@ export class JacuzziThermoBoxController extends DevController<
             }
           }
 
-          await this.startSession(sessionRes)
+          try {
+            await this.startSession(sessionRes)
+          } catch (error) {
+            await this.abortFailedStart(sessionRes)
+            throw error
+          }
         }
         break
       case JacuzziActionType.STOP:
@@ -196,10 +204,20 @@ export class JacuzziThermoBoxController extends DevController<
             break
           }
           if (session.refundableMode && isWithinStopGrace(session.startTime)) {
-            refundSessionQuota(res, this.config.type, session.refundableMode)
+            // Decided now; applied once the device confirms the stop, which
+            // may be a background retry
+            this.patchSession({
+              pendingRefund: {
+                number: res.number,
+                departureDate: res.departureDate,
+                mode: session.refundableMode,
+                day: quotaDayOf(session.startTime),
+              },
+            })
           }
-          cancelPendingMessages(this.config.id, 'stop-session')
+          // Throws (and schedules a retry) when the device does not confirm
           await this.stopSession()
+          cancelPendingMessages(this.config.id, 'stop-session')
         }
         break
       case JacuzziActionType.SET_TARGET_TEMP:
@@ -275,13 +293,71 @@ export class JacuzziThermoBoxController extends DevController<
   }
 
   @actionBound
-  public stopSession() {
+  public async stopSession() {
+    const previous = toJS(this.persistentState)
+
     // Creating idle state
     const idleState: JacuzziPersistentState = {
       state: 'idle',
       session: null,
     }
-    return this.updateState(idleState)
+    try {
+      await this.updateState(idleState)
+    } catch (error) {
+      this.keepUnconfirmedState(previous)
+      throw error
+    }
+    this.applyPendingRefund(previous)
+  }
+
+  /**
+   * The device did not confirm STOP: keep showing the session (it may still
+   * be heating) and retry until the device confirms.
+   */
+  @actionBound
+  private keepUnconfirmedState(previous: JacuzziPersistentState) {
+    if (previous.state === 'active' || previous.state === 'eco') {
+      this.persistentState = observable(previous)
+      // No TTL: the state must survive a restart until STOP is confirmed
+      db().set(toKey('device-state', this.config.id), previous)
+    }
+    enqueueStopRetry(this.config.id)
+  }
+
+  private applyPendingRefund(previous: JacuzziPersistentState) {
+    const pending = previous.session?.pendingRefund
+    if (pending) {
+      refundSessionQuota(pending, this.config.type, pending.mode, pending.day)
+    }
+  }
+
+  @actionBound
+  private patchSession(patch: Partial<JacuzziSession>) {
+    const { session } = this.persistentState
+    if (session) {
+      Object.assign(session, patch)
+    }
+  }
+
+  /** The device did not confirm START: give the quota back and switch it off. */
+  private async abortFailedStart(res: ResDetails) {
+    const session = this.persistentState.session
+    const refundableMode = session?.refundableMode
+    if (session && refundableMode) {
+      // The start may have been counted on another day than the one it fails on
+      refundSessionQuota(
+        res,
+        this.config.type,
+        refundableMode,
+        quotaDayOf(session.startTime),
+      )
+      // If the stop below is not confirmed either, the retained session must
+      // not be refunded a second time by a later manual STOP
+      this.patchSession({ refundableMode: null })
+    }
+    await this.stopSession().catch((error: unknown) => {
+      this.logger.error('Error stopping after failed start:', error)
+    })
   }
 
   @actionBound

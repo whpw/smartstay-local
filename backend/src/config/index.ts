@@ -75,7 +75,8 @@ export async function initConfig() {
       // Using cached version of the config
       const configFromDb = db().get<AppConfig | undefined>('appConfig')
 
-      logger.info('Using cached config', configFromDb)
+      // The config holds room/Hotres keys and the Wi-Fi password: never log it
+      logger.info('Using cached config:', { found: Boolean(configFromDb) })
 
       if (!configFromDb) {
         throw new Error('Local config not found')

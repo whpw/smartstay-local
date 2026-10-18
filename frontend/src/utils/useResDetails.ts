@@ -1,27 +1,25 @@
+import { authedClient } from '@/dao'
 import type { ResDetails } from '@/models'
-import Cookies from 'universal-cookie'
+import { useQuery } from '@tanstack/react-query'
 
-const cookies = new Cookies(null, { path: '/' })
+export const resDetailsQueryKey = ['me'] as const
 
-function parseJwt(token: string) {
-  const base64Url = token.split('.')[1]
-  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-  const jsonPayload = decodeURIComponent(
-    window
-      .atob(base64)
-      .split('')
-      .map(function (c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
-      })
-      .join('')
-  )
-
-  return JSON.parse(jsonPayload)
-}
-
+/** Reservation of the current session (served from the backend cache). */
 export function useResDetails() {
-  const cookie = cookies.get('_auth')
-  if (!cookie) return null
-  const { payload } = parseJwt(cookie)
-  return payload as ResDetails
+  return useQuery({
+    queryKey: resDetailsQueryKey,
+    queryFn: async (): Promise<ResDetails | null> => {
+      const res = await authedClient.me.$get()
+      if (!res.ok) {
+        // 401 comes from the session middleware, outside the route types
+        if ((res.status as number) === 401) {
+          return null
+        }
+        throw new Error(res.statusText)
+      }
+      return (await res.json()) as ResDetails
+    },
+    staleTime: Infinity,
+    retry: false,
+  })
 }

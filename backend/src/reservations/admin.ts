@@ -9,6 +9,7 @@ export const adminRes = () =>
     number: process.env.ADMIN_RES_NUMBER,
     first_name: process.env.ADMIN_LAST_NAME,
     last_name: process.env.ADMIN_LAST_NAME,
+    status: 'confirmed',
     email: '',
     number_str: '',
     auth: '',

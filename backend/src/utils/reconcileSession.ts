@@ -69,6 +69,17 @@ export function enqueueStopSession(
   )
 }
 
+/** Retry delay when the device did not confirm a STOP. */
+export const STOP_RETRY_DELAY_MS = 30_000
+
+/**
+ * The device did not confirm a STOP: replace pending stop messages with one
+ * retry that applies to whatever session is current, so it is not skipped.
+ */
+export function enqueueStopRetry(deviceId: string) {
+  enqueueStopSession(deviceId, STOP_RETRY_DELAY_MS)
+}
+
 export function enqueueStopEco(deviceId: string, delayMs: number) {
   cancelPendingMessages(deviceId, 'stop-eco')
   enqueueMessage(

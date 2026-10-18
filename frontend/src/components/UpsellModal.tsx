@@ -12,7 +12,7 @@ export const UpsellModal = ({
   handleClose: () => void
 }) => {
   const { t } = useTranslation()
-  const resDetails = useResDetails()
+  const { data: resDetails } = useResDetails()
 
   return (
     <AppDialog
