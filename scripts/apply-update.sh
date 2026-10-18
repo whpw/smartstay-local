@@ -171,6 +171,7 @@ migrate_inplace_tree_aside() {
   stamp="$(date +%Y%m%d%H%M%S)"
   local aside="$SMARTSTAY_HOME/.legacy-inplace-$stamp"
   mkdir -p "$aside"
+  LEGACY_ASIDE="$aside"
   log "Migrating legacy in-place tree aside → $aside"
   local item
   for item in "$SMARTSTAY_HOME"/*; do
@@ -259,10 +260,30 @@ PREVIOUS_LINK="$(readlink "$CURRENT_LINK" 2>/dev/null || true)"
 # Set once the service was stopped: from then on a failure restores PREVIOUS_LINK.
 NEEDS_RESTORE=0
 UPDATE_DONE=0
+# Where migrate_inplace_tree_aside moved a legacy in-place install to.
+LEGACY_ASIDE=""
+
+restore_legacy_tree() {
+  log "Restoring legacy in-place install from $LEGACY_ASIDE"
+  rm -f "$CURRENT_LINK"
+  local item
+  for item in "$LEGACY_ASIDE"/*; do
+    [[ -e "$item" ]] || continue
+    mv "$item" "$SMARTSTAY_HOME/" || log "ERROR: cannot restore $item"
+  done
+  rmdir "$LEGACY_ASIDE" 2>/dev/null || true
+  free_app_port
+  release_lock
+  try_systemctl start || log "ERROR: cannot start $SERVICE_NAME after rollback"
+}
 
 restore_previous() {
   if [[ -z "$PREVIOUS_LINK" ]]; then
-    log "ERROR: no previous release to restore"
+    if [[ -n "$LEGACY_ASIDE" && -d "$LEGACY_ASIDE" ]]; then
+      restore_legacy_tree
+    else
+      log "ERROR: no previous release to restore"
+    fi
     return 0
   fi
   log "Restoring previous release $PREVIOUS_LINK"
