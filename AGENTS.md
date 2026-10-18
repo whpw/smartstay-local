@@ -1,5 +1,13 @@
 # AGENTS.md
 
+## Required validation after code changes
+
+- Use `pnpm` from the repository root. Run `pnpm check` after each completed code change, before handing the result back or committing it. This runs Vitest once, TypeScript checking, and linting; do not use watch mode for final validation.
+- Fix failures introduced by your changes and rerun the checks after the final edit. Do not disable rules, skip tests, or use `--passWithNoTests` to obtain a passing result.
+- If an existing failure or environment issue blocks validation, report the exact failing command and reason. Run the remaining checks individually (`pnpm test`, `pnpm typecheck`, `pnpm lint`) so their results are still known. Never claim checks passed unless they ran successfully.
+- Add or update meaningful Vitest regression tests when changing behavior or fixing a bug. Tests must be self-contained; mock external services and physical devices.
+- Report validation results in the final response. Documentation-only changes do not require these code checks.
+
 ## Cursor Cloud specific instructions
 
 ### What this project is
@@ -30,10 +38,10 @@
 
 `pnpm dev` runs both packages in parallel:
 
-| Service | URL |
-|---------|-----|
+| Service                                   | URL                     |
+| ----------------------------------------- | ----------------------- |
 | Frontend (Vite, proxies `/api` → `:8081`) | `http://localhost:8080` |
-| Backend (Hono) | `http://localhost:8081` |
+| Backend (Hono)                            | `http://localhost:8081` |
 
 #### With mocked devices (recommended for UI work)
 
@@ -98,28 +106,24 @@ an admin path gated by `ADMIN_RES_NUMBER` / `ADMIN_LAST_NAME` env vars.
 
 ### Scripts (repo root)
 
-| Command | Purpose |
-|---------|---------|
-| `pnpm install` | Install workspace deps |
-| `pnpm dev` | Frontend + backend in parallel |
-| `pnpm typecheck` | `tsc` in both packages |
-| `pnpm build` | Frontend Vite build + backend esbuild bundle |
-| `pnpm start` | Run production backend (`dist`) |
-| `pnpm lint` | oxlint (check) |
-| `pnpm lint:fix` | oxlint `--fix` |
-| `pnpm format` | oxfmt `--check` |
-| `pnpm format:fix` | oxfmt (write) |
+| Command           | Purpose                                                 |
+| ----------------- | ------------------------------------------------------- |
+| `pnpm install`    | Install workspace deps                                  |
+| `pnpm dev`        | Frontend + backend in parallel                          |
+| `pnpm check`      | Vitest + typecheck + lint (required after code changes) |
+| `pnpm test`       | Run Vitest once                                         |
+| `pnpm typecheck`  | `tsc` in both packages                                  |
+| `pnpm build`      | Frontend Vite build + backend esbuild bundle            |
+| `pnpm start`      | Run production backend (`dist`)                         |
+| `pnpm lint`       | oxlint (check)                                          |
+| `pnpm lint:fix`   | oxlint `--fix`                                          |
+| `pnpm format`     | oxfmt `--check`                                         |
+| `pnpm format:fix` | oxfmt (write)                                           |
 
 ### Tests
 
-There is no root `test` script. The backend has plain `node:assert` scripts under
-`backend/src/utils/*.test.ts`; run one with:
-
-```bash
-pnpm --dir backend exec tsx src/utils/<name>.test.ts
-```
-
-(exit 0 = pass). They are self-contained and need no running server.
+Run `pnpm test` for all Vitest tests, or `pnpm test:watch` during development.
+Tests live alongside source as `*.test.ts` / `*.test.tsx`.
 
 ### Lint / format / hooks
 
