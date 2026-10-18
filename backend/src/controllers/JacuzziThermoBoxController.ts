@@ -341,9 +341,16 @@ export class JacuzziThermoBoxController extends DevController<
 
   /** The device did not confirm START: give the quota back and switch it off. */
   private async abortFailedStart(res: ResDetails) {
-    const refundableMode = this.persistentState.session?.refundableMode
-    if (refundableMode) {
-      refundSessionQuota(res, this.config.type, refundableMode)
+    const session = this.persistentState.session
+    const refundableMode = session?.refundableMode
+    if (session && refundableMode) {
+      // The start may have been counted on another day than the one it fails on
+      refundSessionQuota(
+        res,
+        this.config.type,
+        refundableMode,
+        quotaDayOf(session.startTime),
+      )
       // If the stop below is not confirmed either, the retained session must
       // not be refunded a second time by a later manual STOP
       this.patchSession({ refundableMode: null })
