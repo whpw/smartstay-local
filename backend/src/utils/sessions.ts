@@ -15,10 +15,15 @@ export type SessionQuotaMeta = {
   refundableMode: JacuzziSessionQuotaMode | null
 }
 
-function getToday() {
-  return formatISO(TZDate.tz(appConfig.tz), {
+/** Calendar day (object time zone) that per-day quota counters are keyed by. */
+export function quotaDayOf(timestamp: number) {
+  return formatISO(TZDate.tz(appConfig.tz, timestamp), {
     representation: 'date',
   })
+}
+
+function getToday() {
+  return quotaDayOf(Date.now())
 }
 
 function getSessionsSum(
@@ -219,8 +224,10 @@ export function refundSessionQuota(
   res: Pick<ResDetails, 'number' | 'departureDate'>,
   deviceType: DeviceType,
   refundableMode: JacuzziSessionQuotaMode,
+  /** Day of the consumed counter; defaults to today. */
+  day = getToday(),
 ) {
-  const today = getToday()
+  const today = day
   const key =
     refundableMode === 'per-session'
       ? toKey('sessions', deviceType, res.number, 'per-session')

@@ -39,6 +39,7 @@ import {
   canStartSession,
   incrementSessionsCount,
   isWithinStopGrace,
+  quotaDayOf,
   refundSessionQuota,
 } from '@/utils/sessions'
 import { terneoFetch } from '@/utils/terneo'
@@ -186,6 +187,7 @@ export class JacuzziTerneoController extends DevController<
                 number: res.number,
                 departureDate: res.departureDate,
                 mode: session.refundableMode,
+                day: quotaDayOf(session.startTime),
               },
             })
           }
@@ -315,7 +317,7 @@ export class JacuzziTerneoController extends DevController<
   private applyPendingRefund(previous: JacuzziPersistentState) {
     const pending = previous.session?.pendingRefund
     if (pending) {
-      refundSessionQuota(pending, this.config.type, pending.mode)
+      refundSessionQuota(pending, this.config.type, pending.mode, pending.day)
     }
   }
 

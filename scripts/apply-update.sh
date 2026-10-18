@@ -253,7 +253,8 @@ mkdir -p "$APPDATA_DIR" "$RELEASES_DIR" 2>/dev/null || true
 # Prevent systemd Restart= from bringing the app back while we replace files.
 printf '%s\n' "$VERSION" >"$OTA_LOCK_FILE"
 
-WORKDIR="$(mktemp -d /tmp/smartstay-apply-XXXXXX)"
+# Created after the EXIT trap is installed, so a failing mktemp still releases the lock.
+WORKDIR=""
 STAGING_DIR="$RELEASES_DIR/.incoming-$VERSION-$$"
 # Release `current` pointed at before the update ("" on a legacy in-place install).
 PREVIOUS_LINK="$(readlink "$CURRENT_LINK" 2>/dev/null || true)"
@@ -305,10 +306,13 @@ on_exit() {
       restore_previous
     fi
   fi
-  rm -rf "$WORKDIR" "$STAGING_DIR"
+  [[ -n "$WORKDIR" ]] && rm -rf "$WORKDIR"
+  rm -rf "$STAGING_DIR"
   release_lock
 }
 trap on_exit EXIT
+
+WORKDIR="$(mktemp -d /tmp/smartstay-apply-XXXXXX)"
 
 # Unpack and validate the release while the current version keeps running.
 log "Extracting $ARCHIVE (version $VERSION) into $WORKDIR"

@@ -38,6 +38,7 @@ import {
   canStartSession,
   incrementSessionsCount,
   isWithinStopGrace,
+  quotaDayOf,
   refundSessionQuota,
 } from '@/utils/sessions'
 import { waitUntilReady } from '@/utils/waitUntilReady'
@@ -210,6 +211,7 @@ export class JacuzziThermoBoxController extends DevController<
                 number: res.number,
                 departureDate: res.departureDate,
                 mode: session.refundableMode,
+                day: quotaDayOf(session.startTime),
               },
             })
           }
@@ -325,7 +327,7 @@ export class JacuzziThermoBoxController extends DevController<
   private applyPendingRefund(previous: JacuzziPersistentState) {
     const pending = previous.session?.pendingRefund
     if (pending) {
-      refundSessionQuota(pending, this.config.type, pending.mode)
+      refundSessionQuota(pending, this.config.type, pending.mode, pending.day)
     }
   }
 

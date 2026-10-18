@@ -72,6 +72,8 @@ export type JacuzziSession = {
     number: string
     departureDate: string
     mode: JacuzziSessionQuotaMode
+    /** Day of the per-day counter that was consumed. */
+    day: string
   }
 }
 
