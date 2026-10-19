@@ -586,6 +586,18 @@ export class JacuzziThermoBoxController extends DevController<
     })
   }
 
+  public override async exitEcoForOutage() {
+    if (this.state !== 'eco') {
+      return
+    }
+
+    cancelPendingMessages(this.config.id, 'stop-eco')
+    await this.updateState({
+      state: 'idle',
+      session: null,
+    })
+  }
+
   public override async toggleEcoMode(gap: GapInHours) {
     // This makes sense if gap is > 0
     if (gap > 0 && this.state !== 'initializing') {

@@ -7,7 +7,8 @@
     "submit": "Continue",
     "error": "Login failed :(",
     "errorEmpty": "Please fill all fields",
-    "errorNotArrivedYet": "Login is possible only during stay."
+    "errorNotArrivedYet": "Login is possible only during stay.",
+    "outage": "The internet or booking system has been unavailable for a while. Enter any reservation number and last name to continue until it is back."
   },
   "admin": {
     "login": {

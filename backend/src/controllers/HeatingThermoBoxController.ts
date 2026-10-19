@@ -26,6 +26,7 @@ import {
   type HeatingPersistentState,
   type HeatingViewData,
 } from '@/models'
+import { cancelPendingMessages } from '@/queue'
 import { enqueueStopEco } from '@/utils/reconcileSession'
 import {
   bleboxApiPrefixFromInfoIp,
@@ -452,6 +453,19 @@ export class HeatingThermoBoxController extends DevController<
     this.statePollingInterval = setInterval(() => {
       void pollState()
     }, 15_000)
+  }
+
+  public override async exitEcoForOutage() {
+    if (this.state !== 'eco') {
+      return
+    }
+
+    cancelPendingMessages(this.config.id, 'stop-eco')
+    await this.updateState({
+      state: 'active',
+      dayTemp: this.config.dayTemp,
+      nightTemp: this.config.nightTemp,
+    })
   }
 
   public override async toggleEcoMode(gap: GapInHours) {

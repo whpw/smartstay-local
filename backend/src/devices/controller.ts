@@ -43,6 +43,11 @@ export abstract class DevController<
     // Doing nothing
   }
 
+  /** Leave eco after a long internet outage so guests can set a normal temperature. */
+  public async exitEcoForOutage() {
+    // Doing nothing
+  }
+
   constructor(config: T) {
     this.config = config
     this.logger = createLogger(`${this.constructor.name}[${this.config.name}]`)

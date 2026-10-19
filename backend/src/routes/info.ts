@@ -1,4 +1,5 @@
 import { db } from '@/db'
+import { isExtendedOutage } from '@/utils/internet-outage'
 import { APP_VERSION } from '@/version'
 import { Hono } from 'hono'
 
@@ -11,6 +12,7 @@ const api = new Hono().get('/info', async (c) => {
       objectName: config.objectName,
       roomName: config.roomName ?? null,
       version: APP_VERSION,
+      outageUnlocked: isExtendedOutage(),
     },
     200,
   )
