@@ -18,7 +18,11 @@ import {
   isStopMessageCurrent,
   reconcileLoadedSession,
 } from '@/utils/reconcileSession'
-import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
+import {
+  canStartSession,
+  incrementSessionsCount,
+  startDeniedError,
+} from '@/utils/sessions'
 
 const MINUTE = 60 * 1000
 
@@ -89,13 +93,11 @@ export class SaunaController extends DevController<SaunaConfig, SaunaViewData> {
     switch (actionToInvoke.type) {
       case SaunaActionType.START:
         {
-          const { allowed, res: sessionRes } = await canStartSession(
-            res,
-            this.config.type,
-          )
+          const startCheck = await canStartSession(res, this.config.type)
+          const { allowed, res: sessionRes } = startCheck
           if (!allowed) {
             return {
-              error: 'REACHED_LIMIT',
+              error: startDeniedError(startCheck),
             }
           }
 

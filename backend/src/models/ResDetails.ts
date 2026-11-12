@@ -34,6 +34,8 @@ export const $ResDetails = z.object({
   departureDate: z.string(),
   addons: z.array($AddonDTO),
   addonsUrl: z.string(),
+  /** Reservation total exceeds payments: only complimentary addons are usable. */
+  balanceDue: z.boolean().optional(),
 })
 
 export type AddonDTO = z.infer<typeof $AddonDTO>

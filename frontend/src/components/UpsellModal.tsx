@@ -7,9 +7,12 @@ import { AppDialog } from './AppDialog'
 export const UpsellModal = ({
   open,
   handleClose,
+  paymentDue = false,
 }: {
   open: boolean
   handleClose: () => void
+  /** Start refused because the reservation has an unpaid balance. */
+  paymentDue?: boolean
 }) => {
   const { t } = useTranslation()
   const resDetails = useResDetails()
@@ -18,7 +21,9 @@ export const UpsellModal = ({
     <AppDialog
       open={open}
       onClose={handleClose}
-      title={t('upsell-modal.title')}
+      title={t(
+        paymentDue ? 'upsell-modal.payment-due-title' : 'upsell-modal.title',
+      )}
       actions={
         <>
           <Button onClick={handleClose}>{t('upsell-modal.cancel')}</Button>
@@ -28,13 +33,19 @@ export const UpsellModal = ({
             target="_blank"
             variant="contained"
           >
-            {t('upsell-modal.buy')}
+            {t(
+              paymentDue ? 'upsell-modal.payment-due-pay' : 'upsell-modal.buy',
+            )}
           </Button>
         </>
       }
     >
       <Typography color="text.secondary">
-        {t('upsell-modal.details')}
+        {t(
+          paymentDue
+            ? 'upsell-modal.payment-due-details'
+            : 'upsell-modal.details',
+        )}
       </Typography>
     </AppDialog>
   )
