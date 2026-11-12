@@ -19,7 +19,11 @@ import {
   isStopMessageCurrent,
   reconcileLoadedSession,
 } from '@/utils/reconcileSession'
-import { canStartSession, incrementSessionsCount } from '@/utils/sessions'
+import {
+  canStartSession,
+  incrementSessionsCount,
+  startDeniedError,
+} from '@/utils/sessions'
 import { waitUntilReady } from '@/utils/waitUntilReady'
 import ky, { type KyInstance } from 'ky'
 
@@ -147,13 +151,11 @@ export class SaunaBoxController extends DevController<
             }
           }
 
-          const { allowed, res: sessionRes } = await canStartSession(
-            res,
-            this.config.type,
-          )
+          const startCheck = await canStartSession(res, this.config.type)
+          const { allowed, res: sessionRes } = startCheck
           if (!allowed) {
             return {
-              error: 'REACHED_LIMIT',
+              error: startDeniedError(startCheck),
             }
           }
 

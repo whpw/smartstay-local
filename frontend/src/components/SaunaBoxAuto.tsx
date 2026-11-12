@@ -31,6 +31,7 @@ export const SaunaBoxAuto = ({
   )
 
   const [upsellingModalOpen, setUpsellingModalOpen] = useState(false)
+  const [paymentDue, setPaymentDue] = useState(false)
 
   const { mutate: startSession } = useMutation({
     mutationFn: async () => {
@@ -45,7 +46,11 @@ export const SaunaBoxAuto = ({
       return res.json()
     },
     onSuccess: (data) => {
-      if ('error' in data && data.error === 'REACHED_LIMIT') {
+      if (
+        'error' in data &&
+        (data.error === 'REACHED_LIMIT' || data.error === 'PAYMENT_DUE')
+      ) {
+        setPaymentDue(data.error === 'PAYMENT_DUE')
         setUpsellingModalOpen(true)
         return
       }
@@ -158,6 +163,7 @@ export const SaunaBoxAuto = ({
 
       <UpsellModal
         open={upsellingModalOpen}
+        paymentDue={paymentDue}
         handleClose={() => setUpsellingModalOpen(false)}
       />
     </DeviceCard>

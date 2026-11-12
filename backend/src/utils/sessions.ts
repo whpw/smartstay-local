@@ -77,9 +77,19 @@ export function complimentaryQuantity(
     .reduce((sum, addon) => sum + addon.quantity, 0)
 }
 
+/**
+ * While the reservation has an unpaid balance, only complimentary addons
+ * count: a guest can't use what they added but haven't paid for.
+ */
+export function usableAddons(res: ResDetails): ResDetails['addons'] {
+  return res.balanceDue
+    ? res.addons.filter((addon) => addon.complimentary)
+    : res.addons
+}
+
 function canStartToday(res: ResDetails, deviceType: DeviceType, today: string) {
   const resNumber = res.number
-  const resAddons = res.addons
+  const resAddons = usableAddons(res)
 
   const perSessionQty = addonQuantity(resAddons, deviceType, 'per-session')
   const perDayQty = addonQuantity(resAddons, deviceType, 'per-day')
@@ -122,6 +132,12 @@ function canStartToday(res: ResDetails, deviceType: DeviceType, today: string) {
 export type CanStartSessionResult = {
   allowed: boolean
   res: ResDetails
+  /** Why start was refused: unpaid balance vs. quota used up. */
+  reason?: 'payment-due' | 'limit'
+}
+
+export function startDeniedError(result: CanStartSessionResult) {
+  return result.reason === 'payment-due' ? 'PAYMENT_DUE' : 'REACHED_LIMIT'
 }
 
 export async function canStartSession(
@@ -130,10 +146,8 @@ export async function canStartSession(
 ): Promise<CanStartSessionResult> {
   const today = getToday()
 
-  if (canStartToday(res, deviceType, today)) {
-    return { allowed: true, res }
-  }
-
+  // Always read the reservation fresh: the login cookie holds addons and
+  // payment status from login time, but guests add addons (and pay) later.
   const resDetails = await getResDetails(res.number, res.lastName).catch(
     (error) => {
       logger.error('Error getting reservation details', error)
@@ -141,12 +155,22 @@ export async function canStartSession(
   )
 
   if (!resDetails) {
+    // Hotres is unreachable: keep working rather than lock the guest out
     return { allowed: true, res }
   }
 
+  if (canStartToday(resDetails, deviceType, today)) {
+    return { allowed: true, res: resDetails }
+  }
+
+  const paidUpFine =
+    resDetails.balanceDue &&
+    canStartToday({ ...resDetails, balanceDue: false }, deviceType, today)
+
   return {
-    allowed: canStartToday(resDetails, deviceType, today),
+    allowed: false,
     res: resDetails,
+    reason: paidUpFine ? 'payment-due' : 'limit',
   }
 }
 
@@ -159,7 +183,7 @@ export function incrementSessionsCount(
 
   // Getting reservation number and addons
   const resNumber = res.number
-  const resAddons = res.addons
+  const resAddons = usableAddons(res)
 
   function incrementSessions(
     key: string,

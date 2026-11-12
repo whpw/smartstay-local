@@ -34,6 +34,7 @@ import { pushRemoteAlert } from '@/utils/remote-alerts'
 import { cancelPendingMessages } from '@/queue'
 import {
   canStartSession,
+  startDeniedError,
   incrementSessionsCount,
   isWithinStopGrace,
   refundSessionQuota,
@@ -176,13 +177,11 @@ export class JacuzziThermoBoxController extends DevController<
     switch (actionToInvoke.type) {
       case JacuzziActionType.START:
         {
-          const { allowed, res: sessionRes } = await canStartSession(
-            res,
-            this.config.type,
-          )
+          const startCheck = await canStartSession(res, this.config.type)
+          const { allowed, res: sessionRes } = startCheck
           if (!allowed) {
             return {
-              error: 'REACHED_LIMIT',
+              error: startDeniedError(startCheck),
             }
           }
 

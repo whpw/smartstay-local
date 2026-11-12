@@ -6,6 +6,7 @@ import { logger } from '@/utils/logger'
 import { isNowInStay, stayWindow } from '@/utils/stay-window'
 import { adminRes } from './admin'
 import { renderAddonsUrl } from './addons-url'
+import { hasBalanceDue } from './balance'
 import {
   applyComplimentaryAddons,
   normalizeComplimentaryAddons,
@@ -130,6 +131,7 @@ export async function getResDetails(
     firstName: res.first_name,
     lastName: res.last_name,
     addons,
+    balanceDue: hasBalanceDue(res.total, res.paid),
     addonsUrl: renderAddonsUrl(appConfig.hotresAddonsUrl, {
       oid: appConfig.hotresObjectId ?? '',
       resId: res.id,

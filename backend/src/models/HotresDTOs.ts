@@ -59,7 +59,8 @@ export interface HotresReservationDTO {
   total: number
   currency: string
   deposit: number
-  paid: string
+  /** Sum of paid payments; Hotres sends a number, older fixtures a string. */
+  paid: number | string
   discount: string | null
   before_discount: string
   arrival_date: string

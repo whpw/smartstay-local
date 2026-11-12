@@ -28,6 +28,7 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
   )
 
   const [upsellingModalOpen, setUpsellingModalOpen] = useState(false)
+  const [paymentDue, setPaymentDue] = useState(false)
   const [stopConfirmOpen, setStopConfirmOpen] = useState(false)
 
   const { mutate: startSession } = useMutation({
@@ -43,7 +44,11 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
       return res.json()
     },
     onSuccess: (data) => {
-      if ('error' in data && data.error === 'REACHED_LIMIT') {
+      if (
+        'error' in data &&
+        (data.error === 'REACHED_LIMIT' || data.error === 'PAYMENT_DUE')
+      ) {
+        setPaymentDue(data.error === 'PAYMENT_DUE')
         setUpsellingModalOpen(true)
         return
       }
@@ -181,6 +186,7 @@ export const JacuzziBox = ({ deviceId }: { deviceId: string }) => {
 
       <UpsellModal
         open={upsellingModalOpen}
+        paymentDue={paymentDue}
         handleClose={() => setUpsellingModalOpen(false)}
       />
 
