@@ -62,15 +62,34 @@ describe('start with an unpaid balance', () => {
     expect(result.allowed).toBe(true)
   })
 
-  it('refuses a sauna added but not paid, even if the login cookie allows it', async () => {
-    const stale = res({ addons: [paidSauna], balanceDue: false })
+  it('does not ask Hotres when login data already allows the start', async () => {
+    const cached = res({ addons: [paidSauna], balanceDue: false })
+    const result = await canStartSession(cached, 'sauna')
+    expect(result.allowed).toBe(true)
+    expect(getResDetails).not.toHaveBeenCalled()
+  })
+
+  it('refuses a sauna added after login and not paid (reservation 3678)', async () => {
+    // Login cookie: paid jacuzzi only, reservation settled
+    const cached = res({ addons: [paidJacuzzi], balanceDue: false })
     getResDetails.mockResolvedValue(
-      res({ addons: [paidSauna], balanceDue: true }),
+      res({ addons: [paidJacuzzi, paidSauna], balanceDue: true }),
     )
-    const result = await canStartSession(stale, 'sauna')
+    const result = await canStartSession(cached, 'sauna')
+    expect(getResDetails).toHaveBeenCalledTimes(1)
     expect(result.allowed).toBe(false)
     expect(result.reason).toBe('payment-due')
     expect(startDeniedError(result)).toBe('PAYMENT_DUE')
+  })
+
+  it('allows after the guest pays: stale balance triggers a fresh read', async () => {
+    const cached = res({ addons: [paidSauna], balanceDue: true })
+    getResDetails.mockResolvedValue(
+      res({ addons: [paidSauna], balanceDue: false }),
+    )
+    const result = await canStartSession(cached, 'sauna')
+    expect(getResDetails).toHaveBeenCalledTimes(1)
+    expect(result.allowed).toBe(true)
   })
 
   it('still grants the one complimentary jacuzzi session', async () => {

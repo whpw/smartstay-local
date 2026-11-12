@@ -146,8 +146,15 @@ export async function canStartSession(
 ): Promise<CanStartSessionResult> {
   const today = getToday()
 
-  // Always read the reservation fresh: the login cookie holds addons and
-  // payment status from login time, but guests add addons (and pay) later.
+  // Login-time data is enough when it already allows the start: the guest
+  // has the addon and the reservation was settled (or the free session is
+  // left). Hotres is asked only when it says no - the addon is missing,
+  // the quota looks used up, or a balance was due - because guests add
+  // addons and pay after logging in.
+  if (canStartToday(res, deviceType, today)) {
+    return { allowed: true, res }
+  }
+
   const resDetails = await getResDetails(res.number, res.lastName).catch(
     (error) => {
       logger.error('Error getting reservation details', error)
@@ -163,14 +170,14 @@ export async function canStartSession(
     return { allowed: true, res: resDetails }
   }
 
-  const paidUpFine =
+  const paymentOnlyReason =
     resDetails.balanceDue &&
     canStartToday({ ...resDetails, balanceDue: false }, deviceType, today)
 
   return {
     allowed: false,
     res: resDetails,
-    reason: paidUpFine ? 'payment-due' : 'limit',
+    reason: paymentOnlyReason ? 'payment-due' : 'limit',
   }
 }
 
